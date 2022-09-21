@@ -1,0 +1,21 @@
+---
+
+- name: deploy
+  hosts: docker-manager
+  tasks: 
+
+    - name: set ws_path
+      include_tasks: "{{ playbook_dir }}/../../../../.seed/ansible-tasks/ws-path.set.yml"
+      vars: 
+        path: "{{ playbook_dir }}/../../../../"
+
+    - name: set dir_name
+      include_tasks: "{{ ws_path }}/.seed/ansible-tasks/dir-name.set.yml"
+      vars:
+        set_count: 2
+
+    - name: remove stack service
+      include_tasks: "{{ ws_path }}/.seed/ansible-tasks/docker-stack.rm.yml"
+      vars:
+        stack_name: "{{ dir_name[0] }}"
+        stack_path: "{{ playbook_dir }}"
