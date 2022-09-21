@@ -1,0 +1,236 @@
+---
+
+
+- name: download
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --inventory $PWD/inventory-ssh.yml \
+        $PWD/../../openwrt/tailscale/ansible-playbook.deploy.yml
+  hosts: localhost
+  connection: local
+  tasks: 
+
+    - name: clear dir
+      ansible.builtin.file:
+        path: "{{ playbook_dir }}/openwrt-tailscale-enabler"
+        state: absent
+
+    - name: mkdir dir
+      ansible.builtin.file:
+        path: "{{ playbook_dir }}/openwrt-tailscale-enabler"
+        state: directory
+
+    - name: get latest release
+      ansible.builtin.uri:
+        url: https://api.github.com/repos/adyanth/openwrt-tailscale-enabler/releases/latest
+        return_content: true
+      register: json_reponse
+
+    - name: download latest release
+      ansible.builtin.get_url:
+        url: "{{ json_reponse.json.assets[0].browser_download_url }}"
+        dest: "{{ playbook_dir }}/openwrt-tailscale-enabler/openwrt-tailscale-enabler.tar.gz"
+
+    - name: extract latest release
+      ansible.builtin.unarchive:
+        src: "{{ playbook_dir }}/openwrt-tailscale-enabler/openwrt-tailscale-enabler.tar.gz"
+        dest: "{{ playbook_dir }}/openwrt-tailscale-enabler"
+
+    - name: clear latest release
+      ansible.builtin.file:
+        path: "{{ playbook_dir }}/openwrt-tailscale-enabler/openwrt-tailscale-enabler.tar.gz"
+        state: absent
+
+
+- name: deploy
+  hosts: openwrt
+  roles:
+    - gekmihesg.openwrt
+  tasks: 
+
+    - name: opkg jq
+      opkg:
+        update_cache: true
+        name: jq
+      ignore_errors: yes
+
+    - name: opkg libustream-openssl
+      opkg:
+        name: libustream-openssl
+      ignore_errors: yes
+
+    - name: opkg ca-bundle
+      opkg:
+        name: ca-bundle
+      ignore_errors: yes
+
+    - name: opkg kmod-tun
+      opkg:
+        name: kmod-tun
+      ignore_errors: yes
+
+    - name: copy file
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/openwrt-tailscale-enabler/" 
+        dest: /
+        mode: '0755'
+
+    - name: start service
+      ansible.builtin.shell: /etc/init.d/tailscale start
+
+    - name: enable service
+      ansible.builtin.shell: /etc/init.d/tailscale enable
+
+    - name: ls service
+      ansible.builtin.shell: ls /etc/rc.d/S*tailscale*
+      register: service_rc
+
+    - name: get lan network
+      ansible.builtin.shell: "ip route | grep src | grep br-lan | awk '{print $1}'"
+      register: network_lan
+
+    - name: up tailscale
+      ansible.builtin.shell: "tailscale up --advertise-routes={{ network_lan.stdout }} &> /tmp/tailscale.up.log"
+      register: shell_tailscale
+      async: 2592000               # 60*60*24*30 – 1 month
+      poll: 0
+
+    - name: sheep 5
+      ansible.builtin.pause:
+        seconds: 5
+
+    - name: check async status
+      ansible.builtin.async_status:
+        jid: "{{ shell_tailscale.ansible_job_id }}"
+      register: status_async
+
+    - name: check stdout stat
+      ansible.builtin.stat:
+        path: /tmp/tailscale.up.log
+      register: stat_stdout
+
+    - name: check stdout content
+      when: 
+        - not status_async.finished
+        - stat_stdout.stat.exists
+      ansible.builtin.shell: "grep -i 'http' /tmp/tailscale.up.log"
+      register: grep_stdout
+      until: grep_stdout.rc == 0
+      retries: 259200
+      delay: 10
+
+    - name: read stdout content
+      when: 
+        - stat_stdout.stat.exists
+      ansible.builtin.shell: "cat /tmp/tailscale.up.log"
+      register: content_stdout
+
+    - name: print stdout content
+      when: 
+        - stat_stdout.stat.exists
+      ansible.builtin.pause:
+        seconds: 1
+        prompt: |
+          {{ content_stdout.stdout }}
+
+    - name: check stdout status
+      ansible.builtin.async_status:
+        jid: "{{ shell_tailscale.ansible_job_id }}"
+      register: status_stdout
+      until: status_stdout.finished
+      retries: 1000
+      delay: 10
+    
+    - name: clear stdout file
+      ansible.builtin.file:
+        path: "/tmp/tailscale.up.log"
+        state: absent
+
+    - name: get tailscale network
+      ansible.builtin.shell: "ip addr show tailscale0 | grep 'inet ' | awk '{print $2}'"
+      register: network_tailscale
+
+    - name: print result
+      debug:
+        msg:
+          - "{{ service_rc }}"
+          - "{{ network_lan }}"
+          - "{{ network_tailscale }}"
+          - "{{ status_stdout }}"
+
+    - name: uci add tailscale.tailscale
+      uci:
+        command: set
+        key: network.tailscale
+        value: interface
+
+    - name: uci set network.tailscale
+      uci:
+        command: set
+        key: network.tailscale
+        value:
+          proto: 'static'
+          device: 'tailscale0'
+
+    - name: uci add_list network.tailscale
+      uci:
+        command: add_list
+        key: network.tailscale.ipaddr
+        value: "{{ network_tailscale.stdout }}"
+
+    - name: uci commit network
+      uci:
+        command: commit
+        key: network
+
+    - name: uci add firewall.tszone
+      uci:
+        command: set
+        key: firewall.tszone
+        value: zone
+
+    - name: uci set firewall.tszone
+      uci:
+        command: set
+        key: firewall.tszone
+        value:
+          input: 'ACCEPT'
+          output: 'ACCEPT'
+          name: 'tailscale'
+          masq: '1'
+          forward: 'ACCEPT'
+          network: 'tailscale'
+        
+    - name: uci add firewall.lanfwts
+      uci:
+        command: set
+        key: firewall.lanfwts
+        value: forwarding
+
+    - name: uci set firewall.lanfwts
+      uci:
+        command: set
+        key: firewall.lanfwts
+        value:
+          src: 'lan'
+          dest: 'tailscale'
+
+    - name: uci add firewall.tsfwlan
+      uci:
+        command: set
+        key: firewall.tsfwlan
+        value: forwarding
+
+    - name: uci set firewall.tsfwlan
+      uci:
+        command: set
+        key: firewall.tsfwlan
+        value:
+          src: 'tailscale'
+          dest: 'lan'
+
+    - name: uci commit firewall
+      uci:
+        command: commit
+        key: firewall
