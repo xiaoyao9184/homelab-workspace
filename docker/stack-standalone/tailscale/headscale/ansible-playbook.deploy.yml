@@ -1,0 +1,59 @@
+---
+
+- name: deploy
+  hosts: docker-manager
+  tasks: 
+
+    - name: set ws_path
+      include_tasks: "{{ playbook_dir }}/../../../../.seed/ansible-tasks/ws-path.set.yml"
+      vars: 
+        path: "{{ playbook_dir }}/../../../../"
+
+    - name: set dir_name
+      include_tasks: "{{ ws_path }}/.seed/ansible-tasks/dir-name.set.yml"
+      vars:
+        set_count: 2
+
+    - name: copy dir_path
+      include_tasks: "{{ ws_path }}/.seed/ansible-tasks/dir-path.copy.yml"
+
+    - name: add external_net
+      include_tasks: "{{ ws_path }}/.seed/ansible-tasks/docker-network.overlay.yml"
+      vars:
+        net_name:
+          - external_net-headscale
+
+    - name: add stack service
+      include_tasks: "{{ ws_path }}/.seed/ansible-tasks/docker-stack.add.yml"
+      vars:
+        stack_name: "{{ dir_name[0] }}"
+        stack_path: "{{ dir_path }}"
+
+    - name: get container id
+      shell: "docker ps -q -f label=com.docker.swarm.service.name={{ dir_name | join('_') }} | head -1"
+      register: result_container_id
+      until: "result_container_id.stdout != ''"
+      retries: 1000
+      delay: 10
+
+    - name: create headscale apikey
+      include_tasks: "{{ playbook_dir }}/ansible-tasks/apikey.create.yml"
+      vars:
+        _apikey:
+          container_id: "{{ result_container_id.stdout }}"
+
+    - name: create headscale namespace
+      include_tasks: "{{ playbook_dir }}/ansible-tasks/namespace.create.yml"
+      vars:
+        _namespace:
+          container_id: "{{ result_container_id.stdout }}"
+          name: default
+
+    - name: create headscale preauthkeys
+      include_tasks: "{{ playbook_dir }}/ansible-tasks/preauthkeys.create.yml"
+      vars:
+        _preauthkeys:
+          container_id: "{{ result_container_id.stdout }}"
+          namespace: default
+          expire: 240h
+

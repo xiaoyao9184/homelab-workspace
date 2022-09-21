@@ -1,0 +1,28 @@
+---
+
+
+- name: headscale set apikey
+  ansible.builtin.set_fact:
+    apikey:
+      container_id: "{{ _apikey.container_id }}"
+
+- name: headscale create apikey
+  community.docker.docker_container_exec:
+    container: "{{ apikey.container_id }}"
+    command: headscale apikey create
+  register: apikey_result
+
+- name: headscale set apikey.result
+  ansible.builtin.set_fact:
+    apikey: "{{ apikey | combine(update, recursive=True) }}"
+  vars:
+    update:
+      result: "{{ apikey_result.stdout }}"
+
+- name: headscale print apikey
+  debug:
+    var: apikey
+
+- name: headscale reset apikey_result
+  ansible.builtin.set_fact:
+    apikey_result: !!null

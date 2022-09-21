@@ -1,0 +1,43 @@
+---
+
+- name: headscale set node
+  ansible.builtin.set_fact:
+    node:
+      container_id: "{{ _node.container_id }}"
+
+- when: _node.id is undefined
+  block:
+    - name: headscale list node
+      community.docker.docker_container_exec:
+        container: "{{ node.container_id }}"
+        command: "headscale node list -o json"
+      register: node_result
+
+    - name: headscale set node.id
+      ansible.builtin.set_fact:
+        node: "{{ node | combine(update, recursive=True) }}"
+      vars:
+        update:
+          id: "{{ node_result.stdout | from_json | json_query('[].id') | default([], true) }}"
+
+- name: headscale delete node
+  community.docker.docker_container_exec:
+    container: "{{ node.container_id }}"
+    command: "headscale node delete --identifier {{ item }} --force"
+  loop: "{{ node.id }}"
+  register: node_result
+
+- name: headscale set node.result
+  ansible.builtin.set_fact:
+    node: "{{ node | combine(update, recursive=True) }}"
+  vars:
+    update:
+      result: "{{ node_result | json_query('results[].{item: item,result: stdout}') }}"
+
+- name: headscale print node
+  debug:
+    var: node
+
+- name: headscale reset node_result
+  ansible.builtin.set_fact:
+    node_result: !!null

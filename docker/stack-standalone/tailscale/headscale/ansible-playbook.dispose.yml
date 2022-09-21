@@ -1,0 +1,53 @@
+---
+
+- name: deploy
+  hosts: docker-manager
+  tasks: 
+
+    - name: set ws_path
+      include_tasks: "{{ playbook_dir }}/../../../../.seed/ansible-tasks/ws-path.set.yml"
+      vars: 
+        path: "{{ playbook_dir }}/../../../../"
+
+    - name: set dir_name
+      include_tasks: "{{ ws_path }}/.seed/ansible-tasks/dir-name.set.yml"
+      vars:
+        set_count: 2
+
+    - name: get container id
+      shell: "docker ps -q -f label=com.docker.swarm.service.name={{ dir_name | join('_') }} | head -1"
+      register: result_container_id
+
+    - name: expire headscale preauthkeys
+      when: "result_container_id.stdout != ''"
+      include_tasks: "{{ playbook_dir }}/ansible-tasks/preauthkeys.expire.yml"
+      vars:
+        _preauthkeys:
+          container_id: "{{ result_container_id.stdout }}"
+
+    - name: delete headscale node
+      when: "result_container_id.stdout != ''"
+      include_tasks: "{{ playbook_dir }}/ansible-tasks/node.delete.yml"
+      vars:
+        _node:
+          container_id: "{{ result_container_id.stdout }}"
+
+    - name: destroy headscale namespace
+      when: "result_container_id.stdout != ''"
+      include_tasks: "{{ playbook_dir }}/ansible-tasks/namespace.destroy.yml"
+      vars:
+        _namespace:
+          container_id: "{{ result_container_id.stdout }}"
+
+    - name: expire headscale apikey
+      when: "result_container_id.stdout != ''"
+      include_tasks: "{{ playbook_dir }}/ansible-tasks/apikey.expire.yml"
+      vars:
+        _apikey:
+          container_id: "{{ result_container_id.stdout }}"
+
+    - name: remove stack service
+      include_tasks: "{{ ws_path }}/.seed/ansible-tasks/docker-stack.rm.yml"
+      vars:
+        stack_name: "{{ dir_name[0] }}"
+        stack_path: "{{ playbook_dir }}"

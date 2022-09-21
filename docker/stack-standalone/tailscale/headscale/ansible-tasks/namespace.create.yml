@@ -1,0 +1,29 @@
+---
+
+
+- name: headscale set namespace
+  ansible.builtin.set_fact:
+    namespace:
+      name: "{{ _namespace.name | default('default') }}"
+      container_id: "{{ _namespace.container_id }}"
+
+- name: headscale create namespace
+  community.docker.docker_container_exec:
+    container: "{{ namespace.container_id }}"
+    command: "headscale namespaces create {{ namespace.name }}"
+  register: namespace_result
+
+- name: headscale set namespace.result
+  ansible.builtin.set_fact:
+    namespace: "{{ namespace | combine(update, recursive=True) }}"
+  vars:
+    update:
+      result: "{{ namespace_result.stdout }}"
+
+- name: headscale print namespace
+  debug:
+    var: namespace
+
+- name: headscale reset namespace_result
+  ansible.builtin.set_fact:
+    namespace_result: !!null
