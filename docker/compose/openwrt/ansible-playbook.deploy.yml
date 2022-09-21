@@ -1,0 +1,98 @@
+---
+
+
+- name: download
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  tasks:
+
+    - name: git source
+      ansible.builtin.git:
+        repo: https://github.com/xiaoyao9184/docker-openwrt.git
+        dest: "{{ playbook_dir }}/docker-openwrt"
+        version: master
+
+- name: deploy
+  hosts: docker-openwrt
+  
+  tasks: 
+
+    - name: set ws_path
+      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/ws-path.set.yml"
+      vars: 
+        path: "{{ playbook_dir }}/../../../"
+
+    - name: set dir_name
+      include_tasks: "{{ ws_path }}/.seed/ansible-tasks/dir-name.set.yml"
+
+    - name: copy dir_path
+      include_tasks: "{{ ws_path }}/.seed/ansible-tasks/dir-path.copy.yml"
+
+    - name: copy wrt_path
+      vars:
+        wrt_path:
+          conf: "{{ inventory_dir }}/{{ config_file }}"
+          etc: "{{ inventory_dir }}/{{ etc_path }}"
+      block:
+        - name: get wrt_path.conf stat
+          delegate_to: localhost
+          connection: local
+          ansible.builtin.stat:
+            path: "{{ wrt_path.conf }}"
+          register: wrt_path_conf
+
+        - name: get wrt_path.etc stat
+          delegate_to: localhost
+          connection: local
+          ansible.builtin.stat:
+            path: "{{ wrt_path.etc }}"
+          register: wrt_path_etc
+
+        - name: copy wrt_path.conf to remote
+          when: wrt_path_conf.stat.exists
+          ansible.builtin.copy:
+            src: "{{ wrt_path.conf }}"
+            dest: "{{ dir_path }}/docker-openwrt/openwrt.conf"
+            owner: root
+            group: root
+            mode: '0777'
+
+        - name: copy wrt_path.etc to remote
+          ansible.builtin.copy:
+            src: "{{ wrt_path.etc }}/"
+            dest: "{{ dir_path }}/docker-openwrt/etc/config"
+            owner: root
+            group: root
+            mode: '0777'
+
+    - name: pull image
+      community.docker.docker_image:
+        name: "{{ image }}"
+        source: pull
+
+    - name: add service
+      ansible.builtin.blockinfile:
+        path: "/etc/systemd/system/{{ dir_name[0] }}.service"
+        create: yes
+        block: |
+          [Unit]
+          Description={{ dir_name[0] }}
+          Requires=docker.service
+          After=docker.service
+
+          [Service]
+          Restart=always
+          User=root
+          Group=docker
+          WorkingDirectory={{ dir_path }}/docker-openwrt
+          ExecStart=/bin/bash -c "./run.sh"
+
+          [Install]
+          WantedBy=multi-user.target
+    
+    - name: run service
+      ansible.builtin.systemd:
+        state: started
+        daemon_reload: yes
+        name: "{{ dir_name[0] }}"
