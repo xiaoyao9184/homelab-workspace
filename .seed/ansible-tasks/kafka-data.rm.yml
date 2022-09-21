@@ -1,0 +1,56 @@
+---
+
+- name: reset kafka group in topic
+  when:
+    - rm_group is defined
+    - rm_topic is defined
+  community.docker.docker_container:
+    name: "rm-kafka.{{ rm_name }}-{{ rm_group }}_{{ rm_topic }}"
+    state: started
+    image: wurstmeister/kafka:2.13-2.7.0
+    command: "kafka-consumer-groups.sh --bootstrap-server kafka:9092 --group {{ rm_group }} --topic {{ rm_topic }} --reset-offsets --to-offset 0 --execute"
+    networks: "{{ rm_network | map('community.general.dict_kv', 'name') }}"
+    labels:
+      "com.docker.stack.namespace": seed
+      "com.github.xiaoyao9184.docker-seed.type": "kafka-data.rm"
+      "com.github.xiaoyao9184.docker-seed.creator": "{{ lookup('ansible.builtin.env', 'SEED_NAME', default='kafka-data.rm') }}"
+  register: result_reset_kafka
+  until: "result_reset_kafka.status is 0"
+  retries: 1000
+  delay: 10
+
+- name: dele kafka group
+  when:
+    - rm_group is defined
+  community.docker.docker_container:
+    name: "rm-kafka.{{ rm_name }}-{{ rm_group }}"
+    state: started
+    image: wurstmeister/kafka:2.13-2.7.0
+    command: "kafka-consumer-groups.sh --bootstrap-server kafka:9092 --group {{ rm_group }} --delete"
+    networks: "{{ rm_network | map('community.general.dict_kv', 'name') }}"
+    labels:
+      "com.docker.stack.namespace": seed
+      "com.github.xiaoyao9184.docker-seed.type": "kafka-data.rm"
+      "com.github.xiaoyao9184.docker-seed.creator": "{{ lookup('ansible.builtin.env', 'SEED_NAME', default='kafka-data.rm') }}"
+  register: result_dele_kafka_group
+  until: "result_dele_kafka_group.status is 0"
+  retries: 1000
+  delay: 10
+
+- name: dele kafka topic
+  when:
+    - rm_topic is defined
+  community.docker.docker_container:
+    name: "rm-kafka.{{ rm_name }}-{{ rm_topic }}"
+    state: started
+    image: wurstmeister/kafka:2.13-2.7.0
+    command: "kafka-consumer-groups.sh --bootstrap-server kafka:9092 --topic {{ rm_topic }} --delete"
+    networks: "{{ rm_network | map('community.general.dict_kv', 'name') }}"
+    labels:
+      "com.docker.stack.namespace": seed
+      "com.github.xiaoyao9184.docker-seed.type": "kafka-data.rm"
+      "com.github.xiaoyao9184.docker-seed.creator": "{{ lookup('ansible.builtin.env', 'SEED_NAME', default='kafka-data.rm') }}"
+  register: result_dele_kafka_group
+  until: "result_dele_kafka_group.status is 0"
+  retries: 1000
+  delay: 10

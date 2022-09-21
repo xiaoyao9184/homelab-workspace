@@ -1,0 +1,30 @@
+- name: find workspace look up of path
+  block:
+
+    - name: check seed-path exists
+      stat:
+        path: "{{ ws_path }}/.seed"
+      register: seed_path_result
+
+    - name: fail seed-path not exists
+      when: not seed_path_result.stat.exists
+      ansible.builtin.fail:
+        msg: "not workspace {{ ws_path }}"
+
+  rescue:
+    - name: cant find workspace
+      when: ws_path == '/'
+      fail:
+        msg: Cant find worksapce
+
+    - name: get parent of path
+      set_fact:
+        up_path: "{{ ws_path | dirname }}"
+
+    - name: print parent of path
+      debug:
+        msg: "failed to find - look up {{ up_path }}"
+
+    - include_tasks: ws-path.find.yml
+      vars:
+        ws_path: "{{ up_path }}"

@@ -1,0 +1,22 @@
+---
+
+- name: host-port.wait
+  hosts: localhost
+  connection: local
+  tasks: 
+
+    - name: set wait_port_param
+      ansible.builtin.set_fact:
+        wait_port_param: "{{ wait_port | b64decode | from_json | dict2items | json_query('[].{host: key, port: value}') }}"
+
+    - name: debug wait_port_param 
+      ansible.builtin.debug:
+        var: wait_port_param
+
+    - name: wait 7 days for port open
+      ansible.builtin.wait_for:
+        timeout: 604800
+        delay: 10
+        port: "{{ item.port }}"
+        host: "{{ item.host }}"
+      loop: "{{ wait_port_param }}"

@@ -1,0 +1,16 @@
+---
+
+
+- name: permissions docker sock 
+  ansible.builtin.file:
+    path: /var/run/docker.sock
+    mode: u=rw,g=rw,o=rw
+
+- name: stat docker sock
+  ansible.builtin.stat:
+    path: /var/run/docker.sock
+  register: stat_docker_sock
+
+- name: print docker sock
+  ansible.builtin.debug:
+    var: stat_docker_sock

@@ -1,0 +1,20 @@
+---
+
+
+- name: remove connector to debezium
+  community.docker.docker_container:
+    name: "rm-connector.{{ rm_name }}"
+    state: started
+    image: debezium/tooling:latest
+    command: "curl -i -X DELETE -H 'Accept:application/json' -H 'Content-Type:application/json' connect:8083/connectors/{{ rm_container }}"
+    networks: "{{ rm_network | map('community.general.dict_kv', 'name') }}"
+    volumes:
+      - "{{ add_volume }}:/connector"
+    labels:
+      "com.docker.stack.namespace": seed
+      "com.github.xiaoyao9184.docker-seed.type": "debezium-container.rm"
+      "com.github.xiaoyao9184.docker-seed.creator": "{{ lookup('ansible.builtin.env', 'SEED_NAME', default='debezium-container.rm') }}"
+  register: result_connector_debezium
+  until: "result_connector_debezium is not failed"
+  retries: 1000
+  delay: 10

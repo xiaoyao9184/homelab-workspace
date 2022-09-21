@@ -1,0 +1,54 @@
+---
+
+- when: stack_path is undefined
+  block:
+    - name: remove stack from docker
+      community.docker.docker_stack:
+        state: absent
+        name: "{{ stack_name }}"
+
+- when: stack_path is defined
+  block:
+    - name: read compose
+      ansible.builtin.include_vars:
+        file: "{{ stack_path }}/{{ stack_file | default('docker-compose-swarm.yml') }}"
+        name: compose
+
+    - name: set rm_stack
+      ansible.builtin.set_fact:
+        rm_stack:
+          services: "{{ compose | json_query('keys(services)') }}" 
+          configs: "{{ compose.configs | default({}) | dict2items | json_query(query_internal) }}"
+          volumes: "{{ compose.volumes | default({}) | dict2items | json_query(query_internal) }}"
+      vars:
+        query_internal: "[? value.external!=`true`].key"
+
+    - name: remove service from stack
+      community.docker.docker_swarm_service:
+        name: "{{ stack_name }}_{{ item }}"
+        state: absent
+      loop: "{{ rm_stack.services }}"
+      register: result_rm_service
+      until: "result_rm_service is not failed"
+      retries: 1000
+      delay: 10
+
+    - name: remove config from stack
+      community.docker.docker_config:
+        name: "{{ stack_name }}_{{ item }}"
+        state: absent
+      loop: "{{ rm_stack.configs }}"
+      register: result_rm_config
+      until: "result_rm_config is not failed"
+      retries: 1000
+      delay: 10
+
+    - name: remove volume from stack
+      community.docker.docker_volume:
+        name: "{{ stack_name }}_{{ item }}"
+        state: absent
+      loop: "{{ rm_stack.volumes }}"
+      register: result_rm_volume
+      until: "result_rm_volume is not failed"
+      retries: 1000
+      delay: 10

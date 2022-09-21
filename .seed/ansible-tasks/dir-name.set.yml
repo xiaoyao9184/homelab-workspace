@@ -1,0 +1,39 @@
+---
+
+
+- name: set dir_current
+  when: dir_current | default(None) == None
+  ansible.builtin.set_fact:
+    dir_name: []
+    dir_current: "{{ playbook_dir }}"
+    dir_lookup: "{{ set_count | default(1) | int }}"
+
+- name: get dir_basename
+  ansible.builtin.set_fact:
+    dir_basename: "{{ dir_current | basename }}"
+
+- name: add to dir_name
+  ansible.builtin.set_fact:
+    dir_name: "{{ [ dir_basename ] + dir_name }}"
+    dir_current: "{{ dir_current | dirname }}"
+    dir_lookup: "{{ dir_lookup | int - 1 }}"
+
+# https://medium.com/opsops/how-to-undefine-fact-in-ansible-5fff46432360
+- name: reset vars
+  when: 
+    - dir_lookup | int <= 0
+  ansible.builtin.set_fact:
+    dir_lookup: !!null
+    dir_current: !!null
+    dir_basename: !!null
+
+- name: print dir_name
+  when: 
+    - dir_lookup | int <= 0
+  ansible.builtin.debug:
+    var: dir_name
+
+- name: lookup dir_name
+  when: 
+    - dir_lookup | int > 0
+  include_tasks: "{{ ws_path }}/.seed/ansible-tasks/dir-name.set.yml"

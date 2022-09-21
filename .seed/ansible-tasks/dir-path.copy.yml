@@ -1,0 +1,34 @@
+---
+
+
+- name: set fact for docker-seed-local
+  when: 
+    - lookup('ansible.builtin.env', 'SEED_NAME') != ''
+    - ansible_connection == 'local'
+  ansible.builtin.set_fact:
+    seed_in_docker_connect_local: true
+
+- name: set dir_path:docker-seed-local
+  when: seed_in_docker_connect_local is defined
+  ansible.builtin.set_fact:
+    dir_path: "{{ copy_path | default(playbook_dir) | realpath }}"
+
+- name: set dir_path
+  when: seed_in_docker_connect_local is undefined
+  ansible.builtin.set_fact:
+    dir_path: "{{ copy_path | default(playbook_dir) | realpath | replace(ws_path,workspace.remote) }}"
+
+- name: print dir_path
+  ansible.builtin.debug:
+    msg: 
+      - "dir {{ dir_path }}"
+      - "from {{ copy_path | default(playbook_dir) | realpath }}"
+
+- name: copy dir_path to remote
+  when: seed_in_docker_connect_local is undefined
+  ansible.builtin.copy:
+    src: "{{ copy_path | default(playbook_dir) | realpath }}/"
+    dest: "{{ dir_path }}"
+    owner: root
+    group: root
+    mode: '0777'

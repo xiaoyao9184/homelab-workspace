@@ -1,0 +1,9 @@
+---
+
+
+- name: add label for node
+  community.docker.docker_node:
+    hostname: "{{ item.hostname }}"
+    labels: "{{ item.labels }}"
+  loop: "{{ stack_label }}"
+  

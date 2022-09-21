@@ -1,0 +1,30 @@
+---
+
+
+- name: get network
+  community.docker.docker_network_info:
+    name: "{{ item }}"
+  register: result_network
+  loop: "{{ net_name }}"
+
+- name: print network
+  ansible.builtin.debug:
+    msg: 
+      - "not exists network"
+      - "{{ result_network.results | selectattr('exists', 'equalto', false) | map(attribute='item') }}"
+
+- name: not exists network
+  ansible.builtin.set_fact:
+    net_not_exists: "{{ result_network.results | selectattr('exists', 'equalto', false) | map(attribute='item') }}"
+
+- name: add network to overlay
+  community.docker.docker_network:
+    state: present
+    name: "{{ item }}"
+    driver: overlay
+    attachable: true
+    labels:
+      "com.docker.stack.namespace": seed
+      "com.github.xiaoyao9184.docker-seed.type": "docker-network.overlay"
+      "com.github.xiaoyao9184.docker-seed.creator": "{{ lookup('ansible.builtin.env', 'SEED_NAME', default='docker-network.overlay') }}"
+  loop: "{{ net_not_exists }}"

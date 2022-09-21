@@ -1,0 +1,25 @@
+---
+
+
+- name: run job to jenkins
+  community.docker.docker_container:
+    name: "add-job.{{ add_name }}.{{ item.name | replace('/','.') }}"
+    state: started
+    image: dynamictivity/jenkins-cli
+    detach: false
+    entrypoint: "/bin/bash"
+    command: "-c 'java -jar jenkins-cli.jar -s {{ jenkins_server }} -auth {{ jenkins_user }}:{{ jenkins_password }} create-job {{ item.name }} < /job/{{ item.file }}'"
+    env:
+      JENKINS_URL: "{{ jenkins_server }}"
+    networks: "{{ add_network | map('community.general.dict_kv', 'name') }}"
+    volumes:
+      - "{{ add_volume }}:/job"
+    labels:
+      "com.docker.stack.namespace": seed
+      "com.github.xiaoyao9184.docker-seed.type": "jenkins-job.add"
+      "com.github.xiaoyao9184.docker-seed.creator": "{{ lookup('ansible.builtin.env', 'SEED_NAME', default='jenkins-job.add') }}"
+  register: result_job_jenkins
+  until: "result_job_jenkins is not failed"
+  retries: 1000
+  delay: 10
+  loop: "{{ add_job }}"

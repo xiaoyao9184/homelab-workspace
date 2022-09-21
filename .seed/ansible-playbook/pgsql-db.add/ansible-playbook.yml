@@ -1,0 +1,17 @@
+---
+
+- name: pgsql-db.add
+  hosts: localhost
+  connection: local
+  tasks: 
+
+    - name: set postgresql_db_param
+      ansible.builtin.set_fact:
+        postgresql_db_param: "{{ add_pgdb | b64decode | from_json }}"
+
+    - name: debug postgresql_db_param 
+      ansible.builtin.debug:
+        var: postgresql_db_param
+
+    - name: create database
+      community.postgresql.postgresql_db: "{{ postgresql_db_param }}"

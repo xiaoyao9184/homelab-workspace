@@ -1,0 +1,37 @@
+---
+
+
+- name: loop container
+  block:
+
+    - name: get loop container info
+      community.docker.docker_container_info:
+        name: "{{ container_name }}"
+      register: loop_docker_result
+    
+    - name: print loop_docker_result
+      debug:
+        var: loop_docker_result.container.State
+
+    - name: fail loop container running
+      when: 
+        - loop_docker_result.exists
+        - loop_docker_result.container.State.Running
+      ansible.builtin.fail:
+        msg: "still loop container {{ container_name }}"
+
+  rescue:
+    
+    - name: fail loop container error
+      when: 
+        - not loop_docker_result.container.State.Running
+        - loop_docker_result.container.State.ExitCode != 0
+      ansible.builtin.fail:
+        msg: "fail loop container {{ container_name }}"
+    
+    - name: sleep 15 seconds loop container
+      pause:
+        seconds: 15
+
+    - include_tasks: "{{ ws_path }}/.seed/ansible-tasks/docker-container.loop.yml"
+

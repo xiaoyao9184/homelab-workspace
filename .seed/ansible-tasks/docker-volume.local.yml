@@ -1,0 +1,81 @@
+---
+
+- name: check dir exists
+  when:
+    - vol_src is defined
+  ansible.builtin.stat:
+    path: "{{ vol_src }}"
+  register: vol_src_result
+
+- name: copy dir to remote
+  when:
+    - vol_src is defined
+    - vol_src_result.stat.exists
+  ansible.builtin.copy:
+    src: "{{ vol_src }}/"
+    dest: "{{ vol_path | realpath }}"
+    owner: root
+    group: root
+    mode: '0777'
+
+- name: create a none-device volume
+  community.docker.docker_volume:
+    name: "{{ vol_name }}"
+    labels:
+      "com.docker.stack.namespace": seed
+      "com.github.xiaoyao9184.docker-seed.type": "docker-volume.local"
+      "com.github.xiaoyao9184.docker-seed.creator": "{{ lookup('ansible.builtin.env', 'SEED_NAME', default='docker-volume.local') }}"
+
+- name: start volume container
+  community.docker.docker_container:
+    name: "local-volume.{{ vol_name }}"
+    state: started
+    image: alpine
+    command: "tail -f /dev/null"
+    volumes:
+      - "{{ vol_name }}:/seed_vol"
+    labels:
+      "com.docker.stack.namespace": seed
+      "com.github.xiaoyao9184.docker-seed.type": "docker-volume.local"
+      "com.github.xiaoyao9184.docker-seed.creator": "{{ lookup('ansible.builtin.env', 'SEED_NAME', default='docker-volume.local') }}"
+  register: result_volume_container
+  until: "result_volume_container is not failed"
+  retries: 1000
+  delay: 10
+
+- name: copy dir to volume container
+  ansible.builtin.shell: "docker cp {{ vol_path | realpath }}/. local-volume.{{ vol_name }}:/seed_vol"
+
+- name: make dir to volume container
+  when: vol_mkdir is defined
+  community.docker.docker_container_exec:
+    container: "local-volume.{{ vol_name }}"
+    command: "mkdir {{ vol_mkdir | join(' ') }}" 
+
+- name: run volume chmod
+  when: vol_chmod is defined
+  community.docker.docker_container_exec:
+    container: "local-volume.{{ vol_name }}"
+    command: "chmod -R {{ vol_chmod }} /seed_vol"
+
+- name: run volume ls
+  community.docker.docker_container_exec:
+    container: "local-volume.{{ vol_name }}"
+    command: ls -l /seed_vol
+  register: ls_result
+
+- name: print volume ls
+  ansible.builtin.pause:
+    seconds: 1
+    prompt: |
+      {{ ls_result.stdout }}
+
+- name: stop volume container
+  community.docker.docker_container:
+    name: "local-volume.{{ vol_name }}"
+    state: stopped
+
+- name: remove volume container
+  community.docker.docker_container:
+    name: "local-volume.{{ vol_name }}"
+    state: absent

@@ -1,0 +1,34 @@
+---
+
+
+- name: loop mount
+  block:
+
+    - name: mount loop_nfs.point
+      ansible.posix.mount:
+        src: "{{ loop_nfs.point }}"
+        path: "{{ loop_nfs.mount }}"
+        fstype: nfs
+        opts: "vers=4,loud,rw,sync"
+        state: mounted
+      register: loop_nfs_result
+    
+    - name: print loop_nfs_result
+      debug:
+        var: loop_nfs_result
+
+    - name: remove loop_nfs.mount
+      when:
+        - loop_nfs.remove is defined
+        - loop_nfs.remove
+      ansible.posix.mount:
+        path: "{{ loop_nfs.mount }}"
+        state: unmounted
+
+  rescue:
+    
+    - name: sleep 15 seconds loop mount
+      pause:
+        seconds: 15
+
+    - include_tasks: "{{ ws_path }}/.seed/ansible-tasks/nfs-mount.loop.yml"
