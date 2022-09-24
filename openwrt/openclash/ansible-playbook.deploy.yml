@@ -1,0 +1,206 @@
+---
+
+
+- name: download
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --inventory $PWD/inventory-ssh.yml \
+        $PWD/../../openwrt/openclash/ansible-playbook.deploy.yml
+  hosts: localhost
+  connection: local
+  tasks: 
+
+    - name: clear dir
+      ansible.builtin.file:
+        path: "{{ playbook_dir }}/luci-app-openclash"
+        state: absent
+
+    - name: mkdir dir
+      ansible.builtin.file:
+        path: "{{ playbook_dir }}/luci-app-openclash"
+        state: directory
+
+    - name: get latest release
+      ansible.builtin.uri:
+        url: https://api.github.com/repos/vernesong/OpenClash/releases
+        return_content: true
+      register: json_reponse
+
+    - name: download latest release
+      ansible.builtin.get_url:
+        url: "{{ json_reponse.json[0].assets[0].browser_download_url }}"
+        dest: "{{ playbook_dir }}/luci-app-openclash/luci-app-openclash.ipk"
+
+- name: deploy
+  hosts: openwrt
+  roles:
+    - gekmihesg.openwrt
+  tasks: 
+
+    - name: opkg bash
+      opkg:
+        update_cache: true
+        name: bash
+      ignore_errors: yes
+
+    - name: opkg coreutils-nohup
+      opkg:
+        name: coreutils-nohup
+      ignore_errors: yes
+
+    - name: opkg curl
+      opkg:
+        name: curl
+      ignore_errors: yes
+
+    - name: opkg ca-certificates
+      opkg:
+        name: ca-certificates
+      ignore_errors: yes
+
+    - name: opkg ipset
+      opkg:
+        name: ipset
+      ignore_errors: yes
+
+    - name: opkg ip-full
+      opkg:
+        name: ip-full
+      ignore_errors: yes
+
+    - name: opkg ruby
+      opkg:
+        name: ruby
+      ignore_errors: yes
+
+    - name: opkg ruby-yaml
+      opkg:
+        name: ruby-yaml
+      ignore_errors: yes
+
+    - name: opkg kmod-tun
+      opkg:
+        name: kmod-tun
+      ignore_errors: yes
+
+    - name: opkg kmod-inet-diag
+      opkg:
+        name: kmod-inet-diag
+      ignore_errors: yes
+
+    - name: opkg unzip
+      opkg:
+        name: unzip
+      ignore_errors: yes
+
+    - name: opkg luci-compat
+      opkg:
+        name: luci-compat
+      ignore_errors: yes
+
+    - name: opkg luci
+      opkg:
+        name: luci
+      ignore_errors: yes
+
+    - name: opkg luci-base
+      opkg:
+        name: luci-base
+      ignore_errors: yes
+
+
+    - name: check dnsmasq
+      ansible.builtin.shell: opkg list-installed | grep 'dnsmasq ' | awk '{print $1}'
+      register: opkg_dnsmasq
+
+    - name: check fw3
+      ansible.builtin.shell: command -v fw3
+      register: opkg_fw3
+
+    - name: check fw4
+      ansible.builtin.shell: command -v fw4
+      register: opkg_fw4
+
+    - name: check libcap
+      ansible.builtin.shell: opkg list-installed | grep 'libcap-bin' | awk '{print $1}'
+      register: opkg_libcap
+
+    - when: 
+        - opkg_dnsmasq.stdout != ''
+      block:
+
+        - name: opkg uninstall dnsmasq
+          opkg:
+            name: dnsmasq
+            state: absent
+          ignore_errors: yes
+
+        - name: opkg install dnsmasq-full
+          opkg:
+            name: dnsmasq-full
+          ignore_errors: yes
+
+    - when: 
+        - opkg_fw3.stdout != ''
+      block:
+
+        - name: opkg iptables
+          opkg:
+            name: iptables
+          ignore_errors: yes
+
+        - name: opkg iptables-mod-tproxy
+          opkg:
+            name: iptables-mod-tproxy
+          ignore_errors: yes
+
+        - name: opkg iptables-mod-extra
+          opkg:
+            name: iptables-mod-extra
+          ignore_errors: yes
+
+    - when: 
+        - opkg_fw4.stdout != ''
+      block:
+
+        - name: opkg kmod-nft-tproxy
+          opkg:
+            name: kmod-nft-tproxy 
+          ignore_errors: yes
+
+
+    
+
+    - when: 
+        - opkg_libcap.stdout == ''
+      block: 
+
+        - name: get distrib arch
+          ansible.builtin.shell: cat /etc/openwrt_release | grep DISTRIB_ARCH | sed -E 's/DISTRIB_ARCH=.(.*)./\1/'
+          register: distrib_arch
+
+        - name: add opkg snapshots
+          ansible.builtin.lineinfile:
+            path: /etc/opkg/customfeeds.conf
+            line: "src/gz openwrt_snapshots http://downloads.openwrt.org/snapshots/packages/{{ distrib_arch.stdout }}/base"
+
+        - name: opkg libcap
+          opkg:
+            name: libcap
+          ignore_errors: yes
+
+        - name: opkg libcap-bin
+          opkg:
+            name: libcap-bin
+          ignore_errors: yes
+
+
+    - name: copy file
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/luci-app-openclash/luci-app-openclash.ipk" 
+        dest: /tmp/luci-app-openclash.ipk
+        mode: '0755'
+
+    - name: install luci-app-openclash
+      ansible.builtin.shell: opkg install /tmp/luci-app-openclash.ipk

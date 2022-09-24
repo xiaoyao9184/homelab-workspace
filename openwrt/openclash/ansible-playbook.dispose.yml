@@ -1,0 +1,30 @@
+---
+
+
+- name: clean
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --inventory $PWD/inventory-ssh.yml \
+        $PWD/../../openwrt/openclash/ansible-playbook.dispose.yml
+  hosts: localhost
+  connection: local
+  tasks: 
+
+    - name: clear dir
+      ansible.builtin.file:
+        path: "{{ playbook_dir }}/luci-app-openclash"
+        state: absent
+
+
+- name: dispose
+  hosts: openwrt
+  roles:
+    - gekmihesg.openwrt
+  tasks: 
+
+    - name: opkg uninstall
+      opkg:
+        name: luci-app-openclash
+        state: absent
+      ignore_errors: yes
