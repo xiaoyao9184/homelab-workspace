@@ -1,0 +1,53 @@
+---
+
+
+- name: build
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --inventory $PWD/ansible/inventory-ssh.yml \
+        $PWD/../../../openwrt/uci-dhcp/host/ansible-playbook.build.yml
+  hosts: localhost
+  connection: local
+  tasks: 
+
+    - name: clear build
+      ansible.builtin.file:
+        path: "{{ playbook_dir }}/build"
+        state: absent
+
+    - name: mkdir build
+      ansible.builtin.file:
+        path: "{{ playbook_dir }}/build"
+        state: directory
+
+    - name: run build
+      ansible.builtin.shell: "{{ playbook_dir }}/bash.build.sh"
+      environment:
+        build_path: "{{ playbook_dir }}/build"
+        build_name: "uci.sh"
+        mapping_dhcp_host: "{{ uci.dhcp.host_csv }}"
+        
+    - name: list build file
+      ansible.builtin.find:
+        paths: "{{ playbook_dir }}/build"
+        file_type: file
+        patterns: 'uci*.sh'
+      register: build_file
+
+    - name: read build file
+      ansible.builtin.shell: "cat {{ item }}"
+      register: build_file
+      loop: "{{ build_file.files | map(attribute='path') }}"
+
+    - name: print build file
+      ansible.builtin.pause:
+        seconds: 1
+        prompt: |
+          {% for result in build_file.results %}
+          //////////////////////////////////////////////////
+          # {{ result.item }}
+          
+          {{ result.stdout }}
+          //////////////////////////////////////////////////
+          {% endfor %}
