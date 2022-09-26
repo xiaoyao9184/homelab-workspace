@@ -1,7 +1,7 @@
 #!/bin/bash
 current_path="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 [[ -z "$build_path" ]] && build_path=${current_path}/build/
-[[ -z "$build_name" ]] && build_name=ubnt_configure_upnp
+[[ -z "$build_name" ]] && build_name=ubnt_configure_upnp.sh
 [[ -z "$if_listen" ]] && if_listen=switch0
 [[ -z "$if_wan" ]] && if_wan=eth4
 

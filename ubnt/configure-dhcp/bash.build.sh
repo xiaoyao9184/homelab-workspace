@@ -1,7 +1,7 @@
 #!/bin/bash
 current_path="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 [[ -z "$build_path" ]] && build_path=${current_path}/build/
-[[ -z "$build_name" ]] && build_name=ubnt_configure_dhcp_static_mapping
+[[ -z "$build_name" ]] && build_name=ubnt_configure_dhcp_static_mapping.sh
 [[ -z "$mapping_dhcp" ]] && mapping_dhcp=${current_path}/dhcp_host.csv
 [[ -z "$subnet" ]] && subnet=192.168.1.0/24
 

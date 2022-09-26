@@ -1,7 +1,7 @@
 #!/bin/bash
 current_path="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 [[ -z "$build_path" ]] && build_path=${current_path}/build/
-[[ -z "$build_name" ]] && build_name=ubnt_configure_static_host_mapping
+[[ -z "$build_name" ]] && build_name=ubnt_configure_static_host_mapping.sh
 [[ -z "$mapping_dhcp" ]] && mapping_dhcp=${current_path}/dhcp_host.csv
 [[ -z "$mapping_domain" ]] && mapping_domain=${current_path}/domain_ip.csv
 
@@ -45,10 +45,13 @@ done < <(tail -n +2 ${mapping_domain})
 sorted_unique_wheres=($(echo "${wheres[@]}" | tr ' ' '\n' | sort -u | tr '\n' ' '))
 echo "The following location script will be created: ${sorted_unique_wheres[@]}"
 
+build_extension="${build_name##*.}"
+build_filename="${build_name%.*}"
+
 mkdir -p ${build_path}
 for where in "${sorted_unique_wheres[@]}"
 do
-    build_file=${build_path}/${where}@${build_name}
+    build_file=${build_path}/${build_filename}@${where}.${build_extension}
     rm -f ${build_file}
     echo "configure" >> ${build_file}
     echo "" >> ${build_file}
@@ -70,7 +73,7 @@ EOF
 )
     if [[ "$name" ]]
     then
-        build_file=${build_path}/${where}@${build_name}
+        build_file=${build_path}/${build_filename}@${where}.${build_extension}
         echo "$template" >> ${build_file}
     fi
 
@@ -82,14 +85,14 @@ EOF
 )
     if [[ "$ubnt_domain" ]]
     then
-        build_file=${build_path}/${where}@${build_name}
+        build_file=${build_path}/${build_filename}@${where}.${build_extension}
         echo "$template" >> ${build_file}
     fi
 done < <(tail -n +2 ${mapping_domain})
 
 for where in "${sorted_unique_wheres[@]}"
 do
-    build_file=${build_path}/${where}@${build_name}
+    build_file=${build_path}/${build_filename}@${where}.${build_extension}
     echo "" >> ${build_file}
     echo "save" >> ${build_file}
 done
