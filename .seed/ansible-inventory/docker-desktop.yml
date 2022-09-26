@@ -1,0 +1,62 @@
+all:
+  hosts:
+    localhost:
+  vars:
+    ansible_connection: local
+  children:
+    docker:
+      hosts:
+        localhost:
+
+    docker-manager:
+      hosts:
+        localhost:
+      vars:
+        workspace:
+          remote: "/seed/remote_ep" 
+
+        nfs_server:
+          host: "host.docker.internal"
+          addr: "docker-desktop"
+        
+        docker_label:
+          postgres:
+            - hostname: docker-desktop 
+              labels:
+                postgres-node: primary
+          influxdb:
+            - hostname: docker-desktop 
+              labels:
+                influxdb-node: master
+          zookeeper:
+            - hostname: docker-desktop 
+              labels:
+                zookeeper-node: "true"
+          kafka:
+            - hostname: docker-desktop 
+              labels:
+                kafka-node: "true"
+          debezium:
+            - hostname: docker-desktop 
+              labels:
+                debezium-node: "true"
+          canal:
+            - hostname: docker-desktop 
+              labels:
+                canal-admin: "true"
+                canal-node: "node1"
+          frp:
+            - hostname: docker-desktop 
+              labels:
+                frp-server: "true"
+                frp-client: "true"
+
+        docker_env:
+          kafka:
+            HOSTNAME_COMMAND: "docker info | grep '^ Name:' | cut -d ' ' -f 3"
+            BROKER_ID_COMMAND: "docker info | grep '^ Name:' | cut -d ' ' -f 3 | sed 's/docker-desktop/111/'"
+    
+    nfs-server:
+      hosts:
+        docker-desktop:
+ 
