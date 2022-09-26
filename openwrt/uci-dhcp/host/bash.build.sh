@@ -10,6 +10,7 @@ build_file=${build_path}/${build_name}
 mkdir -p ${build_path}
 rm -f ${build_file}
 
+echo "while uci -q delete dhcp.@host[0]; do :; done" >> ${build_file}
 echo "" >> ${build_file}
 
 while IFS="," read -r tag leasetime ip_addr mac cl_name comment
