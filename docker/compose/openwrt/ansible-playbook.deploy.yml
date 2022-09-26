@@ -32,8 +32,9 @@
     - name: copy wrt_path
       vars:
         wrt_path:
-          conf: "{{ inventory_dir }}/{{ config_file }}"
-          etc: "{{ inventory_dir }}/{{ etc_path }}"
+          conf: "{{ openwrt.config_file }}"
+          etc: "{{ openwrt.etc_path }}"
+          image: "{{ openwrt.image }}"
       block:
         - name: get wrt_path.conf stat
           delegate_to: localhost
@@ -68,7 +69,7 @@
 
     - name: pull image
       community.docker.docker_image:
-        name: "{{ image }}"
+        name: "{{ wrt_path.image }}"
         source: pull
 
     - name: add service
