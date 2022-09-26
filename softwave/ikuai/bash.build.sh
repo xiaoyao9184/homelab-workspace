@@ -1,7 +1,7 @@
 #!/bin/bash
 current_path="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 [[ -z "$build_path" ]] && build_path=${current_path}/hosts/
-[[ -z "$build_name" ]] && build_name=${build_path}/host
+[[ -z "$build_name" ]] && build_name=ikuai_dhcp_static.csv
 [[ -z "$mapping_dhcp" ]] && mapping_dhcp=${current_path}/dhcp_host.csv
 
 
