@@ -1,0 +1,24 @@
+---
+
+
+- name: config
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --inventory $PWD/ansible \
+        $PWD/../../../ubnt/configure-upnp/ansible-playbook.config.yml
+  hosts: ubnt
+  tasks: 
+
+    - name: configure upnp upnp2
+      community.network.edgeos_config:
+        lines:
+          - set service upnp listen-on {{ configure.upnp.if_listen }} outbound-interface {{ configure.upnp.if_wan }}
+          - set service upnp2 wan {{ configure.upnp.if_wan }}
+          - set service upnp2 listen-on {{ configure.upnp.if_listen }}
+          - set service upnp2 nat-pmp enable
+          - set service upnp2 secure-mode enable
+
+    - name: show upnp2
+      community.network.edgeos_command:
+        commands: show upnp2 rules

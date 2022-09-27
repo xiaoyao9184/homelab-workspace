@@ -1,0 +1,26 @@
+---
+
+
+- name: config
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --inventory $PWD/ansible \
+        $PWD/../../../ubnt/configure-dns/ansible-playbook.config.yml
+  hosts: ubnt
+  tasks: 
+
+    - name: load domain_csv
+      community.general.read_csv:
+        path: "{{ configure.dns.domain_csv }}"
+      register: domain_csv
+      delegate_to: localhost
+
+    - name: configure dns by domain_csv
+      when: 
+        - item.cl_name != ''
+        - item.where in location[location.at]
+      community.network.edgeos_config:
+        lines:
+          - set service dns forwarding options address=/.{{ item.cl_name }}/{{ item.ip_addr }}
+      loop: "{{ domain_csv.list }}"

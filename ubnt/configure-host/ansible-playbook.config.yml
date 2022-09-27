@@ -1,0 +1,41 @@
+---
+
+
+- name: config
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --inventory $PWD/ansible \
+        $PWD/../../../ubnt/configure-host/ansible-playbook.config.yml
+  hosts: ubnt
+  tasks: 
+
+    - name: load dhcp_csv
+      community.general.read_csv:
+        path: "{{ configure.dhcp.dhcp_csv }}"
+      register: dhcp_csv
+      delegate_to: localhost
+
+    - name: configure host by dhcp_csv
+      when: item.cl_name != ''
+      community.network.edgeos_config:
+        lines:
+          - delete system static-host-mapping host-name {{ item.cl_name }}
+          - set system static-host-mapping host-name {{ item.cl_name }} inet {{ item.ip_addr }}
+      loop: "{{ dhcp_csv.list }}"
+
+    - name: load domain_csv
+      community.general.read_csv:
+        path: "{{ configure.dns.domain_csv }}"
+      register: domain_csv
+      delegate_to: localhost
+
+    - name: configure host by domain_csv
+      when: 
+        - item.cl_name != ''
+        - item.where in location[location.at]
+      community.network.edgeos_config:
+        lines:
+          - delete system static-host-mapping host-name {{ item.cl_name }}
+          - set system static-host-mapping host-name {{ item.cl_name }} inet {{ item.ip_addr }}
+      loop: "{{ domain_csv.list }}"

@@ -1,0 +1,28 @@
+---
+
+
+- name: config
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --inventory $PWD/ansible \
+        $PWD/../../../ubnt/configure-dhcp/ansible-playbook.config.yml
+  hosts: ubnt
+  tasks: 
+
+    - name: load dhcp_csv
+      community.general.read_csv:
+        path: "{{ configure.dhcp.dhcp_csv }}"
+      register: dhcp_csv
+      delegate_to: localhost
+
+    - name: configure dhcp
+      when: item.cl_name != ''
+      community.network.edgeos_config:
+        lines:
+          - set service dhcp-server shared-network-name LAN subnet {{ subnet }} static-mapping {{ item.cl_name }}
+          - set service dhcp-server shared-network-name LAN subnet {{ subnet }} static-mapping {{ item.cl_name }} ip-address {{ item.ip_addr }}
+          - set service dhcp-server shared-network-name LAN subnet {{ subnet }} static-mapping {{ item.cl_name }} mac-address {{ item.mac }}
+      loop: "{{ dhcp_csv.list }}"
+      vars:
+        subnet: 192.168.1.0/24
