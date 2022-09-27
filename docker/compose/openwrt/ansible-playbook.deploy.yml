@@ -2,6 +2,11 @@
 
 
 - name: download
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --inventory $PWD/ansible \
+        $PWD/../../../docker/compose/openwrt/ansible-playbook.deploy.yml
   hosts: localhost
   connection: local
   gather_facts: no

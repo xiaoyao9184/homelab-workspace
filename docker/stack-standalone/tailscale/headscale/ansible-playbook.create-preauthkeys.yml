@@ -1,7 +1,11 @@
 ---
 
 - name: deploy
-  hosts: docker-manager
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --inventory $PWD/ansible \
+        $PWD/../../../docker/stack-standalone/tailscale/headscale/ansible-playbook.create-preauthkeys.yml
   vars_prompt:
     - name: preauthkeys_namespace
       prompt: What is preauthkeys namespace?
@@ -11,6 +15,7 @@
       prompt: What is preauthkeys expire?
       private: no
       default: 240h
+  hosts: docker-manager
   tasks: 
 
     - name: set ws_path

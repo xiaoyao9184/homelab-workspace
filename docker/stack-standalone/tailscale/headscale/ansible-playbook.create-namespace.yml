@@ -1,12 +1,17 @@
 ---
 
 - name: deploy
-  hosts: docker-manager
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --inventory $PWD/ansible \
+        $PWD/../../../docker/stack-standalone/tailscale/headscale/ansible-playbook.create-namespace.yml
   vars_prompt:
     - name: namespace_name
       prompt: What is namespace name?
       private: no
       default: default
+  hosts: docker-manager
   tasks: 
 
     - name: set ws_path

@@ -1,6 +1,11 @@
 ---
 
 - name: deploy
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --inventory $PWD/ansible \
+        $PWD/../../../docker/stack-standalone/tailscale/headscale-ui/ansible-playbook.deploy.yml
   hosts: docker-manager
   tasks: 
 

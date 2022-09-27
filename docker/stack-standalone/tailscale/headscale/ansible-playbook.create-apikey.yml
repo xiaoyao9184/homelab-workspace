@@ -1,6 +1,11 @@
 ---
 
 - name: deploy
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --inventory $PWD/ansible \
+        $PWD/../../../docker/stack-standalone/tailscale/headscale/ansible-playbook.create-apikey.yml
   hosts: docker-manager
   tasks: 
 

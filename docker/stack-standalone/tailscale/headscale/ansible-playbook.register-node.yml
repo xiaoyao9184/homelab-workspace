@@ -1,7 +1,11 @@
 ---
 
 - name: deploy
-  hosts: docker-manager
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --inventory $PWD/ansible \
+        $PWD/../../../docker/stack-standalone/tailscale/headscale/ansible-playbook.register-node.yml
   vars_prompt:
     - name: node_key
       prompt: What is node key?
@@ -10,6 +14,7 @@
       prompt: What is node namespace?
       private: no
       default: default
+  hosts: docker-manager
   tasks: 
 
     - name: set ws_path
