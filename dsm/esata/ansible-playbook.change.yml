@@ -1,0 +1,74 @@
+---
+
+- name: change
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --inventory $PWD/ansible \
+        $PWD/../../../dsm/esata/ansible-playbook.change.yml
+  hosts: dsm
+  tasks: 
+
+    - name: read portcfg internal
+      ansible.builtin.shell: cat /etc.defaults/synoinfo.conf | grep internalportcfg | sed -E 's/internalportcfg=.(.*)./\1/'
+      register: read_internal
+
+    - name: read portcfg esata
+      ansible.builtin.shell: cat /etc.defaults/synoinfo.conf | grep esataportcfg | sed -E 's/esataportcfg=.(.*)./\1/'
+      register: read_esata
+
+    - name: set read portcfg
+      ansible.builtin.set_fact:
+        portcfg: 
+          internal: "{{ '{0:016b}'.format(read_internal.stdout | int(base=16)) }}"
+          esata: "{{ '{0:016b}'.format(read_esata.stdout | int(base=16)) }}"
+
+    - name: print read portcfg
+      ansible.builtin.debug:
+        msg:
+          - "internal {{ portcfg.internal }} {{ read_internal.stdout }}"
+          - "esata    {{ portcfg.esata }} {{ read_esata.stdout }}"
+
+    - name: input portcfg internal
+      ansible.builtin.pause:
+        prompt: please enter the internal portcfg [{{ portcfg.internal }}]
+      register: prompt_internal
+
+    - name: input portcfg esata
+      ansible.builtin.pause:
+        prompt: please enter the esata portcfg [{{ portcfg.esata }}]
+      register: prompt_esata
+
+    - name: get input portcfg
+      ansible.builtin.set_fact:
+        input_internal: "{{ prompt_internal.user_input if prompt_internal.user_input else portcfg.internal }}"
+        input_esata: "{{ prompt_esata.user_input if prompt_esata.user_input else portcfg.esata }}"
+
+    - name: set write portcfg
+      ansible.builtin.set_fact:
+        write_internal: "{{ '{:#04x}'.format(input_internal | int(base=2)) }}"
+        write_esata: "{{ '{:#04x}'.format(input_esata | int(base=2)) }}"
+
+    - name: print write portcfg
+      ansible.builtin.debug:
+        msg:
+          - "internal {{ write_internal }}"
+          - "esata    {{ write_esata }}"
+
+    - name: replace portcfg internal
+      ansible.builtin.replace:
+        path: /etc.defaults/synoinfo.conf
+        regexp: 'internalportcfg.*'
+        replace: 'internalportcfg="{{ write_internal }}"'
+        backup: yes
+
+    - name: replace portcfg esata
+      ansible.builtin.replace:
+        path: /etc.defaults/synoinfo.conf
+        regexp: 'esataportcfg.*'
+        replace: 'esataportcfg="{{ write_esata }}"'
+        backup: yes
+
+    - name: reboot
+      ansible.builtin.reboot:
+        reboot_timeout: 3600
