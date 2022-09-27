@@ -1,0 +1,40 @@
+version: "3.3"
+
+services:
+  transmission:
+    image: ghcr.io/linuxserver/transmission
+    environment:
+      - PUID=0
+      - PGID=0
+      - TZ=Asia/Hong_Kong
+      - TRANSMISSION_WEB_HOME=/combustion-release/ #optional
+      - USER=admin #optional
+      - PASS=transmission.123 #optional
+      # - WHITELIST=iplist #optional
+      # - HOST_WHITELIST=dnsnane list #optional
+    volumes:
+      - /share/transmission/config:/config
+      - /share/transmission/downloads:/downloads
+      - /share/transmission/watch:/watch
+    ports:
+      - 9091:9091
+      - 51413:51413
+      - 51413:51413/udp
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.platform.os == linux
+          - node.role == manager
+      update_config:
+        parallelism: 2
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1024M
+        reservations:
+          cpus: '1'
+          memory: 512M
