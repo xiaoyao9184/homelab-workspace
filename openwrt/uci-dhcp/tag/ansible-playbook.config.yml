@@ -1,0 +1,31 @@
+---
+
+
+- name: config
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --inventory $PWD/ansible \
+        $PWD/../../../openwrt/uci-dhcp/tag/ansible-playbook.config.yml
+  hosts: openwrt
+  roles:
+    - gekmihesg.openwrt
+  tasks: 
+
+    - name: load tag_csv
+      community.general.read_csv:
+        path: "{{ uci.dhcp.tag_csv }}"
+      register: tag_csv
+      delegate_to: localhost
+
+    - name: set dhcp tag
+      ansible.builtin.shell: |
+        uci delete dhcp.{{ item.tag }}
+        uci set dhcp.{{ item.tag }}="tag"
+        uci add_list dhcp.{{ item.tag }}.dhcp_option="3,{{ item.ip_addr }}"
+        uci add_list dhcp.{{ item.tag }}.dhcp_option="6,{{ item.ip_addr }}"
+        uci set dhcp.{{ item.tag }}.force='1'
+      loop: "{{ host_csv.list }}"
+
+    - name: commit dhcp tag
+      ansible.builtin.shell: uci commit

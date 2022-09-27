@@ -1,0 +1,50 @@
+---
+
+
+- name: config
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --inventory $PWD/ansible \
+        $PWD/../../../openwrt/uci-dhcp/domain/ansible-playbook.config.yml
+  hosts: openwrt
+  roles:
+    - gekmihesg.openwrt
+  tasks: 
+
+    - name: load host_csv
+      community.general.read_csv:
+        path: "{{ uci.dhcp.host_csv }}"
+      register: host_csv
+      delegate_to: localhost
+
+    - name: load domain_csv
+      community.general.read_csv:
+        path: "{{ uci.dhcp.domain_csv }}"
+      register: domain_csv
+      delegate_to: localhost
+
+    - name: delete dhcp domain
+      ansible.builtin.shell: while uci -q delete dhcp.@domain[0]; do :; done
+
+    - name: set dhcp domain
+      when: 
+        - item.cl_name != ''
+      ansible.builtin.shell: |
+        uci add dhcp domain
+        uci set dhcp.@domain[-1].name='{{ item.cl_name }}'
+        uci set dhcp.@domain[-1].ip='{{ item.ip_addr }}'
+      loop: "{{ host_csv.list }}"
+
+    - name: set dhcp domain
+      when: 
+        - item.cl_name != ''
+        - item.where in location[location.at]
+      ansible.builtin.shell: |
+        uci add dhcp domain
+        uci set dhcp.@domain[-1].name='{{ item.cl_name }}'
+        uci set dhcp.@domain[-1].ip='{{ item.ip_addr }}'
+      loop: "{{ domain_csv.list }}"
+
+    - name: commit dhcp domain
+      ansible.builtin.shell: uci commit

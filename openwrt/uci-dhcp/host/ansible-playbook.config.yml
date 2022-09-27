@@ -1,0 +1,38 @@
+---
+
+
+- name: config
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --inventory $PWD/ansible \
+        $PWD/../../../openwrt/uci-dhcp/host/ansible-playbook.config.yml
+  hosts: openwrt
+  roles:
+    - gekmihesg.openwrt
+  tasks: 
+
+    - name: load host_csv
+      community.general.read_csv:
+        path: "{{ uci.dhcp.host_csv }}"
+      register: host_csv
+      delegate_to: localhost
+
+    - name: delete dhcp host
+      ansible.builtin.shell: while uci -q delete dhcp.@host[0]; do :; done
+
+    - name: set dhcp host
+      when: 
+        - item.cl_name != ''
+      ansible.builtin.shell: |
+        uci add dhcp host
+        uci set dhcp.@host[-1].mac='{{ item.mac }}'
+        uci set dhcp.@host[-1].name='{{ item.cl_name }}'
+        uci set dhcp.@host[-1].dns='1'
+        uci set dhcp.@host[-1].ip='{{ item.ip }}'
+        uci set dhcp.@host[-1].leasetime='{{ item.leasetime }}'
+        uci set dhcp.@host[-1].tag='{{ item.tag }}'
+      loop: "{{ host_csv.list }}"
+
+    - name: commit dhcp host
+      ansible.builtin.shell: uci commit
