@@ -1,0 +1,51 @@
+---
+
+- name: deploy
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --inventory $PWD/ansible \
+        $PWD/../../../docker/stack-standalone/aria2/ansible-playbook.deploy.yml
+  hosts: docker-manager
+  tasks: 
+
+    - name: set ws_path
+      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/ws-path.set.yml"
+      vars: 
+        path: "{{ playbook_dir }}/../../../"
+
+    - name: set dir_name
+      include_tasks: "{{ ws_path }}/.seed/ansible-tasks/dir-name.set.yml"
+      vars:
+        set_count: 2
+
+    - name: copy dir_path
+      include_tasks: "{{ ws_path }}/.seed/ansible-tasks/dir-path.copy.yml"
+
+    - name: mount nfs root
+      include_tasks: "{{ ws_path }}/.seed/ansible-tasks/nfs-mount.wait.yml"
+      vars:
+        wait_nfs:
+          server:
+            addr: "{{ nfs_server.addr }}"
+            host: "{{ nfs_server.host }}"
+          point: "/"
+          mount: "/share"
+          remove: false
+
+    - name: create share directory
+      block:   
+        - file:
+            path: "/share/aria2/config"
+            state: directory
+            mode: '0755'
+        - file:
+            path: "/share/aria2/downloads"
+            state: directory
+            mode: '0755'
+
+    - name: add stack service
+      include_tasks: "{{ ws_path }}/.seed/ansible-tasks/docker-stack.add.yml"
+      vars:
+        stack_name: "{{ dir_name[0] }}"
+        stack_path: "{{ dir_path }}"
