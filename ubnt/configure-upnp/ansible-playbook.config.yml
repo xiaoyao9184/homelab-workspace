@@ -1,6 +1,16 @@
 ---
 
 
+- name: dep
+  hosts: localhost
+  connection: local
+  tasks:
+
+    - name: install ansible-pylibssh
+      ansible.builtin.pip:
+        name: ansible-pylibssh
+
+
 - name: config
   vars:
     run_wsl: |
@@ -22,3 +32,8 @@
     - name: show upnp2
       community.network.edgeos_command:
         commands: show upnp2 rules
+      register: show_upnp2
+
+    - name: print upnp2 
+      ansible.builtin.debug:
+        var: show_upnp2.stdout_lines
