@@ -1,0 +1,57 @@
+---
+
+
+- name: galaxy
+  hosts: localhost
+  tasks:
+
+    - name: install role
+      community.general.ansible_galaxy_install:
+        type: role
+        name: stefangweichinger.ansible_rclone
+
+
+- name: deploy
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --inventory $PWD/ansible \
+        $PWD/../../../dsm/rclone/ansible-playbook.deploy.yml
+  hosts: dsm
+  roles:
+    - rclone
+  tasks: 
+
+    # - name: install rclone
+    #   ansible.builtin.shell: curl https://rclone.org/install.sh | sudo bash
+
+    - name: mkdir rclone config
+      ansible.builtin.file:
+        path: /var/services/homes/root/.config/rclone/
+        state: directory
+
+    - name: copy rclone config
+      ansible.builtin.copy:
+        src: "{{ rclone.config_file }}"
+        dest: "/var/services/homes/root/.config/rclone/rclone.conf"
+
+    - name: mkdir rclone mount
+      ansible.builtin.file:
+        path: {{ item.path }}
+        state: directory
+      loop: {{ rclone.mount }}
+
+    - name: run rclone mount
+      ansible.builtin.shell: |
+        rclone \
+          mount {{ item.name }}: {{ item.path }} \
+          --config=/var/services/homes/root/.config/rclone/rclone.conf \
+          --allow-other \
+          --allow-non-empty \
+          --buffer-size 32M \
+          --vfs-read-chunk-size=32M \
+          --vfs-read-chunk-size-limit 2048M \
+          --vfs-cache-mode writes \
+          --dir-cache-time 96h \
+          --daemon
+      loop: {{ rclone.mount }}
