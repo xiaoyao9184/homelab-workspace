@@ -9,56 +9,14 @@
   hosts: dsm
   tasks: 
 
-    - name: create persistent TUN
-      ansible.builtin.copy:
-      content: |
-        #!/bin/sh -e 
-        insmod /lib/modules/tun.ko
-      dest: /usr/local/etc/rc.d/tun.sh
+    - name: read version
+      ansible.builtin.shell: cat /etc/VERSION | grep majorversion | sed -E 's/majorversion=.(.*)./\1/'
+      register: version_major
+
+    - name: deploy dsm7
+      when: version_major == '7'
+      include_tasks: "{{ playbook_dir }}/ansible-tasks/docker.deploy.yml"
     
-    - name: set executable permissions
-      ansible.builtin.file:
-        path: /usr/local/etc/rc.d/tun.sh
-        state: touch
-        mode: 0755
-        owner: root
-
-    - name: run script once
-      ansible.builtin.shell: /usr/local/etc/rc.d/tun.sh
-
-    - name: check for the TUN
-      ansible.builtin.shell: ls /dev/net/tun
-
-    - name: make zerotier directory
-      ansible.builtin.file:
-        path: /var/lib/zerotier-one
-        state: directory
-        mode: '0755'
-
-    - name: run zerotier container
-      community.docker.docker_container:
-        state: started
-        restart: true
-        name: zt
-        image: zerotier/zerotier-synology:latest
-        restart_policy: always
-        network_mode: host
-        devices:
-          - /dev/net/tun
-        capabilities:
-          - NET_ADMIN
-          - SYS_ADMIN
-        volumes:
-          - /var/lib/zerotier-one:/var/lib/zerotier-one
-
-    - name: get zerotier status
-      community.docker.docker_container_exec:
-        container: zt
-        command: zerotier-cli status
-      register: zerotier_status
-
-    - name: print zerotier status
-      ansible.builtin.pause:
-        seconds: 1
-        prompt: |
-          {{ zerotier_status.stdout }}
+    - name: deploy dsm6
+      when: version_major == '6'
+      include_tasks: "{{ playbook_dir }}/ansible-tasks/spk.deploy.yml"

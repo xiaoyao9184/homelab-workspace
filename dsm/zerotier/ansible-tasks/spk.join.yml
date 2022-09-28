@@ -1,0 +1,22 @@
+---
+
+
+- name: get zerotier join
+  ansible.builtin.shell: zerotier-cli join {{ network_id }}
+  register: zerotier_join
+
+- name: print zerotier join
+  ansible.builtin.pause:
+    seconds: 1
+    prompt: |
+      {{ zerotier_join.stdout }}
+
+- name: get zerotier listnetworks
+  ansible.builtin.shell: zerotier-cli listnetworks
+  register: zerotier_listnetworks
+
+- name: print zerotier listnetworks
+  ansible.builtin.pause:
+    seconds: 1
+    prompt: |
+      {{ zerotier_listnetworks.stdout }}

@@ -1,0 +1,53 @@
+---
+
+
+- name: deploy skp
+  block:
+
+    - name: fail miss spk_url
+      when: 
+        - spk_url is undefined
+      ansible.builtin.fail:
+        msg: "miss spk_url variable"
+
+    - name: check cpu architecture
+      ansible.builtin.shell: uname -m
+      register: cpu_architecture
+
+    - name: print spk url and cpu architecture
+      ansible.builtin.debug:
+        msg:
+          - {{ cpu_architecture.stdout }}
+          - {{ spk_url }}
+
+    - name: download spk
+      ansible.builtin.get_url:
+        url: {{ spk_url }}
+        dest: /tmp/zerotier.spk
+        mode: '0440'
+
+    - name: install spk
+      ansible.builtin.shell: synopkg install /tmp/zerotier.spk
+
+    - name: delete spk
+      ansible.builtin.file:
+        path: /tmp/zerotier.spk
+        state: absent
+
+    - name: get zerotier status
+      ansible.builtin.shell: zerotier-cli status
+      register: zerotier_status
+
+    - name: print zerotier status
+      ansible.builtin.pause:
+        seconds: 1
+        prompt: |
+          {{ zerotier_status.stdout }}
+
+  rescue:
+    
+    - name: sleep 15 seconds loop container
+      ansible.builtin.pause:
+        seconds: 1
+        prompt: |
+          Visit http://download.zerotier.com/dist/synology/ get download link for spk_url variable

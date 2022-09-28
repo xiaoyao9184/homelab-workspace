@@ -13,26 +13,15 @@
   hosts: docker-manager
   tasks: 
 
-    - name: get zerotier join
-      community.docker.docker_container_exec:
-        container: zt
-        command: zerotier-cli join {{ network_id }}
-      register: zerotier_join
+    - name: read version
+      ansible.builtin.shell: cat /etc/VERSION | grep majorversion | sed -E 's/majorversion=.(.*)./\1/'
+      register: version_major
 
-    - name: print zerotier join
-      ansible.builtin.pause:
-        seconds: 1
-        prompt: |
-          {{ zerotier_join.stdout }}
+    - name: join dsm7
+      when: version_major == '7'
+      include_tasks: "{{ playbook_dir }}/ansible-tasks/docker.join.yml"
+    
+    - name: join dsm6
+      when: version_major == '6'
+      include_tasks: "{{ playbook_dir }}/ansible-tasks/spk.join.yml"
 
-    - name: get zerotier listnetworks
-      community.docker.docker_container_exec:
-        container: zt
-        command: zerotier-cli listnetworks
-      register: zerotier_listnetworks
-
-    - name: print zerotier listnetworks
-      ansible.builtin.pause:
-        seconds: 1
-        prompt: |
-          {{ zerotier_listnetworks.stdout }}
