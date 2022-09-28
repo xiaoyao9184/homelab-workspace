@@ -1,0 +1,96 @@
+---
+
+- name: deploy
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --inventory $PWD/ansible \
+        $PWD/../../../docker/compose-standalone/rclone-sole/ansible-playbook.deploy.yml
+  hosts: docker
+  tasks: 
+
+    - name: set ws_path
+      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/ws-path.set.yml"
+      vars: 
+        path: "{{ playbook_dir }}/../../../"
+
+    - name: set dir_name
+      include_tasks: "{{ ws_path }}/.seed/ansible-tasks/dir-name.set.yml"
+      vars:
+        set_count: 2
+
+    - name: copy dir_path
+      include_tasks: "{{ ws_path }}/.seed/ansible-tasks/dir-path.copy.yml"
+
+    - name: add external_net
+      include_tasks: "{{ ws_path }}/.seed/ansible-tasks/docker-network.overlay.yml"
+      vars:
+        net_label:
+          - "com.docker.stack.namespace": "deploy"
+        net_name:
+          - external_net-rclone
+
+    - name: add external_vol
+      block:
+
+        - name: set rclone_default
+          ansible.builtin.set_fact:
+            rclone_default: "{{ rclone.mount | selectattr('name', 'equalto', rclone.config_default) | first }}"
+
+        - name: mkdir rclone config
+          ansible.builtin.file:
+            path: "{{ rclone_default.config_path }}"
+            state: directory
+
+        - name: mkdir rclone cache
+          ansible.builtin.file:
+            path: "{{ rclone_default.cache_path }}"
+            state: directory
+
+        - name: mkdir rclone data
+          ansible.builtin.file:
+            path: "{{ rclone_default.data_path }}"
+            state: directory
+
+        - name: copy rclone config
+          ansible.builtin.copy:
+            src: "{{ rclone.config_file }}"
+            dest: "{{ rclone_default.config_path }}/rclone.conf"
+
+        - name: add external_vol-rclone-config
+          community.docker.docker_volume:
+            name: "external_vol-rclone-config"
+            driver: local
+            driver_options:
+              type: none
+              device: "{{ rclone_default.config_path }}"
+              o: bind
+            labels:
+              "com.docker.stack.namespace": deploy
+
+        - name: add external_vol-rclone-cache
+          community.docker.docker_volume:
+            name: "external_vol-rclone-cache"
+            driver: local
+            driver_options:
+              type: none
+              device: "{{ rclone_default.cache_path }}"
+              o: bind
+            labels:
+              "com.docker.stack.namespace": deploy
+
+        - name: add external_vol-rclone-data
+          community.docker.docker_volume:
+            name: "external_vol-rclone-data"
+            driver: local
+            driver_options:
+              type: none
+              device: "{{ rclone_default.data_path }}"
+              o: bind
+            labels:
+              "com.docker.stack.namespace": deploy
+
+    - name: add compose service
+      community.docker.docker_compose:
+        project_name: "{{ dir_name[0] }}"
+        project_src: "{{ dir_path }}"

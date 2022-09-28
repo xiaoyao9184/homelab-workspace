@@ -1,0 +1,30 @@
+version: "3.3"
+
+volumes:
+  external_vol-rclone-config:
+    external: true
+  external_vol-rclone-cache:
+    external: true
+  external_vol-rclone-data:
+    external: true
+
+networks:
+  external_net-rclone:
+    external: true
+
+services:
+  rclone:
+    image: rclone/rclone:latest
+    command: mount "default:" "/data"
+    security_opt:
+      - apparmor:unconfined
+    cap_add:
+      - SYS_ADMIN
+    devices:
+      - /dev/fuse
+    volumes:
+      - external_vol-rclone-config:/config
+      - external_vol-rclone-cache:/cache
+      - external_vol-rclone-data:/data
+    networks:
+      - external_net-rclone

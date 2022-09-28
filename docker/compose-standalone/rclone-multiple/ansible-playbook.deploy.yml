@@ -5,7 +5,7 @@
     run_wsl: |
       ansible-playbook \
         --inventory $PWD/ansible \
-        $PWD/../../../docker/compose-standalone/rclone/ansible-playbook.deploy.yml
+        $PWD/../../../docker/compose-standalone/rclone-multiple/ansible-playbook.deploy.yml
   hosts: docker
   tasks: 
 
@@ -27,6 +27,33 @@
           - "com.docker.stack.namespace": "deploy"
         net_name:
           - external_net-rclone
+
+    - name: add bind dir
+      block:
+
+        - name: mkdir rclone config
+          ansible.builtin.file:
+            path: "{{ item.config_path }}"
+            state: directory
+          loop: "{{ rclone.mount }}"
+
+        - name: mkdir rclone cache
+          ansible.builtin.file:
+            path: "{{ item.cache_path }}"
+            state: directory
+          loop: "{{ rclone.mount }}"
+
+        - name: mkdir rclone data
+          ansible.builtin.file:
+            path: "{{ item.data_path }}"
+            state: directory
+          loop: "{{ rclone.mount }}"
+
+        - name: copy rclone config
+          ansible.builtin.copy:
+            src: "{{ rclone.config_file }}"
+            dest: "{{ item.config_path }}/rclone.conf"
+          loop: "{{ rclone.mount }}"
 
     - name: template compose file
       ansible.builtin.template:
