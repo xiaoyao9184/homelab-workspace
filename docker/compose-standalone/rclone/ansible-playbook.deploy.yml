@@ -1,0 +1,46 @@
+---
+
+- name: deploy
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --inventory $PWD/ansible \
+        $PWD/../../../docker/compose-standalone/rclone/ansible-playbook.deploy.yml
+  hosts: docker
+  tasks: 
+
+    - name: set ws_path
+      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/ws-path.set.yml"
+      vars: 
+        path: "{{ playbook_dir }}/../../../"
+
+    - name: set dir_name
+      include_tasks: "{{ ws_path }}/.seed/ansible-tasks/dir-name.set.yml"
+
+    - name: copy dir_path
+      include_tasks: "{{ ws_path }}/.seed/ansible-tasks/dir-path.copy.yml"
+
+    - name: add external_net
+      include_tasks: "{{ ws_path }}/.seed/ansible-tasks/docker-network.overlay.yml"
+      vars:
+        net_label:
+          - "com.docker.stack.namespace": "deploy"
+        net_name:
+          - external_net-rclone
+
+    - name: template compose file
+      ansible.builtin.template:
+        src: "{{ dir_path }}/docker-compose.yml.j2"
+        dest: "{{ dir_path }}/docker-compose/{{ item.name }}.yml"
+      vars:
+        REMOTE_NAME: "{{ item.name }}"
+        CONFIG_PATH: "{{ item.config_path }}"
+        CACHE_PATH: "{{ item.cache_path }}"
+        DATA_PATH: "{{ item.data_path }}"
+      loop: "{{ rclone.mount }}"
+
+    - name: add compose service
+      community.docker.docker_compose:
+        project_name: "{{ dir_name[0] }}"
+        project_src: "{{ dir_path }}/docker-compose"
+        files: "{{ rclone.mount | map(attribute='name') | product(['.yml']) | map('join', '') }}"
