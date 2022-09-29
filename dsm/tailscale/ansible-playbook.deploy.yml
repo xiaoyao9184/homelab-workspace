@@ -10,8 +10,29 @@
   hosts: dsm
   tasks: 
 
-    - name: install spk
-      ansible.builtin.shell: synopkg install tailscale
+    - name: install spk from url
+      when: 
+        - spk_url is defined
+      block:
+
+        - name: download spk
+          ansible.builtin.get_url:
+            url: {{ spk_url }}
+            dest: /tmp/tailscale.spk
+            mode: '0440'
+
+        - name: install spk
+          ansible.builtin.shell: synopkg install /tmp/tailscale.spk
+
+        - name: delete spk
+          ansible.builtin.file:
+            path: /tmp/tailscale.spk
+            state: absent
+
+    - name: install spk from server
+      when:
+        - spk_url is undefined
+      ansible.builtin.shell: synopkg install_from_server Tailscale
 
     - name: set cap_net_admin
       community.general.capabilities:
@@ -58,6 +79,66 @@
 
     - name: run sysvinit
       ansible.builtin.shell: /usr/local/etc/rc.d/tailscale.sh
+
+    - name: start spk
+      ansible.builtin.shell: synopkg start Tailscale
       
-    - name: tailscale up
-      ansible.builtin.shell: tailscale up
+    - name: wait tailscale up
+      block:
+
+        - name: tailscale up
+          ansible.builtin.shell: tailscale up &> /tmp/tailscale.up.log
+          register: shell_tailscale
+          async: 2592000               # 60*60*24*30 – 1 month
+          poll: 0
+
+        - name: sheep 5
+          ansible.builtin.pause:
+            seconds: 5
+
+        - name: check async status
+          ansible.builtin.async_status:
+            jid: "{{ shell_tailscale.ansible_job_id }}"
+          register: status_async
+
+        - name: check stdout stat
+          ansible.builtin.stat:
+            path: /tmp/tailscale.up.log
+          register: stat_stdout
+
+        - name: check stdout content
+          when: 
+            - not status_async.finished
+            - stat_stdout.stat.exists
+          ansible.builtin.shell: "grep -i 'http' /tmp/tailscale.up.log"
+          register: grep_stdout
+          until: grep_stdout.rc == 0
+          retries: 259200
+          delay: 10
+
+        - name: read stdout content
+          when: 
+            - stat_stdout.stat.exists
+          ansible.builtin.shell: "cat /tmp/tailscale.up.log"
+          register: content_stdout
+
+        - name: print stdout content
+          when: 
+            - stat_stdout.stat.exists
+          ansible.builtin.pause:
+            seconds: 1
+            prompt: |
+              {{ content_stdout.stdout }}
+
+        - name: check stdout status
+          ansible.builtin.async_status:
+            jid: "{{ shell_tailscale.ansible_job_id }}"
+          register: status_stdout
+          until: status_stdout.finished
+          retries: 1000
+          delay: 10
+        
+        - name: clear stdout file
+          ansible.builtin.file:
+            path: "/tmp/tailscale.up.log"
+            state: absent

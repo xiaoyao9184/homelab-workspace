@@ -90,62 +90,65 @@
       ansible.builtin.shell: "ip route | grep src | grep br-lan | awk '{print $1}'"
       register: network_lan
 
-    - name: up tailscale
-      ansible.builtin.shell: "tailscale up --advertise-routes={{ network_lan.stdout }} &> /tmp/tailscale.up.log"
-      register: shell_tailscale
-      async: 2592000               # 60*60*24*30 – 1 month
-      poll: 0
+    - name: wait tailscale up
+      block:
 
-    - name: sheep 5
-      ansible.builtin.pause:
-        seconds: 5
+        - name: up tailscale
+          ansible.builtin.shell: "tailscale up --advertise-routes={{ network_lan.stdout }} &> /tmp/tailscale.up.log"
+          register: shell_tailscale
+          async: 2592000               # 60*60*24*30 – 1 month
+          poll: 0
 
-    - name: check async status
-      ansible.builtin.async_status:
-        jid: "{{ shell_tailscale.ansible_job_id }}"
-      register: status_async
+        - name: sheep 5
+          ansible.builtin.pause:
+            seconds: 5
 
-    - name: check stdout stat
-      ansible.builtin.stat:
-        path: /tmp/tailscale.up.log
-      register: stat_stdout
+        - name: check async status
+          ansible.builtin.async_status:
+            jid: "{{ shell_tailscale.ansible_job_id }}"
+          register: status_async
 
-    - name: check stdout content
-      when: 
-        - not status_async.finished
-        - stat_stdout.stat.exists
-      ansible.builtin.shell: "grep -i 'http' /tmp/tailscale.up.log"
-      register: grep_stdout
-      until: grep_stdout.rc == 0
-      retries: 259200
-      delay: 10
+        - name: check stdout stat
+          ansible.builtin.stat:
+            path: /tmp/tailscale.up.log
+          register: stat_stdout
 
-    - name: read stdout content
-      when: 
-        - stat_stdout.stat.exists
-      ansible.builtin.shell: "cat /tmp/tailscale.up.log"
-      register: content_stdout
+        - name: check stdout content
+          when: 
+            - not status_async.finished
+            - stat_stdout.stat.exists
+          ansible.builtin.shell: "grep -i 'http' /tmp/tailscale.up.log"
+          register: grep_stdout
+          until: grep_stdout.rc == 0
+          retries: 259200
+          delay: 10
 
-    - name: print stdout content
-      when: 
-        - stat_stdout.stat.exists
-      ansible.builtin.pause:
-        seconds: 1
-        prompt: |
-          {{ content_stdout.stdout }}
+        - name: read stdout content
+          when: 
+            - stat_stdout.stat.exists
+          ansible.builtin.shell: "cat /tmp/tailscale.up.log"
+          register: content_stdout
 
-    - name: check stdout status
-      ansible.builtin.async_status:
-        jid: "{{ shell_tailscale.ansible_job_id }}"
-      register: status_stdout
-      until: status_stdout.finished
-      retries: 1000
-      delay: 10
-    
-    - name: clear stdout file
-      ansible.builtin.file:
-        path: "/tmp/tailscale.up.log"
-        state: absent
+        - name: print stdout content
+          when: 
+            - stat_stdout.stat.exists
+          ansible.builtin.pause:
+            seconds: 1
+            prompt: |
+              {{ content_stdout.stdout }}
+
+        - name: check stdout status
+          ansible.builtin.async_status:
+            jid: "{{ shell_tailscale.ansible_job_id }}"
+          register: status_stdout
+          until: status_stdout.finished
+          retries: 1000
+          delay: 10
+        
+        - name: clear stdout file
+          ansible.builtin.file:
+            path: "/tmp/tailscale.up.log"
+            state: absent
 
     - name: get tailscale network
       ansible.builtin.shell: "ip addr show tailscale0 | grep 'inet ' | awk '{print $2}'"
@@ -157,7 +160,6 @@
           - "{{ service_rc }}"
           - "{{ network_lan }}"
           - "{{ network_tailscale }}"
-          - "{{ status_stdout }}"
 
     - name: uci add tailscale.tailscale
       uci:

@@ -1,7 +1,13 @@
 #!/bin/sh
 
 # Install
-sudo synopkg install tailscale
+if [[ -z "$spk_url" ]]; then
+  sudo synopkg install_from_server Tailscale
+else 
+  curl -o /tmp/tailscale.spk $spk_url
+  sudo synopkg install /tmp/tailscale.spk 
+  rm /tmp/tailscale.spk
+fi
 
 # https://tailscale.com/kb/1131/synology/#installation-steps
 # Add CAP_NET_ADMIN
@@ -28,5 +34,6 @@ chmod a+x /usr/local/etc/rc.d/tailscale.sh
 ls /dev/net/tun
 
 # Up
-tailscale up
+sudo synopkg start Tailscale
+sudo tailscale up
 echo "Then you can use tailscale command"
