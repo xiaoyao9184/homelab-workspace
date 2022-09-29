@@ -1,0 +1,25 @@
+---
+
+
+- name: deploy
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --inventory $PWD/ansible \
+        $PWD/../../../dsm/share-mount/ansible-playbook.deploy.yml
+  hosts: dsm
+  tasks: 
+
+    - name: create persistent shared_mount sysvinit
+      ansible.builtin.copy:
+      content: |
+        #!/bin/sh -e 
+      dest: /usr/local/etc/rc.d/shared_mount.sh
+
+    - name: append shared_mount
+      ansible.builtin.lineinfile:
+        path: /usr/local/etc/rc.d/shared_mount.sh
+        line: sudo mount --make-shared {{ item }}
+        owner: root
+        mode: 0755
+      loop: "{{ mount.shared }}"
