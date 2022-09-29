@@ -7,13 +7,8 @@
     #!/bin/sh -e 
     insmod /lib/modules/tun.ko
   dest: /usr/local/etc/rc.d/tun.sh
-
-- name: set executable permissions
-  ansible.builtin.file:
-    path: /usr/local/etc/rc.d/tun.sh
-    state: touch
-    mode: 0755
-    owner: root
+  owner: root
+  mode: 0755
 
 - name: run script once
   ansible.builtin.shell: /usr/local/etc/rc.d/tun.sh
