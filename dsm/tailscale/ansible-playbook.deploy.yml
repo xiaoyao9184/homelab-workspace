@@ -1,0 +1,63 @@
+---
+
+
+- name: deploy
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --inventory $PWD/ansible \
+        $PWD/../../../dsm/tailscale/ansible-playbook.deploy.yml
+  hosts: dsm
+  tasks: 
+
+    - name: install spk
+      ansible.builtin.shell: synopkg install tailscale
+
+    - name: set cap_net_admin
+      community.general.capabilities:
+        path: /var/packages/Tailscale/target/bin/tailscaled
+        capability: cap_net_admin+eip
+        state: present
+
+    - name: stats /dev/net/tun
+      ansible.builtin.stat:
+        path: /dev/net/tun
+      register: tun
+
+    - name: create /dev/net/tun
+      when: tun.stat.exists == false
+      block:
+
+        - name: mkdir /dev/net
+          ansible.builtin.file:
+            path: /dev/net
+            state: directory
+            mode: 755
+
+        - name: mknod /dev/net/tun
+          ansible.builtin.shell: mknod /dev/net/tun c 10 200
+
+        - name: chmod /dev/net/tun
+          ansible.builtin.file:
+            path: /dev/net/tun
+            mode: 666
+
+    - name: insmod tun
+      community.general.modprobe:
+        name: /lib/modules/tun.ko
+        state: present
+
+    - name: script sysvinit
+      ansible.builtin.copy:
+      content: |
+        #!/bin/sh -e 
+        /var/packages/Tailscale/target/bin/tailscale configure-host
+      dest: /usr/local/etc/rc.d/tailscale.sh
+      owner: root
+      mode: 0755
+
+    - name: run sysvinit
+      ansible.builtin.shell: /usr/local/etc/rc.d/tailscale.sh
+      
+    - name: tailscale up
+      ansible.builtin.shell: tailscale up
