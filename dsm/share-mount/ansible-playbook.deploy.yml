@@ -10,16 +10,16 @@
   hosts: dsm
   tasks: 
 
-    - name: create persistent shared_mount sysvinit
+    - name: create sysvinit script
       ansible.builtin.copy:
       content: |
         #!/bin/sh -e 
-      dest: /usr/local/etc/rc.d/shared_mount.sh
+      dest: /usr/local/etc/rc.d/shared-mount.sh
+      owner: root
+      mode: 0755
 
-    - name: append shared_mount
+    - name: append sysvinit script
       ansible.builtin.lineinfile:
-        path: /usr/local/etc/rc.d/shared_mount.sh
+        path: /usr/local/etc/rc.d/shared-mount.sh
         line: sudo mount --make-shared {{ item }}
-        owner: root
-        mode: 0755
       loop: "{{ mount.shared }}"
