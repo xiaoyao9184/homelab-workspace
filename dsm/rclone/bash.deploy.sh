@@ -25,8 +25,9 @@ mkdir -p ${config_mount}
 
 
 script=$(cat << EOF
+#!/bin/sh -e
 rclone \
- mount ${config_name}: /var/services/homes/xy/GDrive \
+ mount ${config_name}: /var/services/homes/xy/${config_name} \
  --config=$config_path \
  --allow-other \
  --allow-non-empty \
@@ -39,6 +40,9 @@ rclone \
 EOF
 )
 echo "$script" >> ${config_dir}/${config_name}.sh
-bash ${config_dir}/${config_name}.sh
-
 echo "You have script ${config_dir}/${config_name}.sh"
+
+cp ${config_dir}/${config_name}.sh /usr/local/etc/rc.d/rclone.sh
+chmod a+x /usr/local/etc/rc.d/rclone.sh
+bash /usr/local/etc/rc.d/rclone.sh
+echo "Run script /usr/local/etc/rc.d/rclone.sh"

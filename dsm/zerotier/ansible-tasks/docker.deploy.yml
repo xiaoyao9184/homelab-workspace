@@ -1,7 +1,7 @@
 ---
 
 
-- name: create persistent TUN
+- name: create persistent TUN sysvinit
   ansible.builtin.copy:
   content: |
     #!/bin/sh -e 
