@@ -1,0 +1,53 @@
+---
+
+- name: dispose
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --inventory $PWD/ansible \
+        $PWD/../../../docker/stack-master-slave/gitlab-runner-global/ansible-playbook.dispose.yml
+  hosts: docker-manager
+  tasks: 
+
+    - name: set ws_path
+      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/ws-path.set.yml"
+      vars: 
+        path: "{{ playbook_dir }}/../../../"
+
+    - name: set dir_name
+      include_tasks: "{{ ws_path }}/.seed/ansible-tasks/dir-name.set.yml"
+
+
+- name: dispose
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --inventory $PWD/ansible \
+        $PWD/../../../docker/stack-master-slave/gitlab-runner-global/ansible-playbook.dispose.yml
+  hosts: docker
+  tasks: 
+
+    - name: exec unregister runner
+      include_tasks: "{{ ws_path }}/.seed/ansible-tasks/docker-service.exec.yml"
+      vars:
+        service:
+          name: "{{ dir_name | join('_') }}_gitlab-runner"
+          command: |
+            gitlab-runner unregister \
+              --all-runners
+          result: "runner_unregister"
+
+
+- name: dispose
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --inventory $PWD/ansible \
+        $PWD/../../../docker/stack-master-slave/gitlab-runner-global/ansible-playbook.dispose.yml
+  hosts: docker-manager
+  tasks: 
+
+    - name: remove stack service
+      include_tasks: "{{ ws_path }}/.seed/ansible-tasks/docker-stack.rm.yml"
+      vars:
+        stack_name: "{{ dir_name[0] }}"
