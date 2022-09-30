@@ -1,0 +1,76 @@
+---
+
+- name: deploy
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --inventory $PWD/ansible \
+        $PWD/../../../docker/stack-standalone/gitlab/gitlab-runner/ansible-playbook.deploy.yml
+  hosts: docker-manager
+  tasks: 
+
+    - name: set ws_path
+      include_tasks: "{{ playbook_dir }}/../../../../.seed/ansible-tasks/ws-path.set.yml"
+      vars: 
+        path: "{{ playbook_dir }}/../../../../"
+
+    - name: set dir_name
+      include_tasks: "{{ ws_path }}/.seed/ansible-tasks/dir-name.set.yml"
+      vars:
+        set_count: 2
+
+    - name: copy dir_path
+      include_tasks: "{{ ws_path }}/.seed/ansible-tasks/dir-path.copy.yml"
+
+    - name: add external_net
+      include_tasks: "{{ ws_path }}/.seed/ansible-tasks/docker-networks.add.yml"
+      vars:
+        networks:
+          external_net-gitlab:
+            driver: overlay
+            attachable: true
+
+    - name: add stack service
+      include_tasks: "{{ ws_path }}/.seed/ansible-tasks/docker-stack.add.yml"
+      vars:
+        stack_name: "{{ dir_name[0] }}"
+        stack_path: "{{ dir_path }}"
+
+    - name: wait host port
+      include_tasks: "{{ ws_path }}/.seed/ansible-tasks/host-port.wait.yml"
+      vars:
+        wait_name: "{{ dir_name | join('_') }}"
+        wait_network:
+          - external_net-gitlab
+        wait_port: 
+          gitlab-ce: 80
+
+    - name: exec get runner token
+      include_tasks: "{{ ws_path }}/.seed/ansible-tasks/docker-service.exec.yml"
+      vars:
+        service:
+          name: "gitlab_gitlab-ce"
+          # https://stackoverflow.com/questions/59701804/obtain-shared-runners-token-gitlab-api
+          command: |
+            gitlab-rails runner -e production "puts Gitlab::CurrentSettings.current_application_settings.runners_registration_token"
+          result: "runner_token"
+
+    - name: exec register runner
+      include_tasks: "{{ ws_path }}/.seed/ansible-tasks/docker-service.exec.yml"
+      vars:
+        service:
+          name: "{{ dir_name | join('_') }}"
+          command: |
+            gitlab-runner register \
+              --non-interactive \
+              --url 'http://gitlab-ce/' \
+              --registration-token '{{ runner_token }}' \
+              --executor 'docker' \
+              --docker-image alpine:latest \
+              --description 'docker-runner' \
+              --maintenance-note 'Free-form maintainer notes about this runner' \
+              --tag-list 'docker,aws' \
+              --run-untagged='true' \
+              --locked='false' \
+              --access-level='not_protected'
+          result: "runner_register"
