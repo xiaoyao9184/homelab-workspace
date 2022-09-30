@@ -5,8 +5,8 @@
   vars:
     run_wsl: |
       ansible-playbook \
-        --inventory $PWD/inventory-ssh.yml \
-        $PWD/../../openwrt/openclash/ansible-playbook.deploy.yml
+        --inventory $PWD/ansible \
+        $PWD/../../../openwrt/openclash/ansible-playbook.deploy.yml
   hosts: localhost
   connection: local
   tasks: 
