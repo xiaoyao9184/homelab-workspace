@@ -1,7 +1,7 @@
 ---
 
 
-- name: clean
+- name: dispose
   vars:
     run_wsl: |
       ansible-playbook \
