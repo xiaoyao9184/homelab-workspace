@@ -1,0 +1,45 @@
+---
+
+
+
+- name: docker-service.exec|set _service
+  ansible.builtin.set_fact:
+    _service: 
+      name: "{{ service.name }}"
+      command: "{{ service.command | regex_replace('\\\\\\\n') }}"
+      result: "{{ service.result }}"
+
+- name: docker-service.exec|get container id
+  when: _service.name is defined
+  shell: "docker ps -q -f label=com.docker.swarm.service.name={{ _service.name }} | head -1"
+  register: _service_container_id
+  until: "_service_container_id.stdout != ''"
+  retries: 1000
+  delay: 10
+  
+- name: docker-service.exec|set _service.container_id
+  when: _service_container_id is defined
+  ansible.builtin.set_fact:
+    _service: "{{ _service | combine(update, recursive=True) }}"
+  vars:
+    update:
+      container_id: "{{ _service_container_id.stdout }}"
+
+- name: docker-service.exec|print _service
+  debug:
+    var: _service
+
+- name: docker-service.exec|exec container command
+  community.docker.docker_container_exec:
+    container: "{{ _service.container_id }}"
+    command: "{{ _service.command }}"
+  register: "_service_result"
+
+- name: docker-service.exec|set _service.result
+  ansible.builtin.set_fact:
+    "{{ _service.result }}": "{{ _service_result.stdout }}"
+
+- name: docker-service.exec|reset _service
+  ansible.builtin.set_fact:
+    _service_container_id: !!null
+    _service: !!null
