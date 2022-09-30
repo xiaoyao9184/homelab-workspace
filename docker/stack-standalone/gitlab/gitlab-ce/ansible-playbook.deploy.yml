@@ -1,0 +1,89 @@
+---
+
+- name: deploy
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --inventory $PWD/ansible \
+        $PWD/../../../docker/stack-standalone/gitlab/gitlab-ce/ansible-playbook.deploy.yml
+  hosts: docker-manager
+  tasks: 
+
+    - name: set ws_path
+      include_tasks: "{{ playbook_dir }}/../../../../.seed/ansible-tasks/ws-path.set.yml"
+      vars: 
+        path: "{{ playbook_dir }}/../../../../"
+
+    - name: set dir_name
+      include_tasks: "{{ ws_path }}/.seed/ansible-tasks/dir-name.set.yml"
+      vars:
+        set_count: 2
+
+    - name: copy dir_path
+      include_tasks: "{{ ws_path }}/.seed/ansible-tasks/dir-path.copy.yml"
+
+    - name: add external_sec
+      include_tasks: "{{ ws_path }}/.seed/ansible-tasks/docker-secrets.add.yml"
+      vars:
+        secrets:
+          external_sec-gitlab-password:
+            data: "{{ gitlab.text_password }}"
+
+    - name: copy config
+      ansible.builtin.copy:
+        src: "{{ gitlab.file_omnibus }}"
+        dest: "{{ dir_path }}/gitlab_omnibus.rb"
+
+    - name: add external_cfg
+      include_tasks: "{{ ws_path }}/.seed/ansible-tasks/docker-configs.add.yml"
+      vars:
+        configs:
+          external_cfg-gitlab-omnibus:
+            file: "{{ dir_path }}/gitlab_omnibus.rb"
+            
+    - name: mkdir bind path
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: '0755'
+      loop:
+        - "{{ gitlab.bind.path_config }}"
+        - "{{ gitlab.bind.path_log }}"
+        - "{{ gitlab.bind.path_data }}"
+
+    - name: add external_vol
+      include_tasks: "{{ ws_path }}/.seed/ansible-tasks/docker-volumes.add.yml"
+      vars:
+        volumes:
+          external_vol-gitlab-config:
+            driver: local
+            driver_opts:
+              type: none
+              device: "{{ gitlab.bind.path_config }}"
+              o: bind
+          external_vol-gitlab-log:
+            driver: local
+            driver_opts:
+              type: none
+              device: "{{ gitlab.bind.path_log }}"
+              o: bind
+          external_vol-gitlab-data:
+            driver: local
+            driver_opts:
+              type: none
+              device: "{{ gitlab.bind.path_data }}"
+              o: bind
+
+    - name: add external_net
+      include_tasks: "{{ ws_path }}/.seed/ansible-tasks/docker-networks.add.yml"
+      vars:
+        networks:
+          external_net-gitlab:
+            driver: overlay
+            attachable: true
+
+    - name: add stack service
+      include_tasks: "{{ ws_path }}/.seed/ansible-tasks/docker-stack.add.yml"
+      vars:
+        stack_name: "{{ dir_name[0] }}"
+        stack_path: "{{ dir_path }}"

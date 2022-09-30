@@ -1,0 +1,100 @@
+version: "3.8"
+
+secrets:
+  password_secret:
+    name: external_sec-gitlab-password
+    external: true
+
+configs:
+  omnibus_config:
+    name: external_cfg-gitlab-omnibus
+    external: true
+    
+volumes:
+  config:
+    name: external_vol-gitlab-config
+    external: true
+  log:
+    name: external_vol-gitlab-log
+    external: true
+  data:
+    name: external_vol-gitlab-data
+    external: true
+
+networks:
+  gitlab:
+    name: external_net-gitlab
+    external: true
+
+services:
+  gitlab-ce:
+    image: 'gitlab/gitlab-ce:13.12.15-ce.0'
+    environment:
+      GITLAB_HOME: /home/gitlab/
+      GITLAB_OMNIBUS_CONFIG: "from_file('/omnibus_config')"
+    secrets:
+      - password_secret
+      # - source: password_secret
+      #   target: password_secret
+    configs:
+      - omnibus_config
+      # - source: omnibus_config
+      #   target: /omnibus_config.rb
+    volumes:
+      - 'config:/etc/gitlab'
+      - 'log:/var/log/gitlab'
+      - 'data:/var/opt/gitlab'
+      # - type: volume
+      #   source: config
+      #   target: /etc/gitlab
+    ports:
+      - '80:80'
+      - '443:443'
+      # - target: 80
+      #   published: 80
+      # - target: 443
+      #   published: 443
+    networks:
+      - gitlab
+      # gitlab:
+      #   aliases:
+      #     - gitlab-server
+    deploy:
+      endpoint_mode: vip
+      mode: replicated
+      replicas: 1
+      # max_replicas_per_node: 1
+      placement:
+        constraints:
+          - node.platform.os == linux
+          - node.role == manager
+        preferences:
+          - spread: node.platform.os
+      labels:
+        "com.docker.stack.namespace": seed
+      resources:
+        limits:
+          cpus: '4'
+          memory: 4096M
+        reservations:
+          cpus: '1'
+          memory: 2048M
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 2
+        window: 60s
+      rollback_config:
+        parallelism: 0
+        delay: 0s
+        failure_action: pause
+        monitor: 5m
+        max_failure_ratio: 0
+        order: stop-first
+      update_config:
+        parallelism: 0
+        delay: 0s
+        failure_action: rollback
+        monitor: 5m
+        max_failure_ratio: 0
+        order: stop-first
