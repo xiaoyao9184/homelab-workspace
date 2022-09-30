@@ -1,0 +1,7 @@
+---
+
+
+- include_tasks: docker-volume.add.yml
+  loop: "{{ volumes | dict2items }}"
+  loop_control:
+    loop_var: volume

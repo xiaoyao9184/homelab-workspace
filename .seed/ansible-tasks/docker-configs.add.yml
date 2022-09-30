@@ -1,0 +1,7 @@
+---
+
+
+- include_tasks: docker-config.add.yml
+  loop: "{{ configs | dict2items }}"
+  loop_control:
+    loop_var: config

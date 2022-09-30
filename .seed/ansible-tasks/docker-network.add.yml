@@ -1,0 +1,80 @@
+---
+
+
+- name: docker-network.add|not loop
+  when: network.key is undefined
+  block:
+
+    - name: docker-network.add|set _net from network
+      ansible.builtin.set_fact:
+        _net: "{{ network }}"
+
+- name: docker-network.add|in loop
+  when: network.key is defined
+  block:
+
+    - name: docker-network.add|set _net from network.value
+      ansible.builtin.set_fact:
+        _net: "{{ network.value }}"
+
+    - name: docker-network.add|combine _net.name form network.key
+      when: _cfg.name is undefined
+      ansible.builtin.set_fact:
+        _net: "{{ _net | combine(_net_update, recursive=True) }}"
+      vars:
+        _net_update:
+          name: "{{ network.key }}"
+
+- name: docker-network.add|combine _net.labels form default
+  ansible.builtin.set_fact:
+    _net: "{{ _net | combine(_net_update, recursive=True) }}"
+  vars:
+    _net_update:
+      labels:
+        "com.docker.stack.namespace": seed
+        "com.github.xiaoyao9184.docker-seed.type": "docker-network.add"
+        "com.github.xiaoyao9184.docker-seed.creator": "{{ lookup('ansible.builtin.env', 'SEED_NAME') | default('docker-network.add',true) }}"
+
+- name: docker-network.add|print network
+  ansible.builtin.debug:
+    var: _net
+
+- name: docker-network.add|reset ipam
+  when: _net.ipam is defined
+  block:
+
+    - name: docker-network.add|rename ipam_config attr
+      when: _net.ipam.config is defined
+      include_tasks: "{{ ws_path }}/.seed/ansible-tasks/list-attr.rename.yml"
+      vars:
+        rename:
+          old: ip_range
+          new: iprange
+          list: "{{ _net.ipam.config }}"
+
+    - name: docker-network.add|reset ipam_*
+      ansible.builtin.set_fact:
+        _net: "{{ _net | combine(_net_update, recursive=True) }}"
+      vars:
+        _net_update:
+          ipam_driver: "{{ _net.ipam.driver | default('default') }}"
+          ipam_driver_options: "{{ _net.ipam.options | default({}) }}"
+          ipam_config: "{{ rename_result | default([]) }}"
+
+- name: docker-network.add|create network
+  community.docker.docker_network:
+    name: "{{ _net.name }}"
+    driver: "{{ _net.driver | default('bridge')  }}"
+    driver_options: "{{ _net.driver_options | default({}) }}"
+    attachable: "{{ _net.attachable | default(true) }}"
+    labels: "{{ _net.labels }}"
+    enable_ipv6: "{{ _net.enable_ipv6 | default(false) }}"
+    ipam_driver: "{{ _net.ipam_driver | default(none) }}"
+    ipam_driver_options: "{{ _net.ipam_driver_options | default({}) }}"
+    ipam_config: "{{ _net.ipam_config | default([]) }}"
+    internal: "{{ _net.internal | default(false) }}"
+
+- name: docker-network.add|reset _net
+  ansible.builtin.set_fact:
+    _net: !!null
+    rename_result: !!null

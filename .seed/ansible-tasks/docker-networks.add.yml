@@ -1,0 +1,7 @@
+---
+
+
+- include_tasks: docker-network.add.yml
+  loop: "{{ networks | dict2items }}"
+  loop_control:
+    loop_var: network
