@@ -1,32 +1,50 @@
-version: "3.3"
+version: "3.8"
 
 volumes:
-  stack_vol-syncthing:
+  data:
+    name: external_vol-syncthing-data
+    external: true
+  home:
+    name: external_vol-syncthing-home
+    external: true
+
+networks:
+  syncthing:
 
 services:
   syncthing:
     image: syncthing/syncthing:latest
-    volumes:
-      - stack_vol-syncthing:/var/syncthing
-      - /share/syncthing/root:/root
-    ports:
-      - 21027:21027
-      - 22000:22000
-      - 8384:8384
+    env_file: external_env-all.env
     environment: 
       - PUID=0
       - PGID=0
+    volumes:
+      - data:/var/syncthing
+      - home:/home/syncthing
+    ports:
+      - 8384:8384
+      - 21027:21027
+      - 22000:22000
+    networks:
+      - syncthing
+    # healthcheck:
+    #   test: curl -f http://localhost:8384 || exit 1
+    #   interval: 60s
+    #   timeout: 5s
+    #   retries: 10
+    #   start_period: 10m
     deploy:
+      endpoint_mode: vip
+      mode: replicated
       replicas: 1
       placement:
         constraints:
           - node.platform.os == linux
           - node.role == manager
-      update_config:
-        parallelism: 2
-        delay: 10s
-      restart_policy:
-        condition: on-failure
+        preferences:
+          - spread: node.platform.os
+      labels:
+        "com.docker.stack.namespace": seed
       resources:
         limits:
           cpus: '3'
@@ -34,3 +52,22 @@ services:
         reservations:
           cpus: '1'
           memory: 512M
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 2
+        window: 60s
+      rollback_config:
+        parallelism: 0
+        delay: 0s
+        failure_action: pause
+        monitor: 5m
+        max_failure_ratio: 0
+        order: stop-first
+      update_config:
+        parallelism: 0
+        delay: 0s
+        failure_action: rollback
+        monitor: 5m
+        max_failure_ratio: 0
+        order: stop-first

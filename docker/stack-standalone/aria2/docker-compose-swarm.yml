@@ -1,38 +1,50 @@
-version: "3.3"
+version: "3.8"
+
+volumes:
+  config:
+    name: external_vol-aria2-config
+    external: true
+  downloads:
+    name: external_vol-aria2-downloads
+    external: true
+
+networks:
+  aria2:
 
 services:
   aria2-pro:
     image: p3terx/aria2-pro
+    env_file: external_env-all.env
     environment:
       - PUID=0
       - PGID=0
-      - UMASK_SET=022
-      - RPC_SECRET=aria2.123
-      - RPC_PORT=6800
-      - LISTEN_PORT=6888
-      - DISK_CACHE=64M
-      - IPV6_MODE=false
-      - UPDATE_TRACKERS=true
-      - CUSTOM_TRACKER_URL=
-      - TZ=Asia/Shanghai
     volumes:
-      - /share/aria2/config:/config
-      - /share/aria2/downloads:/downloads
+      - config:/config
+      - downloads:/downloads
     ports:
       - 6800:6800
       - 6888:6888
       - 6888:6888/udp
+    networks:
+      - aria2
+    # healthcheck:
+    #   test: curl -f http://localhost:6800 || exit 1
+    #   interval: 60s
+    #   timeout: 5s
+    #   retries: 10
+    #   start_period: 10m
     deploy:
+      endpoint_mode: vip
+      mode: replicated
       replicas: 1
       placement:
         constraints:
           - node.platform.os == linux
           - node.role == manager
-      update_config:
-        parallelism: 2
-        delay: 10s
-      restart_policy:
-        condition: on-failure
+        preferences:
+          - spread: node.platform.os
+      labels:
+        "com.docker.stack.namespace": seed
       resources:
         limits:
           cpus: '1'
@@ -40,9 +52,75 @@ services:
         reservations:
           cpus: '1'
           memory: 512M
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 2
+        window: 60s
+      rollback_config:
+        parallelism: 0
+        delay: 0s
+        failure_action: pause
+        monitor: 5m
+        max_failure_ratio: 0
+        order: stop-first
+      update_config:
+        parallelism: 0
+        delay: 0s
+        failure_action: rollback
+        monitor: 5m
+        max_failure_ratio: 0
+        order: stop-first
           
   ariang:
     image: p3terx/ariang
     command: --port 6880 --ipv6
+    env_file: external_env-all.env
     ports:
       - 6880:6880
+    networks:
+      - aria2
+    # healthcheck:
+    #   test: curl -f http://localhost:6800 || exit 1
+    #   interval: 60s
+    #   timeout: 5s
+    #   retries: 10
+    #   start_period: 10m
+    deploy:
+      endpoint_mode: vip
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.platform.os == linux
+          - node.role == manager
+        preferences:
+          - spread: node.platform.os
+      labels:
+        "com.docker.stack.namespace": seed
+      # resources:
+      #   limits:
+      #     cpus: '1'
+      #     memory: 1024M
+      #   reservations:
+      #     cpus: '1'
+      #     memory: 512M
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 2
+        window: 60s
+      rollback_config:
+        parallelism: 0
+        delay: 0s
+        failure_action: pause
+        monitor: 5m
+        max_failure_ratio: 0
+        order: stop-first
+      update_config:
+        parallelism: 0
+        delay: 0s
+        failure_action: rollback
+        monitor: 5m
+        max_failure_ratio: 0
+        order: stop-first

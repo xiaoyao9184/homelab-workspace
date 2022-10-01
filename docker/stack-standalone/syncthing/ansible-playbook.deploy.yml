@@ -16,29 +16,42 @@
 
     - name: set dir_name
       include_tasks: "{{ ws_path }}/.seed/ansible-tasks/dir-name.set.yml"
-      vars:
-        set_count: 2
 
     - name: copy dir_path
       include_tasks: "{{ ws_path }}/.seed/ansible-tasks/dir-path.copy.yml"
 
-    - name: mount nfs root
-      include_tasks: "{{ ws_path }}/.seed/ansible-tasks/nfs-mount.wait.yml"
-      vars:
-        wait_nfs:
-          server:
-            addr: "{{ nfs_server.addr }}"
-            host: "{{ nfs_server.host }}"
-          point: "/"
-          mount: "/share"
-          remove: false
+    - name: mkdir bind path
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: '0777'
+      loop:
+        - "{{ syncthing.bind.path_data }}"
+        - "{{ syncthing.bind.path_home }}"
 
-    - name: create share directory
-      block:   
-        - file:
-            path: "/share/syncthing/root"
-            state: directory
-            mode: '0755'
+    - name: add external_vol
+      include_tasks: "{{ ws_path }}/.seed/ansible-tasks/docker-volumes.add.yml"
+      vars:
+        volumes:
+          external_vol-syncthing-data:
+            driver: local
+            driver_opts:
+              type: none
+              device: "{{ syncthing.bind.path_data }}"
+              o: bind
+          external_vol-syncthing-home:
+            driver: local
+            driver_opts:
+              type: none
+              device: "{{ syncthing.bind.path_home }}"
+              o: bind
+
+    - name: build env_file
+      include_tasks: "{{ ws_path }}/.seed/ansible-tasks/docker-env.create.yml"
+      vars:
+        env: 
+          dest: "{{ dir_path }}/external_env-all.env"
+          dict: "{{ syncthing.env }}"
 
     - name: add stack service
       include_tasks: "{{ ws_path }}/.seed/ansible-tasks/docker-stack.add.yml"

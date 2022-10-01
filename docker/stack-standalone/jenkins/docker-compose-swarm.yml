@@ -9,7 +9,7 @@ volumes:
     external: true
 
 networks:
-  jenkin:
+  jenkins:
 
 services:
   jenkins:
@@ -24,7 +24,7 @@ services:
       - data:/var/jenkins_home
       - home:/home/jenkins
     networks:
-      - jenkin
+      - jenkins
     # healthcheck:
     #   test: curl -f http://localhost:8080 || exit 1
     #   interval: 60s
