@@ -1,0 +1,69 @@
+version: "3.8"
+
+configs:
+  server_config:
+    name: external_cfg-frp-server
+    external: true
+
+networks:
+  # frp:
+  #   name: external_net-frp
+  #   external: true
+  host:
+    name: host
+    external: true
+
+services:
+  frp-server:
+    image: fatedier/frps:v0.36.2
+    entrypoint: 
+      - "/usr/bin/frps"
+      - "-c"
+      - "/app/frps.ini"
+    env_file: external_env-all.env
+    configs:
+      - source: server_config
+        target: /app/frps.ini
+    # ports:
+    #   - "7500:7500"
+    #   - "50801-50806:50801-50806"
+    #   - "54436:54436"
+    networks:
+      # - frp
+      - host
+    deploy:
+      endpoint_mode: vip
+      mode: replicated
+      replicas: 1
+      # max_replicas_per_node: 1
+      placement:
+        preferences:
+          - spread: node.platform.os
+      labels:
+        "com.docker.stack.namespace": seed
+      # resources:
+      #   limits:
+      #     cpus: '4'
+      #     memory: 4096M
+      #   reservations:
+      #     cpus: '1'
+      #     memory: 2048M
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 2
+        window: 60s
+      rollback_config:
+        parallelism: 0
+        delay: 0s
+        failure_action: pause
+        monitor: 5m
+        max_failure_ratio: 0
+        order: stop-first
+      update_config:
+        parallelism: 0
+        delay: 0s
+        failure_action: rollback
+        monitor: 5m
+        max_failure_ratio: 0
+        order: stop-first
