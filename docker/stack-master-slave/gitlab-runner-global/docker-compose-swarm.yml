@@ -11,6 +11,7 @@ networks:
 services:
   gitlab-runner:
     image: gitlab/gitlab-runner:latest
+    env_file: external_env-all.env
     volumes:
       - runner:/etc/gitlab-runner:Z
       - /var/run/docker.sock:/var/run/docker.sock
