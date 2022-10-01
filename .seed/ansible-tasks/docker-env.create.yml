@@ -12,9 +12,9 @@
   register: tempfile
 
 - name: docker-env.create|append env item
-  ansible.builtin.copy:
-    content: "{{ item.key }}={{ item.value }}"
-    dest: "{{ tempfile.path }}"
+  ansible.builtin.lineinfile:
+    path: "{{ tempfile.path }}"
+    line: "{{ item.key }}={{ item.value }}"
   loop: "{{ env.dict | dict2items }}"
 
 - name: docker-env.create|copy to env.dest
