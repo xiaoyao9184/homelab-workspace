@@ -1,0 +1,26 @@
+---
+
+
+- name: docker-env.create|print param
+  ansible.builtin.debug:
+    var: env
+
+- name: docker-env.create|create temporary file
+  ansible.builtin.tempfile:
+    state: file
+    suffix: docker-env.create
+  register: tempfile
+
+- name: docker-env.create|append env item
+  ansible.builtin.copy:
+    content: "{{ item.key }}={{ item.value }}"
+    dest: "{{ tempfile.path }}"
+  loop: "{{ env.dict | dict2items }}"
+
+- name: docker-env.create|copy to env.dest
+  ansible.builtin.copy:
+    src: "{{ tempfile.path }}"
+    dest: "{{ env.dest }}"
+    owner: root
+    group: root
+    mode: '0777'
