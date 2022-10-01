@@ -1,0 +1,64 @@
+---
+
+- name: deploy
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --inventory $PWD/ansible \
+        $PWD/../../../docker/stack-standalone/nexus/ansible-playbook.deploy.yml
+  hosts: docker-manager
+  tasks: 
+
+    - name: set ws_path
+      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/ws-path.set.yml"
+      vars: 
+        path: "{{ playbook_dir }}/../../../"
+
+    - name: set dir_name
+      include_tasks: "{{ ws_path }}/.seed/ansible-tasks/dir-name.set.yml"
+
+    - name: copy dir_path
+      include_tasks: "{{ ws_path }}/.seed/ansible-tasks/dir-path.copy.yml"
+
+    - name: mkdir bind path
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: '0755'
+      loop:
+        - "{{ nexus3.bind.path_data }}"
+
+    - name: add external_vol
+      include_tasks: "{{ ws_path }}/.seed/ansible-tasks/docker-volumes.add.yml"
+      vars:
+        volumes:
+          external_vol-nexus-data:
+            driver: local
+            driver_opts:
+              type: none
+              device: "{{ nexus3.bind.path_data }}"
+              o: bind
+
+    - name: build env_file
+      include_tasks: "{{ ws_path }}/.seed/ansible-tasks/docker-env.create.yml"
+      vars:
+        env: 
+          dest: "{{ dir_path }}/external_env-all.env"
+          dict: "{{ nexus3.env }}"
+
+    - name: add stack service
+      include_tasks: "{{ ws_path }}/.seed/ansible-tasks/docker-stack.add.yml"
+      vars:
+        stack_name: "{{ dir_name[0] }}"
+        stack_path: "{{ dir_path }}"
+
+    - name: print admin password
+      include_tasks: "{{ playbook_dir }}/ansible-tasks/admin.password.yml"
+      vars:
+        nexus: 
+          workspace: "{{ ws_path }}"
+          service:
+            name: "{{ dir_name[0] }}_nexus3"
+            command: cat /nexus-data/admin.password
+            result: nexus_passwd
+
