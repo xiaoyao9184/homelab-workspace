@@ -40,39 +40,11 @@
         configs:
           external_cfg-gitlab-omnibus:
             file: "{{ dir_path }}/gitlab_omnibus.rb"
-            
-    - name: mkdir bind path
-      ansible.builtin.file:
-        path: "{{ item }}"
-        state: directory
-        mode: '0755'
-      loop:
-        - "{{ gitlab.bind.path_config }}"
-        - "{{ gitlab.bind.path_log }}"
-        - "{{ gitlab.bind.path_data }}"
 
     - name: add external_vol
       include_tasks: "{{ ws_path }}/.seed/ansible-tasks/docker-volumes.add.yml"
       vars:
-        volumes:
-          external_vol-gitlab-config:
-            driver: local
-            driver_opts:
-              type: none
-              device: "{{ gitlab.bind.path_config }}"
-              o: bind
-          external_vol-gitlab-log:
-            driver: local
-            driver_opts:
-              type: none
-              device: "{{ gitlab.bind.path_log }}"
-              o: bind
-          external_vol-gitlab-data:
-            driver: local
-            driver_opts:
-              type: none
-              device: "{{ gitlab.bind.path_data }}"
-              o: bind
+        volumes: "{{ gitlab.vol }}"
 
     - name: add external_net
       include_tasks: "{{ ws_path }}/.seed/ansible-tasks/docker-networks.add.yml"
