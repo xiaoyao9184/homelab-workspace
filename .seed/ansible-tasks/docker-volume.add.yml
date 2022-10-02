@@ -18,7 +18,7 @@
         _vol: "{{ volume.value }}"
 
     - name: docker-volume.add|combine _vol.name form volume.key
-      when: _cfg.name is undefined
+      when: _vol.name is undefined
       ansible.builtin.set_fact:
         _vol: "{{ _vol | combine(_vol_update, recursive=True) }}"
       vars:

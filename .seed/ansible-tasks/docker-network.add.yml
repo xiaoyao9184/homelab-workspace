@@ -18,7 +18,7 @@
         _net: "{{ network.value }}"
 
     - name: docker-network.add|combine _net.name form network.key
-      when: _cfg.name is undefined
+      when: _net.name is undefined
       ansible.builtin.set_fact:
         _net: "{{ _net | combine(_net_update, recursive=True) }}"
       vars:
