@@ -15,7 +15,7 @@ networks:
 
 services:
   frp-server:
-    image: fatedier/frps:v0.36.2
+    image: fatedier/frps:v0.44.0
     entrypoint: 
       - "/usr/bin/frps"
       - "-c"

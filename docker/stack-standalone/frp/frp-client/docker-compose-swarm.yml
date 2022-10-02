@@ -12,7 +12,7 @@ configs:
 
 services:
   frp-client:
-    image: fatedier/frpc:v0.36.2
+    image: fatedier/frpc:v0.44.0
     entrypoint: 
       - "/usr/bin/frpc"
       - "-c"
