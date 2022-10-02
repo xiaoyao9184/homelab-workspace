@@ -7,6 +7,9 @@ volumes:
   downloads:
     name: external_vol-aria2-downloads
     external: true
+  completed:
+    name: external_vol-aria2-completed
+    external: true
 
 networks:
   aria2:
@@ -21,6 +24,7 @@ services:
     volumes:
       - config:/config
       - downloads:/downloads
+      - completed:/completed
     ports:
       - 6800:6800
       - 6888:6888
