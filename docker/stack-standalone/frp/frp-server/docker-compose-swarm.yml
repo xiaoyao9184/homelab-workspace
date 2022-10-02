@@ -37,6 +37,9 @@ services:
       replicas: 1
       # max_replicas_per_node: 1
       placement:
+        constraints:
+          - node.platform.os == linux
+          - node.role == manager
         preferences:
           - spread: node.platform.os
       labels:
