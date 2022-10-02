@@ -20,36 +20,13 @@
     - name: copy dir_path
       include_tasks: "{{ ws_path }}/.seed/ansible-tasks/dir-path.copy.yml"
 
-    - name: mkdir bind path
-      ansible.builtin.file:
-        path: "{{ item }}"
-        state: directory
-        mode: '0777'
-      loop:
-        - "{{ jenkins.bind.path_data }}"
-        - "{{ jenkins.bind.path_home }}"
-
-    - name: copy config
-      ansible.builtin.copy:
-        src: "{{ jenkins.file_casc }}"
-        dest: "{{ jenkins.bind.path_data }}/jenkins_casc.yml"
-
     - name: add external_vol
       include_tasks: "{{ ws_path }}/.seed/ansible-tasks/docker-volumes.add.yml"
       vars:
-        volumes:
-          external_vol-jenkins-data:
-            driver: local
-            driver_opts:
-              type: none
-              device: "{{ jenkins.bind.path_data }}"
-              o: bind
-          external_vol-jenkins-home:
-            driver: local
-            driver_opts:
-              type: none
-              device: "{{ jenkins.bind.path_home }}"
-              o: bind
+        volumes: "{{ jenkins.vol }}"
+
+    - name: copy config to vol
+      ansible.builtin.copy: "{{ jenkins.casc }}"
 
     - name: build env_file
       include_tasks: "{{ ws_path }}/.seed/ansible-tasks/docker-env.create.yml"
