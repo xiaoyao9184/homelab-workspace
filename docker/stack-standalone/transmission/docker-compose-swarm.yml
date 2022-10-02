@@ -10,6 +10,9 @@ volumes:
   watch:
     name: external_vol-transmission-watch
     external: true
+  complete:
+    name: external_vol-transmission-complete
+    external: true
 
 networks:
   transmission:
@@ -28,6 +31,7 @@ services:
       - config:/config
       - downloads:/downloads
       - watch:/watch
+      - complete:/complete
     ports:
       - 9091:9091
       - 51413:51413
