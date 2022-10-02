@@ -23,6 +23,7 @@
   ansible.builtin.copy:
     src: "{{ tempfile.path }}"
     dest: "{{ env.dest }}"
+    remote_src: true
     owner: root
     group: root
     mode: '0777'
