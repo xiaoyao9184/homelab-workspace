@@ -1,0 +1,66 @@
+version: "3.8"
+
+configs:
+  config:
+    name: external_cfg-mosquitto-config
+    external: true
+
+volumes:
+  data:
+    name: external_vol-mosquitto-data
+    external: true
+  log:
+    name: external_vol-mosquitto-log
+    external: true
+
+services:
+  mosquitto:
+    image: eclipse-mosquitto:2.0
+    configs:
+      - source: config
+        target: /mosquitto/config/mosquitto.conf
+    volumes:
+      - data:/mosquitto/data
+      - log:/mosquitto/log
+    ports:
+      - "1883:1883"
+      # - "9001:9001"
+    deploy:
+      endpoint_mode: vip
+      mode: replicated
+      replicas: 1
+      # max_replicas_per_node: 1
+      placement:
+        constraints:
+          - node.platform.os == linux
+          - node.role == manager
+        preferences:
+          - spread: node.platform.os
+      labels:
+        "com.docker.stack.namespace": seed
+      # resources:
+      #   limits:
+      #     cpus: '4'
+      #     memory: 4096M
+      #   reservations:
+      #     cpus: '1'
+      #     memory: 2048M
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 2
+        window: 60s
+      rollback_config:
+        parallelism: 0
+        delay: 0s
+        failure_action: pause
+        monitor: 5m
+        max_failure_ratio: 0
+        order: stop-first
+      update_config:
+        parallelism: 0
+        delay: 0s
+        failure_action: rollback
+        monitor: 5m
+        max_failure_ratio: 0
+        order: stop-first
