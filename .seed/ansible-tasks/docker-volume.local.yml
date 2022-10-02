@@ -3,6 +3,8 @@
 - name: check dir exists
   when:
     - vol_src is defined
+  delegate_to: localhost
+  connection: local
   ansible.builtin.stat:
     path: "{{ vol_src }}"
   register: vol_src_result
