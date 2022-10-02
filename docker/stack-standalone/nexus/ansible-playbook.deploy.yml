@@ -20,31 +20,17 @@
     - name: copy dir_path
       include_tasks: "{{ ws_path }}/.seed/ansible-tasks/dir-path.copy.yml"
 
-    - name: mkdir bind path
-      ansible.builtin.file:
-        path: "{{ item }}"
-        state: directory
-        mode: '0755'
-      loop:
-        - "{{ nexus3.bind.path_data }}"
-
     - name: add external_vol
       include_tasks: "{{ ws_path }}/.seed/ansible-tasks/docker-volumes.add.yml"
       vars:
-        volumes:
-          external_vol-nexus-data:
-            driver: local
-            driver_opts:
-              type: none
-              device: "{{ nexus3.bind.path_data }}"
-              o: bind
+        volumes: "{{ nexus.vol }}"
 
     - name: build env_file
       include_tasks: "{{ ws_path }}/.seed/ansible-tasks/docker-env.create.yml"
       vars:
         env: 
           dest: "{{ dir_path }}/external_env-all.env"
-          dict: "{{ nexus3.env }}"
+          dict: "{{ nexus.env }}"
 
     - name: add stack service
       include_tasks: "{{ ws_path }}/.seed/ansible-tasks/docker-stack.add.yml"
