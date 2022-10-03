@@ -27,9 +27,10 @@
   vars:
     _update:
       dest: "{{ _path.src | replace(_ws.src,_ws.dest) }}"
-
+- ansible.builtin.debug:
+    var: _path
 - name: dir-path.copy|copy _path to remote
-  when: _path.copy | bool == true
+  when: _path.copy
   ansible.builtin.copy:
     src: "{{ _path.src }}/"
     dest: "{{ _path.dest }}"
