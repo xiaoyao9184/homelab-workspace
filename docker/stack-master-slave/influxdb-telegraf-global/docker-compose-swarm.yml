@@ -1,0 +1,60 @@
+version: "3.8"
+
+configs:
+  conf:
+    name: external_cfg-telegraf-conf
+    external: true
+
+networks:
+  influxdb:
+    name: external_net-influxdb
+    external: true
+
+services:
+  telegraf:
+    image: telegraf:1.19
+    env_file: external_env-all.env
+    configs:
+      - source: conf
+        target: /etc/telegraf/telegraf.conf
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - influxdb
+    deploy:
+      endpoint_mode: vip
+      mode: global
+      # max_replicas_per_node: 1
+      placement:
+        constraints:
+          - node.platform.os == linux
+        preferences:
+          - spread: node.platform.os
+      labels:
+        "com.docker.stack.namespace": seed
+      # resources:
+      #   limits:
+      #     cpus: '4'
+      #     memory: 4096M
+      #   reservations:
+      #     cpus: '1'
+      #     memory: 2048M
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 2
+        window: 60s
+      rollback_config:
+        parallelism: 0
+        delay: 0s
+        failure_action: pause
+        monitor: 5m
+        max_failure_ratio: 0
+        order: stop-first
+      update_config:
+        parallelism: 0
+        delay: 0s
+        failure_action: rollback
+        monitor: 5m
+        max_failure_ratio: 0
+        order: stop-first

@@ -1,0 +1,51 @@
+---
+
+- name: deploy
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --inventory $PWD/ansible \
+        $PWD/../../../docker/stack-master-slave/influxdb-telegraf-global/ansible-playbook.deploy.yml
+  hosts: docker-manager
+  tasks: 
+
+    - name: set ws_path
+      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/ws-path.set.yml"
+      vars: 
+        path: "{{ playbook_dir }}/../../../"
+
+    - name: set dir_name
+      include_tasks: "{{ ws_path }}/.seed/ansible-tasks/dir-name.set.yml"
+
+    - name: copy dir_path
+      include_tasks: "{{ ws_path }}/.seed/ansible-tasks/dir-path.copy.yml"
+
+    - name: copy file for cfg
+      ansible.builtin.copy: "{{ item }}"
+      loop: "{{ telegraf.cfg_copy }}"
+
+    - name: add external_cfg
+      include_tasks: "{{ ws_path }}/.seed/ansible-tasks/docker-configs.add.yml"
+      vars:
+        configs: "{{ telegraf.cfg }}"
+
+    - name: add external_net
+      include_tasks: "{{ ws_path }}/.seed/ansible-tasks/docker-networks.add.yml"
+      vars:
+        networks: 
+          external_net-influxdb:
+              driver: overlay
+              attachable: true
+
+    - name: build env_file
+      include_tasks: "{{ ws_path }}/.seed/ansible-tasks/docker-env.create.yml"
+      vars:
+        env: 
+          dest: "{{ dir_path }}/external_env-all.env"
+          dict: "{{ telegraf.env }}"
+
+    - name: add stack service
+      include_tasks: "{{ ws_path }}/.seed/ansible-tasks/docker-stack.add.yml"
+      vars:
+        stack_name: "{{ dir_name[0] }}"
+        stack_path: "{{ dir_path }}"
