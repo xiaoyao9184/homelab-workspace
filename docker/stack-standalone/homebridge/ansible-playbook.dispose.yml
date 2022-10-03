@@ -1,0 +1,24 @@
+---
+
+- name: dispose
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --inventory $PWD/ansible \
+        $PWD/../../../docker/stack-standalone/homebridge/ansible-playbook.dispose.yml
+  hosts: docker-manager
+  tasks: 
+
+    - name: set ws_path
+      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/ws-path.set.yml"
+      vars: 
+        path: "{{ playbook_dir }}/../../../"
+
+    - name: set dir_name
+      include_tasks: "{{ ws_path }}/.seed/ansible-tasks/dir-name.set.yml"
+
+    - name: remove stack service
+      include_tasks: "{{ ws_path }}/.seed/ansible-tasks/docker-stack.rm.yml"
+      vars:
+        stack_name: "{{ dir_name[0] }}"
+        stack_path: "{{ playbook_dir }}"
