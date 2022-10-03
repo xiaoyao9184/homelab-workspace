@@ -12,13 +12,17 @@ networks:
 
 services:
   telegraf-{{ VARS.JOB_NAME }}:
-    image: telegraf:1.19
+    image: telegraf:1.24.1
+    hostname: "{{ VARS.HOMENAME }}"
+    user: telegraf:{{ VARS.USR_GROUP }}
     env_file: external_env-all.env
     configs:
       - source: conf-{{ VARS.JOB_NAME }}
         target: /etc/telegraf/telegraf.conf
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+      - /usr/share/snmp/mibs/:/usr/share/snmp/mibs/
+      - /var/lib/mibs:/var/lib/mibs
     networks:
       - influxdb
     deploy:

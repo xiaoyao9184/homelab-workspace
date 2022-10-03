@@ -48,6 +48,11 @@
         _cfg_copy_list: []
         _cfg_list: []
         _template_list: []
+    
+    - name: stat docker group
+      ansible.builtin.stat:
+        path: /var/run/docker.sock
+      register: docker_stat
 
     - name: add _jobs
       ansible.builtin.set_fact:
@@ -68,6 +73,8 @@
             dest: "{{ dir_path }}/docker-compose-swarm/{{ job }}.yml"
           vars:
             JOB_NAME: "{{ job }}"
+            HOMENAME: "{{ ansible_hostname }}"
+            USR_GROUP: "{{ docker_stat.stat.gid }}"
       loop: "{{ _jobs }}"
       loop_control:
         loop_var: job
