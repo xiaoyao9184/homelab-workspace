@@ -9,19 +9,17 @@
   hosts: docker-manager
   tasks: 
 
-    - name: set ws_path
-      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/ws-path.set.yml"
-      vars: 
-        path: "{{ playbook_dir }}/../../../"
+    - name: set ws_dir
+      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/ws-dir.set.yml"
 
     - name: set dir_name
-      include_tasks: "{{ ws_path }}/.seed/ansible-tasks/dir-name.set.yml"
+      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/dir-name.set.yml"
 
     - name: copy dir_path
-      include_tasks: "{{ ws_path }}/.seed/ansible-tasks/dir-path.copy.yml"
+      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/dir-path.copy.yml"
 
     - name: add external_vol
-      include_tasks: "{{ ws_path }}/.seed/ansible-tasks/docker-volumes.add.yml"
+      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-volumes.add.yml"
       vars:
         volumes: "{{ grafana.vol }}"
 
@@ -30,7 +28,7 @@
       loop: "{{ grafana.vol_copy }}"
 
     - name: add external_net
-      include_tasks: "{{ ws_path }}/.seed/ansible-tasks/docker-networks.add.yml"
+      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-networks.add.yml"
       vars:
         networks:
           external_net-influxdb:
@@ -38,14 +36,14 @@
             attachable: true
 
     - name: build env_file
-      include_tasks: "{{ ws_path }}/.seed/ansible-tasks/docker-env.create.yml"
+      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-env.create.yml"
       vars:
         env: 
           dest: "{{ dir_path }}/external_env-all.env"
           dict: "{{ grafana.env }}"
 
     - name: add stack service
-      include_tasks: "{{ ws_path }}/.seed/ansible-tasks/docker-stack.add.yml"
+      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-stack.add.yml"
       vars:
         stack_name: "{{ dir_name[0] }}"
         stack_path: "{{ dir_path }}"

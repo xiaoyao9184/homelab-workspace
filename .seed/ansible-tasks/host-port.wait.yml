@@ -10,9 +10,9 @@
 
 - name: wait for service:is docker-seed-local 
   when: seed_in_docker_connect_local is defined
-  include_tasks: "{{ ws_path }}/.seed/ansible-tasks/host-port.wait-local.yml"
+  include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/host-port.wait-local.yml"
 
 - name: wait for service:not docker-seed-local
   when: seed_in_docker_connect_local is undefined
-  include_tasks: "{{ ws_path }}/.seed/ansible-tasks/host-port.wait-remote.yml"
+  include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/host-port.wait-remote.yml"
 

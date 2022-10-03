@@ -1,39 +1,40 @@
 ---
 
 
-- name: set dir_current
-  when: dir_current | default(None) == None
+- name: dir-name.set|set _current_dir
+  when: _current_dir | default(None) == None
   ansible.builtin.set_fact:
     dir_name: []
-    dir_current: "{{ playbook_dir }}"
-    dir_lookup: "{{ set_count | default(1) | int }}"
+    _current_dir: "{{ name.dir | default(playbook_dir) | realpath }}"
+    _current_high: "{{ name.high | default(1) | int }}"
 
-- name: get dir_basename
+- name: dir-name.set|set _current_basename
   ansible.builtin.set_fact:
-    dir_basename: "{{ dir_current | basename }}"
+    _current_basename: "{{ _current_dir | basename }}"
 
-- name: add to dir_name
+- name: dir-name.set|append dir_name
   ansible.builtin.set_fact:
-    dir_name: "{{ [ dir_basename ] + dir_name }}"
-    dir_current: "{{ dir_current | dirname }}"
-    dir_lookup: "{{ dir_lookup | int - 1 }}"
+    dir_name: "{{ [ _current_basename ] + dir_name }}"
+    _current_dir: "{{ _current_dir | dirname }}"
+    _current_high: "{{ _current_high | int - 1 }}"
 
 # https://medium.com/opsops/how-to-undefine-fact-in-ansible-5fff46432360
-- name: reset vars
-  when: 
-    - dir_lookup | int <= 0
+- name: dir-name.set|reset _current_*
+  when: _current_high | int <= 0
   ansible.builtin.set_fact:
-    dir_lookup: !!null
-    dir_current: !!null
-    dir_basename: !!null
+    _current_dir: !!null
+    _current_high: !!null
+    _current_basename: !!null
 
-- name: print dir_name
-  when: 
-    - dir_lookup | int <= 0
+- name: dir-name.set|print dir_name
+  when: _current_high | int <= 0
   ansible.builtin.debug:
     var: dir_name
 
-- name: lookup dir_name
-  when: 
-    - dir_lookup | int > 0
-  include_tasks: "{{ ws_path }}/.seed/ansible-tasks/dir-name.set.yml"
+- name: dir-name.set|go high for dir_name
+  when: _current_high | int > 0
+  ansible.builtin.debug:
+    msg: "try append name of {{ _current_dir }}"
+
+- when: _current_high | int > 0
+  include_tasks: dir-name.set.yml

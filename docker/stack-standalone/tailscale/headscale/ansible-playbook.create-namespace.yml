@@ -14,15 +14,14 @@
   hosts: docker-manager
   tasks: 
 
-    - name: set ws_path
-      include_tasks: "{{ playbook_dir }}/../../../../.seed/ansible-tasks/ws-path.set.yml"
-      vars: 
-        path: "{{ playbook_dir }}/../../../../"
+    - name: set ws_dir
+      include_tasks: "{{ playbook_dir }}/../../../../.seed/ansible-tasks/ws-dir.set.yml"
 
     - name: set dir_name
-      include_tasks: "{{ ws_path }}/.seed/ansible-tasks/dir-name.set.yml"
+      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/dir-name.set.yml"
       vars:
-        set_count: 2
+        name:
+          high: 2
 
     - name: get container id
       shell: "docker ps -q -f label=com.docker.swarm.service.name={{ dir_name | join('_') }} | head -1"

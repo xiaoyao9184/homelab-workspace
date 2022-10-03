@@ -14,23 +14,24 @@
   hosts: docker-manager
   tasks: 
 
-    - name: set ws_path
-      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/ws-path.set.yml"
-      vars: 
-        path: "{{ playbook_dir }}/../../../"
+    - name: set ws_dir
+      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/ws-dir.set.yml"
 
     - name: set dir_name
-      include_tasks: "{{ ws_path }}/.seed/ansible-tasks/dir-name.set.yml"
+      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/dir-name.set.yml"
 
     - name: copy dir_path
-      include_tasks: "{{ ws_path }}/.seed/ansible-tasks/dir-path.copy.yml"
+      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/dir-path.copy.yml"
+      vars:
+        path:
+          copy: false
 
     - name: default job_names
       when: job_names == ''
       block:
 
         - name: list job files
-          include_tasks: "{{ ws_path }}/.seed/ansible-tasks/file-name.list.yml"
+          include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/file-name.list.yml"
           vars:
             name: 
               option_find: "{{ inventory_dir }}/../telegraf"
@@ -72,7 +73,7 @@
         loop_var: job
 
     - name: remove compose service
-      include_tasks: "{{ ws_path }}/.seed/ansible-tasks/docker-compose.rm.yml"
+      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-compose.rm.yml"
       vars:
         compose:
           type: stack

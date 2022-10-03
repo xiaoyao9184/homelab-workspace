@@ -7,7 +7,7 @@
       cmd: "-e wait_port={{ wait_port | to_json | b64encode }} /workspace/ansible-playbook.yml"
       network: "{{ wait_network | map('community.general.dict_kv', 'name') }}"
       vol:
-        src: "{{ ws_path }}/.seed/ansible-playbook/host-port.wait"
+        src: "{{ ws_dir }}/.seed/ansible-playbook/host-port.wait"
         path: "{{ workspace.remote }}/.seed/ansible-playbook/host-port.wait"
         name: "host-port.wait-{{ wait_name }}"
 
@@ -16,7 +16,7 @@
     var: remote_docker
 
 - name: volume remote_docker
-  include_tasks: "{{ ws_path }}/.seed/ansible-tasks/docker-volume.local.yml"
+  include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-volume.local.yml"
   vars:
     vol_src: "{{ remote_docker.vol.src }}"
     vol_path: "{{ remote_docker.vol.path }}"
@@ -42,6 +42,6 @@
   delay: 10
 
 - name: loop remote_docker
-  include_tasks: "{{ ws_path }}/.seed/ansible-tasks/docker-container.loop.yml"
+  include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-container.loop.yml"
   vars:
     container_name: "{{ remote_docker.name }}"

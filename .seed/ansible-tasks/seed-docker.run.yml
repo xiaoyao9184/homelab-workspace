@@ -2,11 +2,11 @@
 
 # param check
 - block:
-  - name: must seed_ws_path
+  - name: must seed_ws_dir
     when: 
-      - seed_ws_path is undefined
+      - seed_ws_dir is undefined
     fail:
-      msg: Not set seed_ws_path
+      msg: Not set seed_ws_dir
   - name: must anisble_inventory
     when: 
       - anisble_inventory is undefined
@@ -46,7 +46,7 @@
       seed_image: "{{ lookup('ansible.builtin.env', 'SEED_IMAGE') }}"
       seed_command: "{{ lookup('ansible.builtin.env', 'SEED_COMMAND') }}"
       seed_ws_name: "{{ lookup('ansible.builtin.env', 'SEED_WORKSPACE') }}"
-      seed_ws_path: "{{ lookup('ansible.builtin.env', 'SEED_WORKSPACE_PATH') }}"
+      seed_ws_dir: "{{ lookup('ansible.builtin.env', 'SEED_WORKSPACE_PATH') }}"
       seed_id_name: "{{ lookup('ansible.builtin.env', 'SEED_KEY') }}"
       seed_id_path: "{{ lookup('ansible.builtin.env', 'SEED_KEY_PATH') }}"
 
@@ -59,7 +59,7 @@
       seed_entrypoint: "{{ seed_entrypoint | default('ansible-playbook',true) }}"
       seed_image: "{{ seed_image | default('xiaoyao9184/docker-seed-ansible:latest',true) }}"
       seed_command: "{{ seed_command | default('--version',true) }}"
-      seed_ws_path: "{{ seed_ws_path | default('/workspace',true) }}"
+      seed_ws_dir: "{{ seed_ws_dir | default('/workspace',true) }}"
       seed_id_path: "{{ seed_id_path | default('/key/.ssh/id_rsa',true) }}"
       seed_creator: "{{ seed_name | default('docker-seed-playbook',true) }}"
 
@@ -74,7 +74,7 @@
         - "seed_image: {{ seed_image }}"
         - "seed_command: {{ seed_command }}"
         - "seed_ws_name: {{ seed_ws_name }}"
-        - "seed_ws_path: {{ seed_ws_path }}"
+        - "seed_ws_dir: {{ seed_ws_dir }}"
         - "seed_id_name: {{ seed_id_name }}"
         - "seed_id_path: {{ seed_id_path }}"
       # verbosity: 3
@@ -110,7 +110,7 @@
   - name: workspace seed_volume
     vars:
       seed_ws:
-        src: "{{ seed_ws_path }}"
+        src: "{{ seed_ws_dir }}"
         name: "{{ seed_ws_name }}"
         exist: false
         dest: "/seed/workspace/default"
@@ -136,7 +136,7 @@
           seed_ws: "{{ seed_ws | combine(seed_ws_update, recursive=True) }}"
         vars:
           seed_ws_update:
-            name: "{{ seed_ws_path | basename }}"
+            name: "{{ seed_ws_dir | basename }}"
 
       - name: set seed_ws.exist fact
         when:

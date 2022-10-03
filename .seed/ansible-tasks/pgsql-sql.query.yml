@@ -10,9 +10,9 @@
 
 - name: pgsql sql query:is docker-seed-local 
   when: seed_in_docker_connect_local is defined
-  include_tasks: "{{ ws_path }}/.seed/ansible-tasks/pgsql-sql.query-local.yml"
+  include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/pgsql-sql.query-local.yml"
 
 - name: pgsql sql query:not docker-seed-local
   when: seed_in_docker_connect_local is undefined
-  include_tasks: "{{ ws_path }}/.seed/ansible-tasks/pgsql-sql.query-remote.yml"
+  include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/pgsql-sql.query-remote.yml"
 

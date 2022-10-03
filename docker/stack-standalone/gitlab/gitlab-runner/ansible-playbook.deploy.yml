@@ -9,21 +9,20 @@
   hosts: docker-manager
   tasks: 
 
-    - name: set ws_path
-      include_tasks: "{{ playbook_dir }}/../../../../.seed/ansible-tasks/ws-path.set.yml"
-      vars: 
-        path: "{{ playbook_dir }}/../../../../"
+    - name: set ws_dir
+      include_tasks: "{{ playbook_dir }}/../../../../.seed/ansible-tasks/ws-dir.set.yml"
 
     - name: set dir_name
-      include_tasks: "{{ ws_path }}/.seed/ansible-tasks/dir-name.set.yml"
+      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/dir-name.set.yml"
       vars:
-        set_count: 2
+        name:
+          high: 2
 
     - name: copy dir_path
-      include_tasks: "{{ ws_path }}/.seed/ansible-tasks/dir-path.copy.yml"
+      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/dir-path.copy.yml"
 
     - name: add external_net
-      include_tasks: "{{ ws_path }}/.seed/ansible-tasks/docker-networks.add.yml"
+      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-networks.add.yml"
       vars:
         networks:
           external_net-gitlab:
@@ -31,20 +30,20 @@
             attachable: true
 
     - name: build env_file
-      include_tasks: "{{ ws_path }}/.seed/ansible-tasks/docker-env.create.yml"
+      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-env.create.yml"
       vars:
         env: 
           dest: "{{ dir_path }}/external_env-all.env"
           dict: "{{ gitlab.env }}"
 
     - name: add stack service
-      include_tasks: "{{ ws_path }}/.seed/ansible-tasks/docker-stack.add.yml"
+      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-stack.add.yml"
       vars:
         stack_name: "{{ dir_name[0] }}"
         stack_path: "{{ dir_path }}"
 
     - name: wait host port
-      include_tasks: "{{ ws_path }}/.seed/ansible-tasks/host-port.wait.yml"
+      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/host-port.wait.yml"
       vars:
         wait_name: "{{ dir_name | join('_') }}"
         wait_network:
@@ -53,7 +52,7 @@
           gitlab-ce: 80
 
     - name: exec get runner token
-      include_tasks: "{{ ws_path }}/.seed/ansible-tasks/docker-service.exec.yml"
+      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-service.exec.yml"
       vars:
         service:
           name: "gitlab_gitlab-ce"
@@ -63,7 +62,7 @@
           result: "runner_token"
 
     - name: exec register runner
-      include_tasks: "{{ ws_path }}/.seed/ansible-tasks/docker-service.exec.yml"
+      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-service.exec.yml"
       vars:
         service:
           name: "{{ dir_name | join('_') }}"

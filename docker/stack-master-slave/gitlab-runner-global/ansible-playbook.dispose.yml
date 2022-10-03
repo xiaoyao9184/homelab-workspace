@@ -9,13 +9,11 @@
   hosts: docker-manager
   tasks: 
 
-    - name: set ws_path
-      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/ws-path.set.yml"
-      vars: 
-        path: "{{ playbook_dir }}/../../../"
+    - name: set ws_dir
+      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/ws-dir.set.yml"
 
     - name: set dir_name
-      include_tasks: "{{ ws_path }}/.seed/ansible-tasks/dir-name.set.yml"
+      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/dir-name.set.yml"
 
 
 - name: dispose
@@ -28,7 +26,7 @@
   tasks: 
 
     - name: exec unregister runner
-      include_tasks: "{{ ws_path }}/.seed/ansible-tasks/docker-service.exec.yml"
+      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-service.exec.yml"
       vars:
         service:
           name: "{{ dir_name | join('_') }}_gitlab-runner"
@@ -48,6 +46,6 @@
   tasks: 
 
     - name: remove stack service
-      include_tasks: "{{ ws_path }}/.seed/ansible-tasks/docker-stack.rm.yml"
+      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-stack.rm.yml"
       vars:
         stack_name: "{{ dir_name[0] }}"

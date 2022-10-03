@@ -33,5 +33,5 @@
       pause:
         seconds: 15
 
-    - include_tasks: "{{ ws_path }}/.seed/ansible-tasks/docker-container.loop.yml"
+    - include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-container.loop.yml"
 
