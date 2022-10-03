@@ -1,0 +1,83 @@
+---
+
+- name: dispose
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --inventory $PWD/ansible \
+        $PWD/../../../docker/stack-job/telegraf/ansible-playbook.dispose.yml
+  vars_prompt:
+    - name: job_names
+      prompt: "What is job name(config file name in inventory_dir/telegraf)?"
+      private: no
+      default: 
+  hosts: docker-manager
+  tasks: 
+
+    - name: set ws_path
+      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/ws-path.set.yml"
+      vars: 
+        path: "{{ playbook_dir }}/../../../"
+
+    - name: set dir_name
+      include_tasks: "{{ ws_path }}/.seed/ansible-tasks/dir-name.set.yml"
+
+    - name: copy dir_path
+      include_tasks: "{{ ws_path }}/.seed/ansible-tasks/dir-path.copy.yml"
+
+    - name: default job_names
+      when: job_names == ''
+      block:
+
+        - name: list job files
+          include_tasks: "{{ ws_path }}/.seed/ansible-tasks/file-name.list.yml"
+          vars:
+            name: 
+              option_find: "{{ inventory_dir }}/../telegraf"
+              result_var: job_files
+              location: local
+
+        - name:
+          ansible.builtin.set_fact:
+            job_names: "{{ job_files | map('basename') | map('splitext') | map('first') | join(',') }}"
+
+    - name: set _jobs
+      ansible.builtin.set_fact:
+        _jobs: "{{ job_names.split(',') }}"
+        _cfg_copy_list: []
+        _cfg_list: []
+        _template_list: []
+
+    - name: add _jobs
+      ansible.builtin.set_fact:
+        _cfg_copy_list: "{{ _cfg_copy_list + [_cfg_copy] }}"
+        _cfg_list: "{{ _cfg_list + [_cfg] }}"
+        _template_list: "{{ _template_list + [_template] }}"
+      vars:
+        _cfg_copy:
+          - src: "{{ inventory_dir }}/../telegraf/{{ job }}.conf"
+            dest: "{{ dir_path }}/telegraf/{{ job }}.conf"
+        _cfg:
+          - name: "external_cfg-telegraf-conf-{{ job }}"
+            file: "{{ dir_path }}/telegraf/{{ job }}.conf"
+        _template:
+          name: "{{ job }}"
+          opt:
+            src: "{{ playbook_dir }}/docker-compose-swarm.yml.j2"
+            dest: "{{ dir_path }}/docker-compose-swarm/{{ job }}.yml"
+          vars:
+            JOB_NAME: "{{ job }}"
+      loop: "{{ _jobs }}"
+      loop_control:
+        loop_var: job
+
+    - name: remove compose service
+      include_tasks: "{{ ws_path }}/.seed/ansible-tasks/docker-compose.rm.yml"
+      vars:
+        compose:
+          type: stack
+          name: "{{ dir_name[0] }}"
+          path: "{{ dir_path }}/docker-compose-swarm"
+          # files: 
+          #   - "docker-compose-swarm.yml"
+          template: "{{ _template_list }}"

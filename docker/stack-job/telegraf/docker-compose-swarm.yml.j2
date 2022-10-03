@@ -1,8 +1,8 @@
 version: "3.8"
 
 configs:
-  conf:
-    name: external_cfg-telegraf-conf
+  conf-{{ VARS.JOB_NAME }}:
+    name: external_cfg-telegraf-conf-{{ VARS.JOB_NAME }}
     external: true
 
 networks:
@@ -11,11 +11,11 @@ networks:
     external: true
 
 services:
-  telegraf:
+  telegraf-{{ VARS.JOB_NAME }}:
     image: telegraf:1.19
     env_file: external_env-all.env
     configs:
-      - source: conf
+      - source: conf-{{ VARS.JOB_NAME }}
         target: /etc/telegraf/telegraf.conf
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
@@ -23,8 +23,7 @@ services:
       - influxdb
     deploy:
       endpoint_mode: vip
-      mode: replicated
-      replicas: 1
+      mode: global
       # max_replicas_per_node: 1
       placement:
         constraints:
