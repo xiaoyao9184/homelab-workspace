@@ -25,26 +25,25 @@
     - name: add external_sec
       include_tasks: "{{ ws_path }}/.seed/ansible-tasks/docker-secrets.add.yml"
       vars:
-        secrets:
-          external_sec-gitlab-password:
-            data: "{{ gitlab.text_password }}"
+        secrets: "{{ gitlab.sec }}"
 
-    - name: copy config
-      ansible.builtin.copy:
-        src: "{{ gitlab.file_omnibus }}"
-        dest: "{{ dir_path }}/gitlab_omnibus.rb"
+    - name: copy file for cfg
+      ansible.builtin.copy: "{{ item }}"
+      loop: "{{ gitlab.cfg_copy }}"
 
     - name: add external_cfg
       include_tasks: "{{ ws_path }}/.seed/ansible-tasks/docker-configs.add.yml"
       vars:
-        configs:
-          external_cfg-gitlab-omnibus:
-            file: "{{ dir_path }}/gitlab_omnibus.rb"
+        configs: "{{ gitlab.cfg }}"
 
     - name: add external_vol
       include_tasks: "{{ ws_path }}/.seed/ansible-tasks/docker-volumes.add.yml"
       vars:
         volumes: "{{ gitlab.vol }}"
+
+    - name: copy file for vol
+      ansible.builtin.copy: "{{ item }}"
+      loop: "{{ gitlab.vol_copy }}"
 
     - name: add external_net
       include_tasks: "{{ ws_path }}/.seed/ansible-tasks/docker-networks.add.yml"

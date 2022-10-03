@@ -22,31 +22,28 @@
     - name: copy dir_path
       include_tasks: "{{ ws_path }}/.seed/ansible-tasks/dir-path.copy.yml"
 
-    - name: copy config
-      ansible.builtin.copy:
-        src: "{{ frp.file_client }}"
-        dest: "{{ dir_path }}/frpc.ini"
+    - name: copy file for cfg
+      ansible.builtin.copy: "{{ item }}"
+      loop: "{{ mosquitto.cfg_copy }}"
 
     - name: add external_cfg
       include_tasks: "{{ ws_path }}/.seed/ansible-tasks/docker-configs.add.yml"
       vars:
-        configs:
-          external_cfg-frp-client:
-            file: "{{ dir_path }}/frpc.ini"
+        configs: "{{ frp.client.cfg }}"
 
     - name: build env_file
       include_tasks: "{{ ws_path }}/.seed/ansible-tasks/docker-env.create.yml"
       vars:
         env: 
           dest: "{{ dir_path }}/external_env-all.env"
-          dict: "{{ frp.env }}"
+          dict: "{{ frp.client.env }}"
 
     - name: wait host port
       include_tasks: "{{ ws_path }}/.seed/ansible-tasks/host-port.wait.yml"
       vars:
         wait_name: "{{ dir_name | join('_') }}"
         wait_network: []
-        wait_port: "{{ frp.wait_client }}"
+        wait_port: "{{ frp.client.wait_client }}"
 
     - name: add stack service
       include_tasks: "{{ ws_path }}/.seed/ansible-tasks/docker-stack.add.yml"

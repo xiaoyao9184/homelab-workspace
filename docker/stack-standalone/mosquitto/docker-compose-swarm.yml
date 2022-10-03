@@ -16,6 +16,7 @@ volumes:
 services:
   mosquitto:
     image: eclipse-mosquitto:2.0
+    env_file: external_env-all.env
     configs:
       - source: config
         target: /mosquitto/config/mosquitto.conf
