@@ -1,0 +1,81 @@
+---
+
+
+# TODO will remove all services in stack or compose
+- name: docker-compose.rm|set _compose
+  ansible.builtin.set_fact:
+    _compose: 
+      name: "{{ compose.name }}"
+      type: "{{ compose.type }}"
+      path: "{{ compose.path }}"
+      files: "{{ compose.files | default([]) }}"
+
+- name: docker-compose.rm|use template
+  when: 
+    - compose.template is defined
+  block:
+
+    - name: docker-compose.rm|one template
+      when: compose.template | type_debug == "dict"
+      ansible.builtin.set_fact:
+        _template: "{{ compose.template | list }}"
+      
+    - name: docker-compose.rm|multiple template
+      when: 
+        - compose.template | type_debug == "list" 
+      ansible.builtin.set_fact:
+        _template: "{{ compose.template }}"
+
+    - name: docker-compose.rm|template file
+      ansible.builtin.template: "{{ _template_item.opt }}"
+      vars: 
+        VARS: "{{ _template_item.vars }}"
+      loop: "{{ _template }}"
+      loop_control:
+        loop_var: _template_item
+
+    - name: docker-compose.rm|set _files
+      ansible.builtin.set_fact:
+        _files: []
+
+    - name: docker-compose.rm|add template file
+      ansible.builtin.set_fact:
+        _files: "{{ _files + [file] }}"
+      vars:
+        file: "{{ _template_item.name }}.yml"
+      loop: "{{ _template }}"
+      loop_control:
+        loop_var: _template_item
+      
+    - name: docker-compose.rm|combine _compose.files
+      ansible.builtin.set_fact:
+        _compose: "{{ _compose | combine(_update, recursive=True) }}"
+      vars:
+        _update:
+          files: "{{ _compose.files + _files }}"
+          
+    - name: docker-compose.rm|reset _files
+      ansible.builtin.set_fact:
+        _files: !!null
+
+- name: docker-compose.rm|print _compose
+  ansible.builtin.debug:
+    var: _compose
+
+- name: docker-compose.rm|stack
+  when: _compose.type == 'stack'
+  community.docker.docker_stack:
+    state: absent
+    name: "{{ _compose.name }}"
+
+- name: docker-compose.rm|compose
+  when: _compose.type == 'compose'
+  community.docker.docker_compose:
+    state: absent
+    project_name: "{{ _compose.name }}"
+    project_src: "{{ _compose.path }}"
+    files: "{{ _compose.files }}"
+
+- name: docker-compose.rm|reset _compose
+  ansible.builtin.set_fact:
+    _compose: !!null
