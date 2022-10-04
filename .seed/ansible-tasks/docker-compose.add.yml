@@ -17,7 +17,7 @@
     - name: docker-compose.add|one template
       when: compose.template | type_debug == "dict"
       ansible.builtin.set_fact:
-        _template: "{{ compose.template | list }}"
+        _template: "{{ [ compose.template ] }}"
       
     - name: docker-compose.add|multiple template
       when: 

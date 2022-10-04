@@ -6,7 +6,7 @@
     - envs is defined 
     - envs | type_debug == "dict"
   ansible.builtin.set_fact:
-    _envs: "{{ envs | list }}"
+    _envs: "{{ [ envs ] }}"
 
 - name: docker-envs.create|list
   when: 
