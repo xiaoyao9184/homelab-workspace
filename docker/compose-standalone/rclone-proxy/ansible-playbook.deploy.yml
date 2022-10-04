@@ -5,13 +5,13 @@
     run_wsl: |
       ansible-playbook \
         --inventory $PWD/ansible \
-        $PWD/../../../docker/stack-standalone/telegraf/ansible-playbook.deploy.yml
+        $PWD/../../../docker/compose-standalone/rclone-proxy/ansible-playbook.deploy.yml
   vars_prompt:
     - name: service_names
-      prompt: "What is service name(same as config file name in inventory_dir/telegraf)?"
+      prompt: "What is service name(same as config file name in inventory_dir/rclone)?"
       private: no
       default: 
-  hosts: docker-manager
+  hosts: docker
   tasks: 
 
     - name: set ws_dir
@@ -26,11 +26,6 @@
         path:
           cp: false
 
-    - name: stat docker group
-      ansible.builtin.stat:
-        path: /var/run/docker.sock
-      register: docker_stat
-
     - name: default service_names
       when: service_names == ''
       block:
@@ -39,7 +34,7 @@
           include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/file-name.list.yml"
           vars:
             name: 
-              option_find: "{{ inventory_dir }}/../telegraf"
+              option_find: "{{ inventory_dir }}/../rclone"
               result_var: config_files
               location: local
 
@@ -50,74 +45,89 @@
     - name: set service_name_list
       ansible.builtin.set_fact:
         service_name_list: "{{ service_names.split(',') }}"
-        cfg_copy_list: []
-        cfg_list: []
+        vol_copy_list: []
+        vol_list: []
         template_list: []
 
     - name: add service_name_list
       ansible.builtin.set_fact:
-        cfg_copy_list: "{{ cfg_copy_list + [cfg_copy] }}"
-        cfg_list: "{{ cfg_list + [cfg] }}"
+        vol_copy_list: "{{ vol_copy_list + [vol_copy] }}"
+        vol_list: "{{ vol_list + [vol] }}"
         template_list: "{{ template_list + [template] }}"
       vars:
-        cfg_copy:
-          - src: "{{ inventory_dir }}/../telegraf/{{ name }}.conf"
-            dest: "{{ dir_path }}/telegraf/{{ name }}.conf"
-        cfg:
-          - name: "external_cfg-telegraf-conf-{{ name }}"
-            file: "{{ dir_path }}/telegraf/{{ name }}.conf"
+        service: "{{ rclone.service[name] }}"
+        vol_copy: 
+          - src: "{{ inventory_dir }}/../rclone/{{ name }}.conf"
+            dest: "/var/services/homes/xy/.config/rclone/{{ name }}/rclone/rclone.conf"
+        vol:
+          - name: "external_vol-rclone-config-{{ name }}"
+            driver: local
+            driver_opts:
+              type: none
+              device: "{{ service.vol_map.config }}"
+              o: bind
+          - name: "external_vol-rclone-cache-{{ name }}"
+            driver: local
+            driver_opts:
+              type: none
+              device: "{{ service.vol_map.cache }}"
+              o: bind
+          - name: "external_vol-rclone-data-{{ name }}"
+            driver: local
+            driver_opts:
+              type: none
+              device: "{{ service.vol_map.data }}"
+              o: bind
         template:
           name: "{{ name }}"
           opt:
-            src: "{{ playbook_dir }}/docker-compose-swarm.yml.j2"
-            dest: "{{ dir_path }}/docker-compose-swarm/{{ name }}.yml"
+            src: "{{ playbook_dir }}/docker-compose.yml.j2"
+            dest: "{{ dir_path }}/docker-compose/{{ name }}.yml"
           vars:
             SERIVCE_NAME: "{{ name }}"
-            HOMENAME: "{{ ansible_hostname }}"
-            USR_GROUP: "{{ docker_stat.stat.gid }}"
       loop: "{{ service_name_list }}"
       loop_control:
-        loop_var: name
+        loop_var: serivce
 
     - name: mkdir for serivce
       ansible.builtin.file:
         path: "{{ item }}"
         state: directory
       loop:
-        - "{{ dir_path }}/telegraf"
-        - "{{ dir_path }}/docker-compose-swarm"
+        - "{{ dir_path }}/rclone"
+        - "{{ dir_path }}/docker-compose"
 
-    - name: copy file for cfg
-      ansible.builtin.copy: "{{ item }}"
-      loop: "{{ cfg_copy_list | flatten }}"
-
-    - name: add external_cfg
-      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-configs.add.yml"
+    - name: add external_vol
+      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-volumes.add.yml"
       vars:
-        configs: "{{ cfg_list | flatten }}"
+        volumes: "{{ vol_list | flatten }}"
+
+    - name: copy file for vol
+      ansible.builtin.copy: "{{ item }}"
+      loop: "{{ vol_copy_list | flatten }}"
     
     - name: add external_net
       include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-networks.add.yml"
       vars:
         networks: 
-          external_net-influxdb:
-            driver: overlay
+          external_net-rclone:
+            driver: bridge
             attachable: true
 
     - name: build env_file
       include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-env.create.yml"
       vars:
         env: 
-          dest: "{{ dir_path }}/docker-compose-swarm/external_env-all.env"
-          data: "{{ telegraf.env }}"
+          dest: "{{ dir_path }}/docker-compose/external_env-all.env"
+          data: "{{ rclone.env-proxy }}"
 
     - name: add compose service
       include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-compose.add.yml"
       vars:
         compose:
-          type: stack
+          type: compose
           name: "{{ dir_name[0] }}"
-          path: "{{ dir_path }}/docker-compose-swarm"
+          path: "{{ dir_path }}/docker-compose"
           # files: 
-          #   - "docker-compose-swarm.yml"
+          #   - "docker-compose.yml"
           template: "{{ template_list }}"

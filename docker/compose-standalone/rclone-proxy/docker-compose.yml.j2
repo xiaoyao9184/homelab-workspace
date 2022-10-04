@@ -1,0 +1,38 @@
+version: "3.8"
+
+volumes:
+  config:
+    name: external_vol-rclone-config-{{ VARS.SERIVCE_NAME }}
+    external: true
+  cache:
+    name: external_vol-rclone-cache-{{ VARS.SERIVCE_NAME }}
+    external: true
+  data:
+    name: external_vol-rclone-data-{{ VARS.SERIVCE_NAME }}
+    external: true
+
+networks:
+  rclone:
+    name: external_net-rclone
+    external: true
+
+services:
+  rclone-{{ VARS.SERIVCE_NAME }}:
+    image: gqbre/docker-rclone-proxy
+    env_file: external_env-all.env
+    environment:
+      - "RemotePath={{ VARS.SERIVCE_NAME }}:"
+    security_opt:
+      - apparmor:unconfined
+    cap_add:
+      - SYS_ADMIN
+    devices:
+      - /dev/fuse
+    volumes:
+      - config:/config
+      - cache:/cache
+      - data:/mnt/mediaefs:shared
+    networks:
+      - rclone
+    container_name: rclone-{{ VARS.SERIVCE_NAME }}
+    restart: always
