@@ -1,0 +1,10 @@
+version: "3.8"
+
+services:
+  omniedge:
+    image: omniedge/omniedge:latest
+    env_file: external_env-tf.env
+    privileged: true
+    container_name: domoticz
+    network_mode: "host"
+    restart: always
