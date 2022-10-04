@@ -47,10 +47,11 @@
       when: _net.ipam.config is defined
       include_tasks: list-attr.rename.yml
       vars:
-        rename:
+        attr:
           old: ip_range
           new: iprange
           list: "{{ _net.ipam.config }}"
+          result_var: rename_result
 
     - name: docker-network.add|reset ipam_*
       ansible.builtin.set_fact:
