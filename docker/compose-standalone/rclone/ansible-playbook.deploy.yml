@@ -101,6 +101,12 @@
       vars:
         volumes: "{{ vol_list | flatten }}"
 
+    - name: mkdir for vol
+      ansible.builtin.file:
+        path: "{{ item.dest | dirname }}"
+        state: directory
+      loop: "{{ vol_copy_list | flatten }}"
+
     - name: copy file for vol
       ansible.builtin.copy: "{{ item }}"
       loop: "{{ vol_copy_list | flatten }}"
