@@ -56,9 +56,7 @@
         template_list: "{{ template_list + [template] }}"
       vars:
         service: "{{ rclone.service[name] }}"
-        vol_copy: 
-          - src: "{{ inventory_dir }}/../rclone/{{ name }}.conf"
-            dest: "/var/services/homes/xy/.config/rclone/{{ name }}/rclone/rclone.conf"
+        vol_copy: "{{ service.vol_copy }}"
         vol:
           - name: "external_vol-rclone-config-{{ name }}"
             driver: local

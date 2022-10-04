@@ -19,7 +19,7 @@ networks:
 services:
   rclone-{{ VARS.SERIVCE_NAME }}:
     image: rclone/rclone:latest
-    command: mount "{{ VARS.SERIVCE_NAME }}:" "/data"
+    command: mount "{{ VARS.SERIVCE_NAME }}:" "/data" --allow-other --allow-non-empty --buffer-size 32M --vfs-read-chunk-size=32M --vfs-read-chunk-size-limit 2048M --vfs-cache-mode writes --dir-cache-time 96h
     security_opt:
       - apparmor:unconfined
     cap_add:
@@ -29,7 +29,7 @@ services:
     volumes:
       - config:/config
       - cache:/cache
-      - data:/data
+      - data:/data:shared
     networks:
       - rclone
     container_name: rclone-{{ VARS.SERIVCE_NAME }}
