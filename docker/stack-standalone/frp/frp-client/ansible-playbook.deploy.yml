@@ -35,7 +35,7 @@
       vars:
         env: 
           dest: "{{ dir_path }}/external_env-all.env"
-          dict: "{{ frp.client.env }}"
+          data: "{{ frp.client.env }}"
 
     - name: wait host port
       include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/host-port.wait.yml"

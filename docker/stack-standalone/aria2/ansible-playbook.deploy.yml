@@ -28,7 +28,7 @@
       vars:
         env: 
           dest: "{{ dir_path }}/external_env-all.env"
-          dict: "{{ aria2.env }}"
+          data: "{{ aria2.env }}"
 
     - name: add stack service
       include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-stack.add.yml"

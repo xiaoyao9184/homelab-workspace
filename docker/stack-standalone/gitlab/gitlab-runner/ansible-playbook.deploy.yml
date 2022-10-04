@@ -34,7 +34,7 @@
       vars:
         env: 
           dest: "{{ dir_path }}/external_env-all.env"
-          dict: "{{ gitlab.env }}"
+          data: "{{ gitlab.env }}"
 
     - name: add stack service
       include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-stack.add.yml"

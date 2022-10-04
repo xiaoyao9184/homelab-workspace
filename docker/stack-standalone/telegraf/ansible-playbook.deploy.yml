@@ -109,7 +109,7 @@
       vars:
         env: 
           dest: "{{ dir_path }}/docker-compose-swarm/external_env-all.env"
-          dict: "{{ telegraf.env }}"
+          data: "{{ telegraf.env }}"
 
     - name: add compose service
       include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-compose.add.yml"

@@ -40,7 +40,7 @@
       vars:
         env: 
           dest: "{{ dir_path }}/external_env-all.env"
-          dict: "{{ telegraf.env }}"
+          data: "{{ telegraf.env }}"
 
     - name: add stack service
       include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-stack.add.yml"
