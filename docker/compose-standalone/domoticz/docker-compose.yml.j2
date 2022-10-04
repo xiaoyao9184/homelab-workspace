@@ -1,0 +1,27 @@
+version: '3.8'
+
+volumes:
+  userdata:
+    name: external_vol-domoticz-userdata
+    external: true
+    
+networks:
+  lan:
+    name: external_net-domoticz
+    external: true
+
+services:
+  domoticz:
+    image: domoticz/domoticz:2021-beta.13738
+    env_file: external_env-all.env
+    # environment:
+    #   - LOG_PATH=/opt/domoticz/userdata/domoticz.log
+    volumes:
+      - userdata:/opt/domoticz/userdata
+    # ports:
+    #   - "8080:8080"
+    networks:
+      lan:
+        ipv4_address: {{ VARS.IP }}
+    container_name: domoticz
+    restart: always
