@@ -12,11 +12,11 @@
 
     - name: create sysvinit script
       ansible.builtin.copy:
-      content: |
-        #!/bin/sh -e 
-      dest: /usr/local/etc/rc.d/shared-mount.sh
-      owner: root
-      mode: 0755
+        content: |
+          #!/bin/sh -e 
+        dest: /usr/local/etc/rc.d/shared-mount.sh
+        owner: root
+        mode: 0755
 
     - name: append sysvinit script
       ansible.builtin.lineinfile:
