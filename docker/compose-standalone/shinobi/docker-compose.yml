@@ -1,0 +1,47 @@
+version: "3.8"
+
+volumes:
+  config:
+    name: external_vol-shinobi-config
+    external: true
+  customAutoLoad:
+    name: external_vol-shinobi-customAutoLoad
+    external: true
+  videos:
+    name: external_vol-shinobi-videos
+    external: true
+  plugins:
+    name: external_vol-shinobi-plugins
+    external: true
+  database:
+  tensorflow:
+    name: external_vol-shinobi-tensorflow
+    external: true
+
+networks:
+  shinobi:
+
+services:
+  shinobi:
+    image: shinobisystems/shinobi:dev
+    container_name: shinobi
+    env_file: external_env-shinobi.env
+    volumes:
+      - config:/config
+      - customAutoLoad:/customAutoLoad
+      - videos:/home/Shinobi/videos
+      - plugins:/home/Shinobi/plugins
+      - database:/var/lib/mysql
+      - /dev/shm/Shinobi/streams:/dev/shm/streams
+      - /etc/localtime:/etc/localtime:ro
+    ports:
+      - 8180:8080
+    restart: unless-stopped
+
+  shinobi-tensorflow:
+    image: shinobisystems/shinobi-tensorflow:latest
+    container_name: shinobi-tensorflow
+    env_file: external_env-tf.env
+    volumes:
+      - tensorflow:/config
+    restart: unless-stopped
