@@ -45,7 +45,7 @@
 
     - name: docker-network.add|rename ipam_config attr
       when: _net.ipam.config is defined
-      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/list-attr.rename.yml"
+      include_tasks: list-attr.rename.yml
       vars:
         rename:
           old: ip_range
