@@ -1,8 +1,8 @@
 version: "3.8"
 
 configs:
-  conf-{{ VARS.JOB_NAME }}:
-    name: external_cfg-telegraf-conf-{{ VARS.JOB_NAME }}
+  conf-{{ VARS.SERIVCE_NAME }}:
+    name: external_cfg-telegraf-conf-{{ VARS.SERIVCE_NAME }}
     external: true
 
 networks:
@@ -11,13 +11,13 @@ networks:
     external: true
 
 services:
-  telegraf-{{ VARS.JOB_NAME }}:
+  telegraf-{{ VARS.SERIVCE_NAME }}:
     image: telegraf:1.24.1
     hostname: "{{ VARS.HOMENAME }}"
     user: telegraf:{{ VARS.USR_GROUP }}
     env_file: external_env-all.env
     configs:
-      - source: conf-{{ VARS.JOB_NAME }}
+      - source: conf-{{ VARS.SERIVCE_NAME }}
         target: /etc/telegraf/telegraf.conf
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock

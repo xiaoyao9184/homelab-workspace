@@ -5,10 +5,10 @@
     run_wsl: |
       ansible-playbook \
         --inventory $PWD/ansible \
-        $PWD/../../../docker/stack-job/telegraf/ansible-playbook.dispose.yml
+        $PWD/../../../docker/stack-standalone/telegraf/ansible-playbook.dispose.yml
   vars_prompt:
-    - name: job_names
-      prompt: "What is job name(config file name in inventory_dir/telegraf)?"
+    - name: service_names
+      prompt: "What is service name(same as config file name in inventory_dir/telegraf)?"
       private: no
       default: 
   hosts: docker-manager
@@ -26,58 +26,58 @@
         path:
           cp: false
 
-    - name: default job_names
-      when: job_names == ''
-      block:
-
-        - name: list job files
-          include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/file-name.list.yml"
-          vars:
-            name: 
-              option_find: "{{ inventory_dir }}/../telegraf"
-              result_var: job_files
-              location: local
-
-        - name:
-          ansible.builtin.set_fact:
-            job_names: "{{ job_files | map('basename') | map('splitext') | map('first') | join(',') }}"
-
-    - name: set _jobs
-      ansible.builtin.set_fact:
-        _jobs: "{{ job_names.split(',') }}"
-        _cfg_copy_list: []
-        _cfg_list: []
-        _template_list: []
-    
     - name: stat docker group
       ansible.builtin.stat:
         path: /var/run/docker.sock
       register: docker_stat
 
-    - name: add _jobs
+    - name: default service_names
+      when: service_names == ''
+      block:
+
+        - name: list config_files
+          include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/file-name.list.yml"
+          vars:
+            name: 
+              option_find: "{{ inventory_dir }}/../telegraf"
+              result_var: config_files
+              location: local
+
+        - name:
+          ansible.builtin.set_fact:
+            service_names: "{{ config_files | map('basename') | map('splitext') | map('first') | join(',') }}"
+
+    - name: set service_name_list
       ansible.builtin.set_fact:
-        _cfg_copy_list: "{{ _cfg_copy_list + [_cfg_copy] }}"
-        _cfg_list: "{{ _cfg_list + [_cfg] }}"
-        _template_list: "{{ _template_list + [_template] }}"
+        service_name_list: "{{ service_names.split(',') }}"
+        cfg_copy_list: []
+        cfg_list: []
+        template_list: []
+
+    - name: add service_name_list
+      ansible.builtin.set_fact:
+        cfg_copy_list: "{{ cfg_copy_list + [cfg_copy] }}"
+        cfg_list: "{{ cfg_list + [cfg] }}"
+        template_list: "{{ template_list + [template] }}"
       vars:
-        _cfg_copy:
-          - src: "{{ inventory_dir }}/../telegraf/{{ job }}.conf"
-            dest: "{{ dir_path }}/telegraf/{{ job }}.conf"
-        _cfg:
-          - name: "external_cfg-telegraf-conf-{{ job }}"
-            file: "{{ dir_path }}/telegraf/{{ job }}.conf"
-        _template:
-          name: "{{ job }}"
+        cfg_copy:
+          - src: "{{ inventory_dir }}/../telegraf/{{ serivce }}.conf"
+            dest: "{{ dir_path }}/telegraf/{{ serivce }}.conf"
+        cfg:
+          - name: "external_cfg-telegraf-conf-{{ serivce }}"
+            file: "{{ dir_path }}/telegraf/{{ serivce }}.conf"
+        template:
+          name: "{{ serivce }}"
           opt:
             src: "{{ playbook_dir }}/docker-compose-swarm.yml.j2"
-            dest: "{{ dir_path }}/docker-compose-swarm/{{ job }}.yml"
+            dest: "{{ dir_path }}/docker-compose-swarm/{{ serivce }}.yml"
           vars:
-            JOB_NAME: "{{ job }}"
+            SERIVCE_NAME: "{{ serivce }}"
             HOMENAME: "{{ ansible_hostname }}"
             USR_GROUP: "{{ docker_stat.stat.gid }}"
-      loop: "{{ _jobs }}"
+      loop: "{{ service_name_list }}"
       loop_control:
-        loop_var: job
+        loop_var: serivce
 
     - name: remove compose service
       include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-compose.rm.yml"
@@ -88,4 +88,4 @@
           path: "{{ dir_path }}/docker-compose-swarm"
           # files: 
           #   - "docker-compose-swarm.yml"
-          template: "{{ _template_list }}"
+          template: "{{ template_list }}"
