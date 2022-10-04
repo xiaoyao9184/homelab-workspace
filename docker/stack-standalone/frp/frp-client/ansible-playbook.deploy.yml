@@ -42,7 +42,7 @@
       vars:
         wait_name: "{{ dir_name | join('_') }}"
         wait_network: []
-        wait_port: "{{ frp.client.wait_client }}"
+        wait_port: "{{ frp.client.wait_port }}"
 
     - name: add stack service
       include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-stack.add.yml"
