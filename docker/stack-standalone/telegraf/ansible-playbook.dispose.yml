@@ -24,7 +24,7 @@
       include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/dir-path.copy.yml"
       vars:
         path:
-          copy: false
+          cp: false
 
     - name: default job_names
       when: job_names == ''
