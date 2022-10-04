@@ -55,7 +55,7 @@
         vol_list: "{{ vol_list + [vol] }}"
         template_list: "{{ template_list + [template] }}"
       vars:
-        service: "{{ rclone.service[name] }}"
+        service: "{{ rclone_proxy.service[name] }}"
         vol_copy: "{{ service.vol_copy }}"
         vol:
           - name: "external_vol-rclone-config-{{ name }}"
@@ -117,7 +117,7 @@
       vars:
         env: 
           dest: "{{ dir_path }}/docker-compose/external_env-all.env"
-          data: "{{ rclone.env-proxy }}"
+          data: "{{ rclone_proxy.env }}"
 
     - name: add compose service
       include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-compose.add.yml"
