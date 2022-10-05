@@ -85,6 +85,13 @@
     - name: start spk
       ansible.builtin.shell: /usr/syno/bin/synopkg start Tailscale
 
+    - name: authkey tailscale up
+      when: tailscale.up.authkey is defined
+      block:
+
+        - name: tailscale up
+          ansible.builtin.shell: "/usr/local/bin/tailscale up --authkey {{ tailscale.up.authkey }}"
+
     - name: wait tailscale up
       when: tailscale.up.authkey is undefined
       block:

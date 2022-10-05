@@ -90,6 +90,13 @@
       ansible.builtin.shell: "ip route | grep src | grep br-lan | awk '{print $1}'"
       register: network_lan
 
+    - name: authkey tailscale up
+      when: tailscale.up.authkey is defined
+      block:
+
+        - name: tailscale up
+          ansible.builtin.shell: "/usr/local/bin/tailscale up --authkey {{ tailscale.up.authkey }} --advertise-routes={{ network_lan.stdout }}"
+
     - name: wait tailscale up
       block:
 
