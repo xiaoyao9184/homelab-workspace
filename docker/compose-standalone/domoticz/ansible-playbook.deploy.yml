@@ -67,5 +67,14 @@
         service:
           type: compose
           name: domoticz
-          command: "{{ domoticz.exec }}"
+          command: "{{ command }}"
           result: exe_result
+      loop: "{{ domoticz.exec }}"
+      loop_control:
+        loop_var: command
+
+    - name: restart container
+      community.docker.docker_container:
+        name: domoticz
+        state: started
+        restart: true
