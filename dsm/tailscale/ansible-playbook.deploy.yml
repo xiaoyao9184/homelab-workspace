@@ -12,17 +12,17 @@
 
     - name: install spk from url
       when: 
-        - spk_url is defined
+        - tailscale.spk_url is defined
       block:
 
         - name: download spk
           ansible.builtin.get_url:
-            url: {{ spk_url }}
+            url: "{{ tailscale.spk_url }}"
             dest: /tmp/tailscale.spk
             mode: '0440'
 
         - name: install spk
-          ansible.builtin.shell: synopkg install /tmp/tailscale.spk
+          ansible.builtin.shell: /usr/syno/bin/synopkg install /tmp/tailscale.spk
 
         - name: delete spk
           ansible.builtin.file:
@@ -31,8 +31,8 @@
 
     - name: install spk from server
       when:
-        - spk_url is undefined
-      ansible.builtin.shell: synopkg install_from_server Tailscale
+        - tailscale.spk_url is undefined
+      ansible.builtin.shell: /usr/syno/bin/synopkg install_from_server Tailscale
 
     - name: set cap_net_admin
       community.general.capabilities:
@@ -64,30 +64,33 @@
             mode: 666
 
     - name: insmod tun
-      community.general.modprobe:
-        name: /lib/modules/tun.ko
-        state: present
+      ansible.builtin.shell: insmod /lib/modules/tun.ko
+      ignore_errors: yes
+      # community.general.modprobe:
+      #   name: /lib/modules/tun.ko
+      #   state: present
 
     - name: script sysvinit
       ansible.builtin.copy:
-      content: |
-        #!/bin/sh -e 
-        /var/packages/Tailscale/target/bin/tailscale configure-host
-      dest: /usr/local/etc/rc.d/tailscale.sh
-      owner: root
-      mode: 0755
+        content: |
+          #!/bin/sh -e 
+          /var/packages/Tailscale/target/bin/tailscale configure-host
+        dest: /usr/local/etc/rc.d/tailscale.sh
+        owner: root
+        mode: 0755
 
     - name: run sysvinit
       ansible.builtin.shell: /usr/local/etc/rc.d/tailscale.sh
 
     - name: start spk
-      ansible.builtin.shell: synopkg start Tailscale
-      
+      ansible.builtin.shell: /usr/syno/bin/synopkg start Tailscale
+
     - name: wait tailscale up
+      when: tailscale.up.authkey is undefined
       block:
 
         - name: tailscale up
-          ansible.builtin.shell: tailscale up &> /tmp/tailscale.up.log
+          ansible.builtin.shell: /usr/local/bin/tailscale up &> /tmp/tailscale.up.log
           register: shell_tailscale
           async: 2592000               # 60*60*24*30 – 1 month
           poll: 0

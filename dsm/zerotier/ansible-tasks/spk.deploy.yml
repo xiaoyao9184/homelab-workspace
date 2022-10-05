@@ -6,7 +6,7 @@
 
     - name: fail miss spk_url
       when: 
-        - spk_url is undefined
+        - zerotier.spk_url is undefined
       ansible.builtin.fail:
         msg: "miss spk_url variable"
 
@@ -17,17 +17,17 @@
     - name: print spk url and cpu architecture
       ansible.builtin.debug:
         msg:
-          - {{ cpu_architecture.stdout }}
-          - {{ spk_url }}
+          - "{{ cpu_architecture.stdout }}"
+          - "{{ zerotier.spk_url }}"
 
     - name: download spk
       ansible.builtin.get_url:
-        url: {{ spk_url }}
+        url: "{{ zerotier.spk_url }}"
         dest: /tmp/zerotier.spk
         mode: '0440'
 
     - name: install spk
-      ansible.builtin.shell: synopkg install /tmp/zerotier.spk
+      ansible.builtin.shell: /usr/syno/bin/synopkg install /tmp/zerotier.spk
 
     - name: delete spk
       ansible.builtin.file:
