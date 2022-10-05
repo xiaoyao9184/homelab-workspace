@@ -4,12 +4,6 @@ volumes:
   config:
     name: external_vol-rclone-config-{{ VARS.SERIVCE_NAME }}
     external: true
-  cache:
-    name: external_vol-rclone-cache-{{ VARS.SERIVCE_NAME }}
-    external: true
-  data:
-    name: external_vol-rclone-data-{{ VARS.SERIVCE_NAME }}
-    external: true
 
 networks:
   rclone:
@@ -27,9 +21,8 @@ services:
     devices:
       - /dev/fuse
     volumes:
-      - config:/config
-      - cache:/cache
-      - data:/data:shared
+      - config:/config/rclone
+      - {{ VARS.BIND_DATA }}:/data:shared
     networks:
       - rclone
     container_name: rclone-{{ VARS.SERIVCE_NAME }}

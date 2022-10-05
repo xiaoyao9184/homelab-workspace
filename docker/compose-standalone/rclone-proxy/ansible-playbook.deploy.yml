@@ -57,24 +57,12 @@
       vars:
         service: "{{ rclone_proxy.service[name] }}"
         vol_copy: "{{ service.vol_copy }}"
-        vol:
+        vol: 
           - name: "external_vol-rclone-config-{{ name }}"
             driver: local
             driver_opts:
               type: none
               device: "{{ service.vol_map.config }}"
-              o: bind
-          - name: "external_vol-rclone-cache-{{ name }}"
-            driver: local
-            driver_opts:
-              type: none
-              device: "{{ service.vol_map.cache }}"
-              o: bind
-          - name: "external_vol-rclone-data-{{ name }}"
-            driver: local
-            driver_opts:
-              type: none
-              device: "{{ service.vol_map.data }}"
               o: bind
         template:
           name: "{{ name }}"
@@ -83,6 +71,7 @@
             dest: "{{ dir_path }}/docker-compose/{{ name }}.yml"
           vars:
             SERIVCE_NAME: "{{ name }}"
+            BIND_DATA: "{{ service.bind_map.data }}"
       loop: "{{ service_name_list }}"
       loop_control:
         loop_var: name
@@ -92,7 +81,6 @@
         path: "{{ item }}"
         state: directory
       loop:
-        - "{{ dir_path }}/rclone"
         - "{{ dir_path }}/docker-compose"
 
     - name: add external_vol
