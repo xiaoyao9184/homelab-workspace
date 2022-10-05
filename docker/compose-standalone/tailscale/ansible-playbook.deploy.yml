@@ -6,6 +6,8 @@
       ansible-playbook \
         --inventory $PWD/ansible \
         $PWD/../../../docker/compose-standalone/tailscale/ansible-playbook.deploy.yml
+  environment:
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('',true) }}"
   hosts: docker
   tasks: 
 
@@ -19,7 +21,7 @@
       include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/dir-path.copy.yml"
 
     - name: build env_file
-      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-envs.create.yml"
+      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-env.create.yml"
       vars:
         env: 
           dest: "{{ dir_path }}/external_env.env"
@@ -34,3 +36,12 @@
           path: "{{ dir_path }}"
           files: 
             - "docker-compose.yml"
+
+    - name: exec service
+      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-service.exec.yml"
+      vars:
+        service:
+          type: compose
+          name: tailscale
+          command: "tailscale up --authkey={{ tailscale.up.authkey }}"
+          result: exe_result

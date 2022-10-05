@@ -11,6 +11,8 @@
       prompt: "What is service name(same as config file name in inventory_dir/rclone)?"
       private: no
       default: 
+  environment:
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('',true) }}"
   hosts: docker
   tasks: 
 

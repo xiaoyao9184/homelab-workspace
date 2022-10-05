@@ -12,6 +12,6 @@ services:
     devices:
       - /dev/net/tun
     privileged: true
-    container_name: tailscale
+    container_name: zerotier
     network_mode: "host"
     restart: always

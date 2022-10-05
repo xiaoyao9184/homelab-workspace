@@ -6,6 +6,8 @@
       ansible-playbook \
         --inventory $PWD/ansible \
         $PWD/../../../docker/compose-standalone/omniedge/ansible-playbook.deploy.yml
+  environment:
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('',true) }}"
   hosts: docker
   tasks: 
 

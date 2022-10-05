@@ -24,7 +24,9 @@
   when: _service.name is defined
   shell: "docker ps -q -f {{ _filter }} | head -1"
   register: _container_id
-  until: "_container_id.stdout != ''"
+  until: 
+    - _container_id is not failed
+    - _container_id.stdout != ''
   retries: 1000
   delay: 10
   
