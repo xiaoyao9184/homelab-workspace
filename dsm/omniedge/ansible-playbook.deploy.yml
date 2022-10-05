@@ -1,0 +1,68 @@
+---
+
+
+- name: deploy
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --inventory $PWD/ansible \
+        $PWD/../../../dsm/omniedge/ansible-playbook.deploy.yml
+  hosts: dsm
+  tasks: 
+
+    - name: install spk from url
+      when: 
+        - omniedge.spk_url is defined
+      block:
+
+        - name: download spk
+          ansible.builtin.get_url:
+            url: "{{ omniedge.spk_url }}"
+            dest: /tmp/tailscale.spk
+            mode: '0440'
+
+        - name: install spk
+          ansible.builtin.shell: /usr/syno/bin/synopkg install /tmp/tailscale.spk
+
+        - name: delete spk
+          ansible.builtin.file:
+            path: /tmp/tailscale.spk
+            state: absent
+
+    - name: fail miss spk_url
+      when:
+        - omniedge.spk_url is undefined
+      ansible.builtin.fail:
+        msg: omniedge.spk_url is undefined
+
+    - name: read version
+      ansible.builtin.shell: cat /etc/VERSION | grep majorversion | sed -E 's/majorversion=.(.*)./\1/'
+      register: version_major
+
+    - name: dsm7
+      when: version_major == '7'
+      ansible.builtin.replace:
+        path: /var/packages/omniedge/conf/privilege
+        regexp: 'package'
+        replace: 'root'
+
+    - name: fill dialog NETWORK_ID
+      ansible.builtin.lineinfile:
+        path: /var/packages/omniedge/target/var/dialog
+        regexp: 'NETWORK_ID=.*'
+        line: "NETWORK_ID={{ omniedge.dialog.NETWORK_ID }}"
+
+    - name: fill dialog SECURITY_KEY
+      ansible.builtin.lineinfile:
+        path: /var/packages/omniedge/target/var/dialog
+        regexp: 'SECURITY_KEY=.*'
+        line: "SECURITY_KEY={{ omniedge.dialog.SECURITY_KEY }}"
+
+    - name: fill dialog IP_RANGE
+      ansible.builtin.lineinfile:
+        path: /var/packages/omniedge/target/var/dialog
+        regexp: 'IP_RANGE=.*'
+        line: "IP_RANGE={{ omniedge.dialog.IP_RANGE }}"
+
+    - name: start spk
+      ansible.builtin.shell: /usr/syno/bin/synopkg start omniedge
