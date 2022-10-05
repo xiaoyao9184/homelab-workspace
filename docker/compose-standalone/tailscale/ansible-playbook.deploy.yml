@@ -24,7 +24,7 @@
       include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-env.create.yml"
       vars:
         env: 
-          dest: "{{ dir_path }}/external_env.env"
+          dest: "{{ dir_path }}/external_env-all.env"
           data: "{{ tailscale.env }}"
 
     - name: add compose service

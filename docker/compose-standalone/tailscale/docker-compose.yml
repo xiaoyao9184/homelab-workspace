@@ -4,6 +4,7 @@ services:
   tailscale:
     image: tailscale/tailscale:latest
     command: tailscaled
+    env_file: external_env-all.env
     volumes:
       - /dev/net/tun:/dev/net/tun
       - /var/lib:/var/lib

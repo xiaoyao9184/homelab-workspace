@@ -4,6 +4,7 @@ services:
   zerotier:
     image: zerotier/zerotier:latest
     command: zerotier
+    env_file: external_env-all.env
     volumes:
       - /var/lib/zerotier-one:/var/lib/zerotier-one
     cap_add:
