@@ -19,10 +19,10 @@
       include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/dir-path.copy.yml"
 
     - name: build env_file
-      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-envs.create.yml"
+      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-env.create.yml"
       vars:
         env: 
-          dest: "{{ dir_path }}/external_env.env"
+          dest: "{{ dir_path }}/external_env-all.env"
           data: "{{ omniedge.env }}"
 
     - name: add compose service
