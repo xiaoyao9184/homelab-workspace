@@ -66,7 +66,7 @@
   community.docker.docker_network:
     name: "{{ _net.name }}"
     driver: "{{ _net.driver | default('bridge')  }}"
-    driver_options: "{{ _net.driver_options | default({}) }}"
+    driver_options: "{{ _net.driver_opts | default({}) }}"
     attachable: "{{ _net.attachable | default(true) }}"
     labels: "{{ _net.labels }}"
     enable_ipv6: "{{ _net.enable_ipv6 | default(false) }}"
