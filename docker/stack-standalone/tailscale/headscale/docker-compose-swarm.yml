@@ -25,7 +25,7 @@ services:
       - stack_vol-config:/etc/headscale/
       - stack_vol-data:/var/lib/headscale
     ports:
-      - 8080:8080
+      - 8280:8080
     networks:
       - external_net-headscale
     deploy:
