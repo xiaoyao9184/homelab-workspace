@@ -7,13 +7,15 @@ volumes:
   customAutoLoad:
     name: external_vol-shinobi-customAutoLoad
     external: true
+  database:
+    name: external_vol-shinobi-database
+    external: true
   videos:
     name: external_vol-shinobi-videos
     external: true
   plugins:
     name: external_vol-shinobi-plugins
     external: true
-  database:
   tensorflow:
     name: external_vol-shinobi-tensorflow
     external: true
@@ -29,14 +31,23 @@ services:
     volumes:
       - config:/config
       - customAutoLoad:/customAutoLoad
+      - database:/var/lib/mysql
       - videos:/home/Shinobi/videos
       - plugins:/home/Shinobi/plugins
-      - database:/var/lib/mysql
       - /dev/shm/Shinobi/streams:/dev/shm/streams
       - /etc/localtime:/etc/localtime:ro
     ports:
       - 8180:8080
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2048M
+        reservations:
+          cpus: '0.5'
+          memory: 1024M
+
 
   shinobi-tensorflow:
     image: shinobisystems/shinobi-tensorflow:latest
@@ -45,3 +56,11 @@ services:
     volumes:
       - tensorflow:/config
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2048M
+        reservations:
+          cpus: '0.5'
+          memory: 1024M
