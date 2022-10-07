@@ -24,7 +24,7 @@ services:
     volumes:
       - config:/config
       - downloads:/downloads
-      - completed:/downloads/completed
+      - completed:/completed
     ports:
       - 6800:6800
       - 6888:6888
