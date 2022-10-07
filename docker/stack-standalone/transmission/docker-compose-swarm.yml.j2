@@ -29,7 +29,7 @@ services:
       # - HOST_WHITELIST=dnsnane list #optional
     volumes:
       - config:/config
-      - downloads:/downloads
+      - {{ VARS.BIND_DOWNLOAD }}:/downloads:shared
       - watch:/watch
       - complete:/downloads/complete
     ports:

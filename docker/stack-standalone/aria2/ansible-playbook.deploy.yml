@@ -33,7 +33,18 @@
           data: "{{ aria2.env }}"
 
     - name: add stack service
-      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-stack.add.yml"
+      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-compose.add.yml"
       vars:
-        stack_name: "{{ dir_name[0] }}"
-        stack_path: "{{ dir_path }}"
+        compose:
+          type: stack
+          name: "{{ dir_name[0] }}"
+          path: "{{ dir_path }}"
+          # files: 
+          #   - "docker-compose-swarm.yml"
+          template:
+            name: docker-compose-swarm
+            opt:
+              src: "{{ playbook_dir }}/docker-compose-swarm.yml.j2"
+              dest: "{{ dir_path }}/docker-compose-swarm.yml"
+            vars:
+              BIND_DOWNLOAD: "{{ aria2.bind_map.downloads }}"

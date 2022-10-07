@@ -18,13 +18,10 @@ services:
   aria2-pro:
     image: p3terx/aria2-pro
     env_file: external_env-all.env
-    environment:
-      - PUID=0
-      - PGID=0
     volumes:
       - config:/config
-      - downloads:/downloads
-      - completed:/completed
+      - {{ VARS.BIND_DOWNLOAD }}:/downloads:shared
+      - completed:/downloads/completed
     ports:
       - 6800:6800
       - 6888:6888
