@@ -15,7 +15,7 @@
 
     - name: docker-volume.add|set _vol from volume.value
       ansible.builtin.set_fact:
-        _vol: "{{ volume.value }}"
+        _vol: "{{ volume.value | default({},true) }}"
 
     - name: docker-volume.add|combine _vol.name form volume.key
       when: _vol.name is undefined

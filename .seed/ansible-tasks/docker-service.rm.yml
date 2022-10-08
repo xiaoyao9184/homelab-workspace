@@ -15,7 +15,7 @@
 
     - name: docker-service.rm|set _ser from service.value
       ansible.builtin.set_fact:
-        _ser: "{{ service.value }}"
+        _ser: "{{ service.value | default({},true) }}"
 
     - name: docker-service.rm|combine _ser.name form service.key
       when: _ser.name is undefined
@@ -27,6 +27,7 @@
 
 - name: docker-service.rm|print service
   ansible.builtin.debug:
+    verbosity: 3
     msg: 
       - "{{ service_prefix }}"
       - "{{ _ser }}"

@@ -15,7 +15,7 @@
 
     - name: docker-network.add|set _net from network.value
       ansible.builtin.set_fact:
-        _net: "{{ network.value }}"
+        _net: "{{ network.value | default({},true) }}"
 
     - name: docker-network.add|combine _net.name form network.key
       when: _net.name is undefined

@@ -15,7 +15,7 @@
 
     - name: docker-config.rm|set _cfg from config.value
       ansible.builtin.set_fact:
-        _cfg: "{{ config.value }}"
+        _cfg: "{{ config.value | default({},true) }}"
 
     - name: docker-config.rm|combine _cfg.name form config.key
       when: _cfg.name is undefined
@@ -27,6 +27,7 @@
 
 - name: docker-config.rm|print config
   ansible.builtin.debug:
+    verbosity: 3
     var: _cfg
 
 - name: docker-config.rm|remove config

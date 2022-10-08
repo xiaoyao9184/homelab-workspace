@@ -15,7 +15,7 @@
 
     - name: docker-network.rm|set _net from network.value
       ansible.builtin.set_fact:
-        _net: "{{ network.value }}"
+        _net: "{{ network.value | default({},true) }}"
 
     - name: docker-network.rm|combine _net.name form network.key
       when: _net.name is undefined
@@ -27,6 +27,7 @@
 
 - name: docker-network.rm|print network
   ansible.builtin.debug:
+    verbosity: 3
     var: _net
 
 - name: docker-network.rm|remove network
