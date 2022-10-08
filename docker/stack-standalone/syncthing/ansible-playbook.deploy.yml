@@ -37,3 +37,9 @@
       vars:
         stack_name: "{{ dir_name[0] }}"
         stack_path: "{{ dir_path }}"
+
+    - name: set inotify limit
+      ansible.posix.sysctl:
+        name: fs.inotify.max_user_watches
+        value: '204800'
+        state: present
