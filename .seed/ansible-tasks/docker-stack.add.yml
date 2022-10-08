@@ -1,9 +1,0 @@
----
-
-
-- name: add stack to docker
-  community.docker.docker_stack:
-    state: present
-    name: "{{ stack_name }}"
-    compose:
-      - "{{ stack_path }}/{{ stack_file | default('docker-compose-swarm.yml') }}"

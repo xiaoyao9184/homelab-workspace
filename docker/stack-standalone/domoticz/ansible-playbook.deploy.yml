@@ -33,7 +33,11 @@
           data: "{{ domoticz.env }}"
 
     - name: add stack service
-      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-stack.add.yml"
+      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-compose.add.yml"
       vars:
-        stack_name: "{{ dir_name[0] }}"
-        stack_path: "{{ dir_path }}"
+        compose:
+          type: stack
+          name: "{{ dir_name[0] }}"
+          path: "{{ dir_path }}"
+          files: 
+            - "docker-compose-swarm.yml"
