@@ -34,7 +34,13 @@
   community.docker.docker_volume:
     state: absent
     name: "{{ volume_prefix }}_{{ _vol.name }}"
+  register: _vol_result
+  until: 
+    - _vol_result is not failed
+  retries: 5
+  delay: 10
 
 - name: docker-volume.rm|reset _vol
   ansible.builtin.set_fact:
     _vol: !!null
+    _vol_result: !!null

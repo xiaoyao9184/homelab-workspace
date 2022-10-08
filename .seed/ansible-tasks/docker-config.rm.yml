@@ -34,7 +34,13 @@
   community.docker.docker_config:
     state: absent
     name: "{{ config_prefix }}_{{ _cfg.name }}"
+  register: _cfg_result
+  until: 
+    - _cfg_result is not failed
+  retries: 5
+  delay: 10
 
 - name: docker-config.rm|reset _cfg
   ansible.builtin.set_fact:
     _cfg: !!null
+    _cfg_result: !!null

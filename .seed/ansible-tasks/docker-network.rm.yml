@@ -34,8 +34,13 @@
   community.docker.docker_network:
     state: absent
     name: "{{ network_prefix }}_{{ _net.name }}"
+  register: _net_result
+  until: 
+    - _net_result is not failed
+  retries: 5
+  delay: 10
 
 - name: docker-network.rm|reset _net
   ansible.builtin.set_fact:
     _net: !!null
-    rename_result: !!null
+    _net_result: !!null
