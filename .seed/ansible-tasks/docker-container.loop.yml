@@ -1,19 +1,19 @@
 ---
 
 
-- name: loop container
+- name: docker-container.loop|loop container
   block:
 
-    - name: get loop container info
+    - name: docker-container.loop|get loop container info
       community.docker.docker_container_info:
         name: "{{ container_name }}"
       register: loop_docker_result
     
-    - name: print loop_docker_result
+    - name: docker-container.loop|print loop_docker_result
       debug:
         var: loop_docker_result.container.State
 
-    - name: fail loop container running
+    - name: docker-container.loop|fail loop container running
       when: 
         - loop_docker_result.exists
         - loop_docker_result.container.State.Running
@@ -22,14 +22,14 @@
 
   rescue:
     
-    - name: fail loop container error
+    - name: docker-container.loop|fail loop container error
       when: 
         - not loop_docker_result.container.State.Running
         - loop_docker_result.container.State.ExitCode != 0
       ansible.builtin.fail:
         msg: "fail loop container {{ container_name }}"
     
-    - name: sleep 15 seconds loop container
+    - name: docker-container.loop|sleep 15 seconds loop container
       pause:
         seconds: 15
 
