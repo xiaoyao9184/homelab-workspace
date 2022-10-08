@@ -21,10 +21,10 @@ services:
   transmission:
     image: ghcr.io/linuxserver/transmission
     env_file: external_env-all.env
-    environment:
-      - PUID=0
-      - PGID=0
-      - TRANSMISSION_WEB_HOME=/combustion-release/ #optional
+    # environment:
+      # - PUID=0
+      # - PGID=0
+      # - TRANSMISSION_WEB_HOME=/combustion-release/ #optional
       # - WHITELIST=iplist #optional
       # - HOST_WHITELIST=dnsnane list #optional
     volumes:
