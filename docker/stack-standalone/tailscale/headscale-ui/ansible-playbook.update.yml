@@ -28,12 +28,14 @@
       vars:
         stack_name: "{{ dir_name[0] }}"
         stack_path: "{{ dir_path }}"
-  
+
     - name: add external_net
-      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-network.overlay.yml"
+      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-networks.add.yml"
       vars:
-        net_name:
-          - external_net-headscale
+        networks: 
+          external_net-headscale:
+            driver: overlay
+            attachable: true
 
     - name: wait host port
       include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/host-port.wait.yml"

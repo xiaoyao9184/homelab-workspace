@@ -24,10 +24,12 @@
       include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/dir-path.copy.yml"
 
     - name: add external_net
-      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-network.overlay.yml"
+      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-networks.add.yml"
       vars:
-        net_name:
-          - external_net-headscale
+        networks: 
+          external_net-headscale:
+            driver: overlay
+            attachable: true
 
     - name: add stack service
       include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-compose.add.yml"
