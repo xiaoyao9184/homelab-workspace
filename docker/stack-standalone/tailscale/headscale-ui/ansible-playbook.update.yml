@@ -23,11 +23,15 @@
     - name: copy dir_path
       include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/dir-path.copy.yml"
 
-    - name: remove stack in dir
-      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-stack.rm.yml"
+    - name: remove stack service
+      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-compose.rm.yml"
       vars:
-        stack_name: "{{ dir_name[0] }}"
-        stack_path: "{{ dir_path }}"
+        compose:
+          type: stack
+          name: "{{ dir_name[0] }}"
+          path: "{{ dir_path }}"
+          files: 
+            - "docker-compose-swarm.yml"
 
     - name: add external_net
       include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-networks.add.yml"

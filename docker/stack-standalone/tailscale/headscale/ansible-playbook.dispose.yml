@@ -52,8 +52,18 @@
         _apikey:
           container_id: "{{ result_container_id.stdout }}"
 
-    - name: remove stack service
-      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-stack.rm.yml"
+    - name: copy dir_path
+      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/dir-path.copy.yml"
       vars:
-        stack_name: "{{ dir_name[0] }}"
-        stack_path: "{{ playbook_dir }}"
+        path:
+          cp: false
+
+    - name: remove stack service
+      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-compose.rm.yml"
+      vars:
+        compose:
+          type: stack
+          name: "{{ dir_name[0] }}"
+          path: "{{ dir_path }}"
+          files: 
+            - "docker-compose-swarm.yml"

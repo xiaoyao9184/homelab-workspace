@@ -18,6 +18,8 @@
       include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/dir-name.set.yml"
 
     - name: remove stack service
-      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-stack.rm.yml"
+      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-compose.rm.yml"
       vars:
-        stack_name: "{{ dir_name[0] }}"
+        compose:
+          type: stack
+          name: "{{ dir_name[0] }}"
