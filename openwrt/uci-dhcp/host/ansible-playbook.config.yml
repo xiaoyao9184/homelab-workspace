@@ -17,6 +17,7 @@
         path: "{{ uci.dhcp.host_csv }}"
       register: host_csv
       delegate_to: localhost
+      connection: local
 
     - name: delete dhcp host
       ansible.builtin.shell: while uci -q delete dhcp.@host[0]; do :; done

@@ -17,12 +17,14 @@
         path: "{{ uci.dhcp.host_csv }}"
       register: host_csv
       delegate_to: localhost
+      connection: local
 
     - name: load domain_csv
       community.general.read_csv:
         path: "{{ uci.dhcp.domain_csv }}"
       register: domain_csv
       delegate_to: localhost
+      connection: local
 
     - name: delete dhcp domain
       ansible.builtin.shell: while uci -q delete dhcp.@domain[0]; do :; done

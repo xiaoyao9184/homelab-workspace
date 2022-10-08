@@ -17,6 +17,7 @@
         path: "{{ uci.dhcp.tag_csv }}"
       register: tag_csv
       delegate_to: localhost
+      connection: local
 
     - name: set dhcp tag
       when: 
