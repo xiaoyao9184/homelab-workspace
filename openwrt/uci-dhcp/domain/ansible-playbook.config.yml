@@ -30,6 +30,7 @@
     - name: set dhcp domain
       when: 
         - item.cl_name != ''
+        - item.location in location[location.at]
       ansible.builtin.shell: |
         uci add dhcp domain
         uci set dhcp.@domain[-1].name='{{ item.cl_name }}'

@@ -28,7 +28,9 @@
       connection: local
 
     - name: configure host by dhcp_csv
-      when: item.cl_name != ''
+      when: 
+        - item.cl_name != ''
+        - item.location in location[location.at]
       community.network.edgeos_config:
         lines:
           - delete system static-host-mapping host-name {{ item.cl_name }}

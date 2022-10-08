@@ -14,16 +14,36 @@ current_path="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 [[ -z "$build_name" ]] && build_name=dhcp_tag
 [[ -z "$mapping_dhcp_tag" ]] && mapping_dhcp_tag=${current_path}/dhcp_tag.csv
 
+build_extension="${build_name##*.}"
+build_filename="${build_name%.*}"
 
-build_file=${build_path}/${build_name}
-
+rm -rdf ${build_path}
 mkdir -p ${build_path}
-rm -f ${build_file}
 
+# no location 
+build_file=${build_path}/${build_filename}.${build_extension}
 echo "" >> ${build_file}
 
-while IFS="," read -r tag ip_addr
+# read all location
+declare -a locations
+while IFS="," read -r location tag ip_addr
 do
+    location=$(echo "$location" | tr -d '"' | tr -d '\r' )
+    locations+=("$location")
+done < <(tail -n +2 ${mapping_dhcp_tag})
+sorted_unique_locations=($(echo "${locations[@]}" | tr ' ' '\n' | sort -u | tr '\n' ' '))
+echo "The following location script will be created: ${sorted_unique_locations[@]}"
+
+# output by location
+for location in "${sorted_unique_locations[@]}"
+do
+    build_file=${build_path}/${build_filename}@${location}.${build_extension}
+    echo "" >> ${build_file}
+done
+
+while IFS="," read -r location tag ip_addr
+do
+    location=$(echo "$location" | tr -d '"' | tr -d '\r' )
     tag=$(echo "$tag" | tr -d '"' | tr -d '\r' )
     ip=$(echo "$ip_addr" | tr -d '"' | tr -d '\r' )
     echo "$ip - $tag"
@@ -36,8 +56,16 @@ uci add_list dhcp.${tag}.dhcp_option="6,${ip}"
 uci set dhcp.${tag}.force='1'
 EOF
 )
-    echo "$template" >> ${build_file}
+    if [[ "$tag" ]]
+    then
+        build_file=${build_path}/${build_filename}@${location}.${build_extension}
+        echo "$template" >> ${build_file}
+    fi
 done < <(tail -n +2 ${mapping_dhcp_tag})
 
-echo "" >> ${build_file}
-echo "uci commit" >> ${build_file}
+for location in "${sorted_unique_locations[@]}"
+do
+    build_file=${build_path}/${build_filename}@${location}.${build_extension}
+    echo "" >> ${build_file}
+    echo "uci commit" >> ${build_file}
+done

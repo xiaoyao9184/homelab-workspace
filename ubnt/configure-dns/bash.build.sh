@@ -4,7 +4,13 @@ current_path="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 [[ -z "$build_name" ]] && build_name=ubnt_configure_dns_forwarding.sh
 [[ -z "$mapping_domain" ]] && mapping_domain=${current_path}/domain_ip.csv
 
+build_extension="${build_name##*.}"
+build_filename="${build_name%.*}"
 
+rm -rdf ${build_path}
+mkdir -p ${build_path}
+
+# read all where
 declare -a wheres
 while IFS="," read -r where ip_addr cl_name comment ubnt_domain
 do
@@ -14,10 +20,7 @@ done < <(tail -n +2 ${mapping_domain})
 sorted_unique_wheres=($(echo "${wheres[@]}" | tr ' ' '\n' | sort -u | tr '\n' ' '))
 echo "The following location script will be created: ${sorted_unique_wheres[@]}"
 
-build_extension="${build_name##*.}"
-build_filename="${build_name%.*}"
-
-mkdir -p ${build_path}
+# output by where
 for where in "${sorted_unique_wheres[@]}"
 do
     build_file=${build_path}/${build_filename}@${where}.${build_extension}

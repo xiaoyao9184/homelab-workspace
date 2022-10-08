@@ -28,7 +28,9 @@
       connection: local
 
     - name: configure dhcp
-      when: item.cl_name != ''
+      when: 
+        - item.cl_name != ''
+        - item.location in location[location.at]
       community.network.edgeos_config:
         lines:
           - set service dhcp-server shared-network-name LAN subnet {{ subnet }} static-mapping {{ item.cl_name }}

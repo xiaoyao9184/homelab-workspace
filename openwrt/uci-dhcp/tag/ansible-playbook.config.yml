@@ -19,13 +19,16 @@
       delegate_to: localhost
 
     - name: set dhcp tag
+      when: 
+        - item.tag != ''
+        - item.location in location[location.at]
       ansible.builtin.shell: |
         uci delete dhcp.{{ item.tag }}
         uci set dhcp.{{ item.tag }}="tag"
         uci add_list dhcp.{{ item.tag }}.dhcp_option="3,{{ item.ip_addr }}"
         uci add_list dhcp.{{ item.tag }}.dhcp_option="6,{{ item.ip_addr }}"
         uci set dhcp.{{ item.tag }}.force='1'
-      loop: "{{ host_csv.list }}"
+      loop: "{{ tag_csv.list }}"
 
     - name: commit dhcp tag
       ansible.builtin.shell: uci commit
