@@ -68,18 +68,22 @@
     - _compose.path != ''
   block:
 
-    - name: docker-compose.rm|set _contents
+    - include_tasks: file-content.read.yml
+      vars:
+        content: 
+          files: "{{ [_compose.path] | product(_compose.files) | map('join', '/') }}"
+          result_var: _contents
+
+    - name: docker-compose.rm|set content list
       ansible.builtin.set_fact:
-        # _contents: []
         _configs: []
         _networks: []
         _secrets: []
         _services: []
         _volumes: []
-        
-    - name: docker-compose.rm|read compose content
+
+    - name: docker-compose.rm|read content item
       ansible.builtin.set_fact:
-        # _contents: "{{ _contents + [content] }}"
         _configs: "{{ _configs + configs }}"
         _networks: "{{ _networks + networks }}"
         _secrets: "{{ _secrets + secrets }}"
@@ -87,20 +91,20 @@
         _volumes: "{{ _volumes + volumes }}"
       vars:
         query_internal: "[? value.external!=`true`]"
-        content: "{{ lookup('file', _compose.path + '/' + file) | from_yaml }}"
         configs: "{{ content.configs | default({}) | dict2items | json_query(query_internal) }}"
         networks: "{{ content.networks | default({}) | dict2items | json_query(query_internal) }}"
         secrets: "{{ content.secrets | default({}) | dict2items | json_query(query_internal) }}" 
         services: "{{ content.services | default({}) | dict2items | json_query(query_internal) }}" 
         volumes: "{{ content.volumes | default({}) | dict2items | json_query(query_internal) }}"
-      loop: "{{ _compose.files }}"
+      loop: "{{ _contents }}"
       loop_control:
-        loop_var: file
+        loop_var: content
 
-    - name: docker-compose.rm|print _contents
+    - name: docker-compose.rm|print content list
       ansible.builtin.debug:
+        verbosity: 3
         msg: 
-          # - "{{ _contents }}"
+          - "{{ _contents }}"
           - "{{ _configs }}"
           - "{{ _networks }}"
           - "{{ _secrets }}"
@@ -132,7 +136,7 @@
         secrets: "{{ _secrets }}"
         secrets_prefix: "{{ _compose.name }}"
           
-    - name: docker-compose.rm|reset _contents
+    - name: docker-compose.rm|reset content list
       ansible.builtin.set_fact:
         _contents: !!null
         _configs: !!null
