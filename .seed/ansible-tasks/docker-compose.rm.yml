@@ -7,7 +7,7 @@
     _compose: 
       name: "{{ compose.name }}"
       type: "{{ compose.type }}"
-      path: "{{ compose.path }}"
+      path: "{{ compose.path | default(None) }}"
       files: "{{ compose.files | default([]) }}"
 
 - name: docker-compose.rm|use template
@@ -62,19 +62,101 @@
   ansible.builtin.debug:
     var: _compose
 
-- name: docker-compose.rm|stack
-  when: _compose.type == 'stack'
-  community.docker.docker_stack:
-    state: absent
-    name: "{{ _compose.name }}"
 
-- name: docker-compose.rm|compose
-  when: _compose.type == 'compose'
-  community.docker.docker_compose:
-    state: absent
-    project_name: "{{ _compose.name }}"
-    project_src: "{{ _compose.path }}"
-    files: "{{ _compose.files }}"
+- name: docker-compose.rm|have path
+  when: 
+    - _compose.path != ''
+  block:
+
+    - name: docker-compose.rm|set _contents
+      ansible.builtin.set_fact:
+        # _contents: []
+        _configs: []
+        _networks: []
+        _secrets: []
+        _services: []
+        _volumes: []
+        
+    - name: docker-compose.rm|read compose content
+      ansible.builtin.set_fact:
+        # _contents: "{{ _contents + [content] }}"
+        _configs: "{{ _configs + configs }}"
+        _networks: "{{ _networks + networks }}"
+        _secrets: "{{ _secrets + secrets }}"
+        _services: "{{ _services + services }}"
+        _volumes: "{{ _volumes + volumes }}"
+      vars:
+        query_internal: "[? value.external!=`true`]"
+        content: "{{ lookup('file', _compose.path + '/' + file) | from_yaml }}"
+        configs: "{{ content.configs | default({}) | dict2items | json_query(query_internal) }}"
+        networks: "{{ content.networks | default({}) | dict2items | json_query(query_internal) }}"
+        secrets: "{{ content.secrets | default({}) | dict2items | json_query(query_internal) }}" 
+        services: "{{ content.services | default({}) | dict2items | json_query(query_internal) }}" 
+        volumes: "{{ content.volumes | default({}) | dict2items | json_query(query_internal) }}"
+      loop: "{{ _compose.files }}"
+      loop_control:
+        loop_var: file
+
+    - name: docker-compose.rm|print _contents
+      ansible.builtin.debug:
+        msg: 
+          # - "{{ _contents }}"
+          - "{{ _configs }}"
+          - "{{ _networks }}"
+          - "{{ _secrets }}"
+          - "{{ _services }}"
+          - "{{ _volumes }}"
+
+    - include_tasks: docker-services.rm.yml
+      vars: 
+        services: "{{ _services }}"
+        services_prefix: "{{ _compose.name }}"
+
+    - include_tasks: docker-networks.rm.yml
+      vars: 
+        networks: "{{ _networks }}"
+        networks_prefix: "{{ _compose.name }}"
+
+    - include_tasks: docker-volumes.rm.yml
+      vars: 
+        volumes: "{{ _volumes }}"
+        volumes_prefix: "{{ _compose.name }}"
+
+    - include_tasks: docker-configs.rm.yml
+      vars: 
+        configs: "{{ _configs }}"
+        configs_prefix: "{{ _compose.name }}"
+
+    - include_tasks: docker-secrets.rm.yml
+      vars: 
+        secrets: "{{ _secrets }}"
+        secrets_prefix: "{{ _compose.name }}"
+          
+    - name: docker-compose.rm|reset _contents
+      ansible.builtin.set_fact:
+        _contents: !!null
+        _configs: !!null
+        _networks: !!null
+        _secrets: !!null
+        _services: !!null
+        _volumes: !!null
+
+- name: docker-compose.rm|no path
+  when: 
+    - _compose.path == ''
+  block:
+
+    - name: docker-compose.rm|stack
+      when: _compose.type == 'stack'
+      community.docker.docker_stack:
+        state: absent
+        name: "{{ _compose.name }}"
+
+    - name: docker-compose.rm|compose
+      when: _compose.type == 'compose'
+      community.docker.docker_compose:
+        state: absent
+        project_name: "{{ _compose.name }}"
 
 - name: docker-compose.rm|reset _compose
   ansible.builtin.set_fact:
