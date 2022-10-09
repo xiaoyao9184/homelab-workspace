@@ -62,8 +62,8 @@
     src: "{{ tempfile.path }}"
     dest: "{{ env.dest }}"
     remote_src: true
-    owner: root
-    group: root
+    # owner: root
+    # group: root
     mode: '0777'
 
 - name: docker-env.add|reset _env
