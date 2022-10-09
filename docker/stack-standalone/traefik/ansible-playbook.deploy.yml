@@ -1,0 +1,55 @@
+---
+
+- name: deploy
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --inventory $PWD/ansible \
+        $PWD/../../../docker/stack-standalone/traefik/ansible-playbook.deploy.yml
+  environment:
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('',true) }}"
+  hosts: docker-manager
+  tasks: 
+
+    - name: set ws_dir
+      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/ws-dir.set.yml"
+
+    - name: set dir_name
+      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/dir-name.set.yml"
+
+    - name: copy dir_path
+      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/dir-path.copy.yml"
+
+    - name: add external_net
+      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-networks.add.yml"
+      vars:
+        networks:
+          external_net-traefik:
+            driver: overlay
+            attachable: true
+              
+    - name: build compose_file
+      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-compose.create.yml"
+      vars:
+        compose: 
+          dest: "{{ dir_path }}/docker-compose-swarm.networks.yml"
+          data: "{{ traefik.compose }}"
+
+    - name: add stack service
+      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-compose.add.yml"
+      vars:
+        compose:
+          type: stack
+          name: "{{ dir_name[0] }}"
+          path: "{{ dir_path }}"
+          files: 
+            - "docker-compose-swarm.networks.yml"
+            # - "docker-compose-swarm.yml"
+          template:
+            name: docker-compose-swarm
+            opt:
+              src: "{{ playbook_dir }}/docker-compose-swarm.yml.j2"
+              dest: "{{ dir_path }}/docker-compose-swarm.yml"
+            vars:
+              TOKEN: "{{ traefik.token }}"
+              NETWORKS: "{{ traefik.compose.networks }}"

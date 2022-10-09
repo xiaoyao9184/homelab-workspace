@@ -1,0 +1,114 @@
+version: "3.8"
+
+networks:
+  traefik:
+    name: external_net-traefik
+    external: true
+
+services:
+  traefik:
+    hostname: traefik
+    image: traefik:v2.8
+    command:
+      # Enable Hub communication (open the port 9900 and 9901 by default)
+      - --experimental.hub=true
+      - --hub.tls.insecure=true
+      - --metrics.prometheus.addrouterslabels=true
+    networks:
+      - traefik
+{% for name in VARS.NETWORKS.keys() %}
+      - {{ name }}
+{% endfor %}
+    deploy:
+      endpoint_mode: vip
+      mode: replicated
+      replicas: 1
+      # max_replicas_per_node: 1
+      placement:
+        constraints:
+          - node.platform.os == linux
+          - node.role == manager
+        preferences:
+          - spread: node.platform.os
+      labels:
+        "com.docker.stack.namespace": seed
+      # resources:
+      #   limits:
+      #     cpus: '4'
+      #     memory: 4096M
+      #   reservations:
+      #     cpus: '1'
+      #     memory: 2048M
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 2
+        window: 60s
+      rollback_config:
+        parallelism: 0
+        delay: 0s
+        failure_action: pause
+        monitor: 5m
+        max_failure_ratio: 0
+        order: stop-first
+      update_config:
+        parallelism: 0
+        delay: 0s
+        failure_action: rollback
+        monitor: 5m
+        max_failure_ratio: 0
+        order: stop-first
+
+  hub-agent:
+    hostname: hub-agent
+    image: ghcr.io/traefik/hub-agent-traefik:v0.8.0
+    command:
+      - run
+      - --hub.token={{ VARS.TOKEN }}
+      - --auth-server.advertise-url=http://hub-agent
+      - --traefik.host=traefik
+      - --traefik.docker.swarm-mode
+      - --traefik.tls.insecure=true
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - traefik
+    deploy:
+      endpoint_mode: vip
+      mode: replicated
+      replicas: 1
+      # max_replicas_per_node: 1
+      placement:
+        constraints:
+          - node.platform.os == linux
+          - node.role == manager
+        preferences:
+          - spread: node.platform.os
+      labels:
+        "com.docker.stack.namespace": seed
+      # resources:
+      #   limits:
+      #     cpus: '4'
+      #     memory: 4096M
+      #   reservations:
+      #     cpus: '1'
+      #     memory: 2048M
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 2
+        window: 60s
+      rollback_config:
+        parallelism: 0
+        delay: 0s
+        failure_action: pause
+        monitor: 5m
+        max_failure_ratio: 0
+        order: stop-first
+      update_config:
+        parallelism: 0
+        delay: 0s
+        failure_action: rollback
+        monitor: 5m
+        max_failure_ratio: 0
+        order: stop-first
