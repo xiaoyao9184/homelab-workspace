@@ -1,0 +1,41 @@
+---
+
+- name: deploy
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --inventory $PWD/ansible \
+        $PWD/../../../docker/stack-standalone/shadowsocks/shadowsocks-libev/ansible-playbook.deploy.yml
+  environment:
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('',true) }}"
+  hosts: docker-manager
+  tasks: 
+
+    - name: set ws_dir
+      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/ws-dir.set.yml"
+
+    - name: set dir_name
+      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/dir-name.set.yml"
+      vars:
+        name:
+          high: 2
+
+    - name: copy dir_path
+      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/dir-path.copy.yml"
+
+    - name: build env_file
+      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-env.create.yml"
+      vars:
+        env: 
+          dest: "{{ dir_path }}/external_env-all.env"
+          data: "{{ shadowsocks2.env }}"
+
+    - name: add stack service
+      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-compose.add.yml"
+      vars:
+        compose:
+          type: stack
+          name: "{{ dir_name[0] }}"
+          path: "{{ dir_path }}"
+          files: 
+            - "docker-compose-swarm.yml"
