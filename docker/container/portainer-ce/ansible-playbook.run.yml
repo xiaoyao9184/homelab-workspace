@@ -1,0 +1,37 @@
+---
+
+- name: run
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --inventory $PWD/ansible \
+        $PWD/../../../docker/container/portainer-ce/ansible-playbook.run.yml
+  environment:
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('',true) }}"
+  hosts: docker
+  tasks: 
+
+    - name: set ws_dir
+      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/ws-dir.set.yml"
+
+    - name: add vol
+      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-volumes.add.yml"
+      vars:
+        volumes: 
+          portainer_data:
+            driver: local
+
+    - name: run container
+      community.docker.docker_container:
+        detach: true
+        ports:
+          - "9000:9000"
+          - "9443:9443"
+          - "8000:8000"
+        hostname: portainer-ce
+        name: portainer-ce
+        restart_policy: always
+        volumes:
+          - /var/run/docker.sock:/var/run/docker.sock
+          - portainer_data:/data
+        image: portainer/portainer-ce:latest
