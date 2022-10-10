@@ -45,6 +45,7 @@
 
     - name: ws-dir.set|print parent of _current_dir
       ansible.builtin.debug:
+        verbosity: 3
         msg: "try check parent {{ _current_dir }}"
 
     - include_tasks: ws-dir.set.yml
