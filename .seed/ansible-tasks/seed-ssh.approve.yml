@@ -1,0 +1,29 @@
+---
+
+- name: seed-ssh.approve|init _ssh
+  ansible.builtin.set_fact:
+    _ssh:
+      # get ssh public key path
+      pub_path: "~/.ssh/{{ hostvars['SEED']['host_group'] }}/id_rsa.pub"
+
+- name: seed-ssh.approve|ensure authorized keys for remote user is installed
+  ansible.posix.authorized_key:
+    user: "{{ ansible_user }}"
+    state: present
+    key: "{{ lookup('file', _ssh.pub_path) }}"
+
+- name: seed-ssh.approve|enable password authentication for root
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    state: present
+    regexp: '^#?PermitRootLogin'
+    line: 'PermitRootLogin yes'
+
+- name: seed-ssh.approve|restart sshd
+  ansible.builtin.service:
+    name: sshd
+    state: restarted
+
+- name: seed-ssh.approve|reset _ssh
+  ansible.builtin.set_fact:
+    _ssh: !!null
