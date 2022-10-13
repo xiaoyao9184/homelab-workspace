@@ -13,7 +13,7 @@ all:
         localhost:
       vars:
         workspace:
-          remote: "/seed/remote_ep" 
+          remote: "~/.seed/remote_homelab" 
 
         nfs_server:
           host: "host.docker.internal"
