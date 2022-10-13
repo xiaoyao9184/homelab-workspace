@@ -5,6 +5,7 @@
     - vol_src is defined
   delegate_to: localhost
   connection: local
+  become: false
   ansible.builtin.stat:
     path: "{{ vol_src }}"
   register: vol_src_result
