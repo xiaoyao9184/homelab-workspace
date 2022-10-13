@@ -113,7 +113,7 @@
         src: "{{ seed_ws_dir }}"
         name: "{{ seed_ws_name }}"
         exist: false
-        dest: "/seed/workspace/default"
+        dest: "~/.seed/seed/workspace/default"
         map: "/workspace"
     block:
       - name: get seed_ws.src stat
@@ -157,15 +157,35 @@
           seed_ws: "{{ seed_ws | combine(seed_ws_update, recursive=True) }}"
         vars:
           seed_ws_update:
-            dest: "/seed/workspace/{{ seed_ws.name }}"
+            dest: "~/.seed/seed/workspace/{{ seed_ws.name }}"
 
       - name: mkdir seed_ws.dest dir
         when: 
           - ws_src.stat.exists
           - not seed_ws.exist
+        become: false
         ansible.builtin.file:
-          path: "{{ seed_ws.dest | dirname }}"
+          path: "{{ seed_ws.dest }}"
           state: directory
+
+      - name: get seed_ws.dest stat
+        when: 
+          - ws_src.stat.exists
+          - not seed_ws.exist
+        become: false
+        ansible.builtin.stat:
+          path: "{{ seed_ws.dest }}"
+        register: ws_dest
+
+      - name: reset seed_ws.dest fact
+        when: 
+          - ws_src.stat.exists
+          - not seed_ws.exist
+        ansible.builtin.set_fact:
+          seed_ws: "{{ seed_ws | combine(seed_ws_update, recursive=True) }}"
+        vars:
+          seed_ws_update:
+            dest: "{{ ws_dest.stat.path }}"
 
       - name: sync seed_ws.dest path
         when: 
@@ -217,7 +237,7 @@
         src: "{{ seed_id_path }}"
         name: "{{ seed_id_name }}"
         exist: false
-        dest: "/seed/key/default/id_rsa"
+        dest: "~/.seed/seed/key/default/id_rsa"
         map: "/root/.ssh/id_rsa"
     block:
       - name: get seed_id.src stat
@@ -252,7 +272,7 @@
           seed_id: "{{ seed_id | combine(seed_id_update, recursive=True) }}"
         vars:
           seed_id_update:
-            dest: "/seed/key/{{ seed_id.name }}/id_rsa"
+            dest: "~/.seed/seed/key/{{ seed_id.name }}/id_rsa"
 
       - name: get seed_id.dest stat
         ansible.builtin.stat:
