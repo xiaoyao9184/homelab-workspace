@@ -197,6 +197,8 @@
           delete: yes
           recursive: yes
           checksum: yes
+          # https://github.com/ansible/ansible/issues/15297
+          rsync_path: rsync
 
       - name: create seed_ws.name volume
         when: 
