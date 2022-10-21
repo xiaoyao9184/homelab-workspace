@@ -1,0 +1,52 @@
+---
+
+- name: install
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --inventory $PWD/ansible \
+        $PWD/../../../openwrt/python/ansible-playbook.install.yml
+  hosts: openwrt
+  roles:
+    - gekmihesg.openwrt
+  tasks: 
+
+    - name: opkg python3-pip
+      opkg:
+        update_cache: true
+        name: python3-pip
+      ignore_errors: yes
+
+    - name: update pip
+      ansible.builtin.shell: python -m pip install -U pip
+      register: pip_result
+      until: "pip_result is not failed"
+      retries: 3
+      delay: 5
+
+    - name: install the package for Community.Docker
+      ansible.builtin.pip:
+        name: "{{ item }}"
+        state: latest
+      loop: 
+          - docker
+          - docker-compose
+          - jsondiff
+          # - pyyaml
+          - lxml
+          - psycopg2-binary
+      register: pip_result
+      until: "pip_result is not failed"
+      retries: 3
+      delay: 5
+
+    - name: install the package for docker-seed-ansible
+      ansible.builtin.pip:
+        name: 
+          - requests
+        state: latest
+      register: pip_result
+      until: "pip_result is not failed"
+      retries: 3
+      delay: 5
+
