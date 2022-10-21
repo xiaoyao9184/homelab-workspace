@@ -25,7 +25,7 @@
 
     - name: copy file for cfg
       ansible.builtin.copy: "{{ item }}"
-      loop: "{{ mosquitto.cfg_copy }}"
+      loop: "{{ frp.client.cfg_copy }}"
 
     - name: add external_cfg
       include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-configs.add.yml"
