@@ -29,3 +29,4 @@
         compose:
           type: compose
           name: "{{ dir_name[0] }}"
+          path: "{{ dir_path }}"
