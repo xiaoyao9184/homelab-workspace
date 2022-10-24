@@ -9,6 +9,27 @@
       path: "{{ compose.path }}"
       files: "{{ compose.files | default([]) }}"
 
+# https://github.com/ansible/ansible/issues/29003
+- name: docker-compose.add|realpath of _compose.path
+  when: _compose.path.find("~") != -1
+  block:
+
+    - name: docker-compose.add|stats of _compose.path
+      ansible.builtin.stat:
+        path: "{{ _compose.path }}"
+      register: _stat_path
+
+    - name: docker-compose.add|combine _compose.path
+      ansible.builtin.set_fact:
+        _compose: "{{ _compose | combine(_update, recursive=True) }}"
+      vars:
+        _update:
+          path: "{{ _stat_path.stat.path }}"
+          
+    - name: docker-compose.add|reset _stat_path
+      ansible.builtin.set_fact:
+        _stat_path: !!null
+
 - name: docker-compose.add|use template
   when: 
     - compose.template is defined
@@ -53,8 +74,9 @@
         _update:
           files: "{{ _compose.files + _files }}"
           
-    - name: docker-compose.add|reset _files
+    - name: docker-compose.add|reset _template _files
       ansible.builtin.set_fact:
+        _template: !!null
         _files: !!null
 
 - name: docker-compose.add|print _compose
