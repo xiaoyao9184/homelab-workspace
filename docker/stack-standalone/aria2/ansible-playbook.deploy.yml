@@ -48,3 +48,4 @@
               dest: "{{ dir_path }}/docker-compose-swarm.yml"
             vars:
               BIND_DOWNLOAD: "{{ aria2.bind_map.downloads }}"
+              PROPAGATION_DOWNLOAD: "{{ aria2.propagation_map.downloads | default(true) }}"

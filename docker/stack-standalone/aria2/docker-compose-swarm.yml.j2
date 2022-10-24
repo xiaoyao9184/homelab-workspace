@@ -20,7 +20,11 @@ services:
     env_file: external_env-all.env
     volumes:
       - config:/config
+{% if VARS.PROPAGATION_DOWNLOAD is sameas true %}
       - {{ VARS.BIND_DOWNLOAD }}:/downloads:shared
+{% else %}
+      - {{ VARS.BIND_DOWNLOAD }}:/downloads
+{% endif %}
       - completed:/downloads/completed
     ports:
       - 6800:6800
