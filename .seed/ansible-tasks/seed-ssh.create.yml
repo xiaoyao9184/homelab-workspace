@@ -1,5 +1,13 @@
 ---
 
+- name: check remote_user
+  when: 
+    - remote_user | default(None) == ''
+  ansible.builtin.pause:
+    prompt: "What is remote user?"
+    echo: true
+  register: prompt_remote_user
+
 - name: seed-ssh.create|check host_group
   when: 
     - host_group | default(None) == ''
@@ -11,14 +19,16 @@
 - name: seed-ssh.create|init _ssh
   ansible.builtin.set_fact:
     _ssh:
+      remote_user: "{{ remote_user | default(prompt_remote_user.user_input) }}"
       host_group: "{{ host_group | default(prompt_host_group.user_input) }}"
-      ansible_group: "{{ ansible_group | default('linux') }}"
+      ansible_group: "{{ ansible_group | default('remote') }}"
 
 # - debug: msg="{{ _ssh }}"
 
 - name: seed-ssh.create|register SEED host with variable
   ansible.builtin.add_host:
     name: "SEED"
+    remote_user: "{{ _ssh.remote_user }}"
     host_group: "{{ _ssh.host_group }}"
 
 - name: seed-ssh.create|create a directory for ssh
@@ -48,7 +58,7 @@
     ssh_config_file: "~/.ssh/config"
     host: "{{ host }}"
     hostname: "{{ host }}"
-    remote_user: "{{ ansible_user }}"
+    remote_user: "{{ _ssh.remote_user }}"
     identity_file: "~/.ssh/{{ _ssh.host_group }}/id_rsa"
     # user_known_hosts_file: "~/.ssh/known_hosts"
     state: present

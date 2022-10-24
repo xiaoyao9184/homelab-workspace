@@ -14,6 +14,10 @@
       prompt: "What is seed host group(all host use one ssh key)?"
       private: no
       default: 
+    - name: seed_user
+      prompt: "What is seed host user(all host use one user)?"
+      private: no
+      default:
   hosts: localhost
   connection: local
   tasks: 
@@ -22,6 +26,7 @@
       include_tasks: "{{ playbook_dir }}/../ansible-tasks/seed-ssh.create.yml"
       vars:
         host_group: "{{ seed_group }}"
+        remote_user: "{{ seed_user }}"
 
 
 - name: run
