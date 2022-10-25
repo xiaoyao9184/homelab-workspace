@@ -1,5 +1,6 @@
 ---
 
+
 - name: init
   vars:
     run_wsl: |
@@ -29,6 +30,7 @@
           - pyyaml
           - lxml
           - psycopg2-binary
+          - jmespath
       register: pip_result
       until: "pip_result is not failed"
       retries: 3
