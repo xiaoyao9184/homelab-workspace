@@ -1,0 +1,53 @@
+---
+
+- name: init
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --ask-become-pass \
+        --inventory $PWD/ansible \
+        $PWD/../../../.seed/ansible-playbook/remote-docker.init.yml
+  hosts: remote
+  become: false
+  tasks: 
+
+    - name: install python3-pip
+      become: true
+      ansible.builtin.package:
+        name: python3-pip
+        state: present
+
+    - name: install the package for Community.Docker
+      become: true
+      ansible.builtin.pip:
+        name: "{{ item }}"
+        state: latest
+      loop: 
+          - docker
+          - docker-compose
+          - jsondiff
+          - pyyaml
+          - lxml
+          - psycopg2-binary
+      register: pip_result
+      until: "pip_result is not failed"
+      retries: 3
+      delay: 5
+
+    - name: install the package for docker-seed-ansible
+      become: true
+      ansible.builtin.pip:
+        name: 
+          - requests
+        state: latest
+      register: pip_result
+      until: "pip_result is not failed"
+      retries: 3
+      delay: 5
+
+    - name: add user to docker
+      become: true
+      ansible.builtin.user:
+        name: "{{ ansible_user_id }}"
+        groups: docker
+        append: yes
