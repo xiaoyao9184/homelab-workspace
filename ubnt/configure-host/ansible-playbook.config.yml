@@ -52,4 +52,6 @@
         lines:
           - delete system static-host-mapping host-name {{ item.cl_name }}
           - set system static-host-mapping host-name {{ item.cl_name }} inet {{ item.ip_addr }}
+          - delete system static-host-mapping host-name {{ item.cl_name }}{{ item.ubnt_domain }}
+          - set system static-host-mapping host-name {{ item.cl_name }}{{ item.ubnt_domain }} inet {{ item.ip_addr }}
       loop: "{{ domain_csv.list }}"
