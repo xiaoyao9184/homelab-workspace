@@ -1,0 +1,15 @@
+---
+
+
+- name: vm-list.set|set vm_list
+  loop: "{{ list.all | dict2items | selectattr('key','in',list.select) }}"
+  loop_control:
+    loop_var: kv
+  vars:
+    vm:
+      name: "{{ kv.key }}"
+    vm_item: "{{ kv.value | combine(vm, recursive=True) }}"
+  ansible.builtin.set_fact:
+    vm_list: "{{ vm_list | default([]) + [vm_item] }}"
+
+- debug: msg="{{ vm_list }}" verbosity=3

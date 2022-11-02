@@ -1,0 +1,45 @@
+---
+
+
+- name: deploy
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --ask-become-pass \
+        --inventory $PWD/ansible/inventory-local.yml \
+        $PWD/../../../esxi/anaconda-iso/ansibel-playbook.deploy.yml
+  vars_prompt:
+    - name: vm_username
+      prompt: "What is ESXi/vCenter server username?"
+      private: no
+      default: 
+    - name: vm_password
+      prompt: "What is ESXi/vCenter server password?"
+      private: yes
+      default: 
+    - name: vm_name
+      prompt: "What is vm or group?"
+      private: no
+      default: all
+  hosts: localhost
+  tasks: 
+
+    - include_tasks: "{{ playbook_dir }}/../ansible-tasks/vm-group.set.yml"
+      vars:
+        group:
+          name: "{{ vm_name }}"
+          all: "{{ esxi.group }}"
+
+    - include_tasks: "{{ playbook_dir }}/../ansible-tasks/vm-list.set.yml"
+      vars:
+        list:
+          select: "{{ vm_group }}"
+          all: "{{ esxi.vm }}"
+
+    - debug: msg="{{ vm_list | selectattr('anaconda','defined') | map(attribute='anaconda') }}"
+
+    - include_tasks: "{{ playbook_dir }}/ansibel-tasks.deploy.yml"
+      vars:
+        anaconda:
+          select: "{{ vm_list | selectattr('anaconda','defined') | map(attribute='anaconda') }}"
+          all: "{{ esxi.anaconda }}"

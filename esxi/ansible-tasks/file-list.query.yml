@@ -1,0 +1,19 @@
+---
+
+
+- name: query a file on a datastore
+  loop: "{{ list | default([]) }}"
+  loop_control:
+    loop_var: vsphere_file
+  community.vmware.vsphere_file: "{{ vsphere_file }}"
+  register: vm_iso_state
+  ignore_errors: true
+
+- debug: msg="{{ vm_iso_state }}" verbosity=3
+
+- name: fail miss iso on esxi datastore
+  when: 
+    - (vm_iso_state.results | selectattr('status','!=',200) | length) > 0
+  ansible.builtin.fail:
+    msg: "miss iso {{ vm_iso_state.results | selectattr('status','!=',200) | map(attribute='path') }}"
+

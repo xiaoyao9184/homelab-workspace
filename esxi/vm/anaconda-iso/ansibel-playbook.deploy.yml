@@ -1,0 +1,145 @@
+---
+
+
+- name: deploy
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --ask-become-pass \
+        --inventory $PWD/ansible/inventory-local.yml \
+        $PWD/../../../esxi/vm/anaconda-iso/ansibel-playbook.deploy.yml
+  vars_prompt:
+    - name: vm_username
+      prompt: "What is ESXi/vCenter server username?"
+      private: no
+      default: 
+    - name: vm_password
+      prompt: "What is ESXi/vCenter server password?"
+      private: yes
+      default: 
+    - name: vm_name
+      prompt: "What is vm or group?"
+      private: no
+      default: anaconda
+  hosts: localhost
+  tasks: 
+
+    - include_tasks: "{{ playbook_dir }}/../../ansible-tasks/vm-group.set.yml"
+      vars:
+        group:
+          name: "{{ vm_name }}"
+          all: "{{ esxi.group }}"
+
+    - include_tasks: "{{ playbook_dir }}/../../ansible-tasks/vm-list.set.yml"
+      vars:
+        list:
+          select: "{{ vm_group }}"
+          all: "{{ esxi.vm }}"
+
+    - name: set vm_guest_list
+      ansible.builtin.set_fact:
+        vm_guest_list: []
+
+    - name: expand guest
+      loop: "{{ vm_list }}"
+      loop_control:
+        loop_var: vm_item
+      when: 
+        - vm_item.guest is defined
+        - vm_item.anaconda is undefined
+      vars:
+        vm_guest_combine: 
+          _guest: "{{ vm_item.guest }}"
+          guest: "{{ esxi.guest[vm_item.guest] }}"
+        vm_guest_item: "{{ vm_item | combine(vm_guest_combine, recursive=True) }}"
+      ansible.builtin.set_fact:
+        vm_guest_list: "{{ vm_guest_list + [vm_guest_item] }}"
+
+    - name: expand guest use iso anaconda
+      loop: "{{ vm_list }}"
+      loop_control:
+        loop_var: vm_item
+      when: 
+        - vm_item.guest is defined
+        - vm_item.anaconda is defined
+      vars:
+        iso_item: "{{ esxi.iso[vm_item.iso] }}"
+        iso_path: "[{{ iso_item.vsphere_file.datastore }}] {{ iso_item.vsphere_file.path }}"
+        anaconda_item: "{{ esxi.anaconda[vm_item.anaconda] }}"
+        anaconda_iso_path: "[{{ anaconda_item.vsphere_copy.datastore }}] {{ anaconda_item.vsphere_copy.path }}"
+        guest_item: "{{ esxi.guest[vm_item.guest] }}"
+        guest_combine: 
+          state: powered-on
+          cdrom:
+            - controller_type: ide
+              controller_number: 0
+              unit_number: 0
+              state: present
+              type: iso
+              iso_path: "{{ iso_path }}"
+            - controller_type: ide
+              controller_number: 0
+              unit_number: 1
+              state: present
+              type: iso
+              iso_path: "{{ anaconda_iso_path }}"
+        guest: "{{ guest_item | combine(guest_combine, recursive=True) }}"
+        vm_guest_combine: 
+          guest: "{{ guest }}"
+          iso: "{{ iso_item }}"
+          anaconda: "{{ anaconda_item }}"
+        vm_guest_item: "{{ vm_item | combine(vm_guest_combine, recursive=True) }}"
+      ansible.builtin.set_fact:
+        vm_guest_list: "{{ vm_guest_list + [vm_guest_item] }}"
+
+    - debug: msg="{{ vm_guest_list }}"
+
+
+    - include_tasks: "{{ playbook_dir }}/../../ansible-tasks/file-list.set.yml"
+      vars:
+        list: "{{ vm_guest_list | map(attribute='iso') }}"
+
+    - debug: msg="{{ file_list }}"
+
+    - include_tasks: "{{ playbook_dir }}/../../ansible-tasks/file-list.query.yml"
+      vars:
+        list: "{{ file_list }}"
+
+
+    - debug: msg="{{ vm_list | selectattr('anaconda','defined') | map(attribute='anaconda') }}"
+
+    - include_tasks: "{{ playbook_dir }}/../../anaconda-iso/ansibel-tasks.deploy.yml"
+      vars:
+        anaconda:
+          select: "{{ vm_list | selectattr('anaconda','defined') | map(attribute='anaconda') }}"
+          all: "{{ esxi.anaconda }}"
+
+
+    - include_tasks: "{{ playbook_dir }}/../../ansible-tasks/guest-list.set.yml"
+      vars:
+        list: "{{ vm_guest_list }}"
+
+    - name: create a virtual machine by iso anaconda
+      loop: "{{ guest_list }}"
+      loop_control:
+        loop_var: guest_item
+      community.vmware.vmware_guest: "{{ guest_item }}"
+      register: guest_result
+      # 20 min
+      async: 1200 
+      poll: 0
+
+    - name: wait task finished
+      loop: "{{ guest_result.results }}"
+      loop_control:
+        loop_var: result
+      ansible.builtin.async_status:
+        jid: "{{ result.ansible_job_id }}"
+        mode: status
+      register: guest_async
+      until: guest_async.finished
+      # 30 min
+      retries: 30
+      delay: 60
+
+    - debug: msg="{{ guest_async }}" verbosity=3

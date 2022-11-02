@@ -1,0 +1,17 @@
+---
+
+
+- name: set file_list
+  loop: "{{ list }}"
+  loop_control:
+    loop_var: select_item
+  vars:
+    vsphere_file:
+      host: "{{ esxi.server.hostname }}"
+      username: "{{ vm_username | default(esxi.server.username,true) }}"
+      password: "{{ vm_password | default(esxi.server.password,true) }}"
+      validate_certs: false
+      state: file
+    file_item: "{{ select_item.vsphere_file | combine(vsphere_file, recursive=True) }}"
+  ansible.builtin.set_fact:
+    file_list: "{{ file_list | default([]) + [file_item] }}"

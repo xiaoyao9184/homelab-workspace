@@ -1,0 +1,64 @@
+---
+
+
+- name: set controller_list no datacenter
+  loop: "{{ list }}"
+  loop_control:
+    loop_var: select_item
+  when: 
+    - select_item.datacenter | default('',true) == ''
+  vars:
+    vmware_guest_controller:
+      hostname: "{{ esxi.server.hostname }}"
+      username: "{{ vm_username | default(esxi.server.username,true) }}"
+      password: "{{ vm_password | default(esxi.server.password,true) }}"
+      validate_certs: false
+      power_on: no
+      name: "{{ select_item.name }}"
+    controller_item: "{{ select_item.controller | combine(vmware_guest_controller, recursive=True) }}"
+  ansible.builtin.set_fact:
+    controller_list: "{{ controller_list | default([]) + [controller_item] }}"
+
+- name: set controller_list datacenter cluster
+  loop: "{{ list }}"
+  loop_control:
+    loop_var: select_item
+  when: 
+    - select_item.datacenter | default('',true) != ''
+    - select_item.cluster | default('',true) != ''
+  vars:
+    vmware_guest_controller:
+      hostname: "{{ esxi.server.hostname }}"
+      username: "{{ vm_username | default(esxi.server.username,true) }}"
+      password: "{{ vm_password | default(esxi.server.password,true) }}"
+      validate_certs: false
+      power_on: no
+      datacenter: "{{ select_item.datacenter }}"
+      # cluster: "{{ select_item.cluster }}"
+      name: "{{ select_item.name }}"
+    controller_item: "{{ select_item.controller | combine(vmware_guest_controller, recursive=True) }}"
+  ansible.builtin.set_fact:
+    controller_list: "{{ controller_list | default([]) + [controller_item] }}"
+
+- name: set controller_list datacenter esxi_hostname
+  loop: "{{ list }}"
+  loop_control:
+    loop_var: select_item
+  when: 
+    - select_item.datacenter | default('',true) != ''
+    - select_item.esxi_hostname | default('',true) != ''
+  vars:
+    vmware_guest_controller:
+      hostname: "{{ esxi.server.hostname }}"
+      username: "{{ vm_username | default(esxi.server.username,true) }}"
+      password: "{{ vm_password | default(esxi.server.password,true) }}"
+      validate_certs: false
+      # state: powered-off
+      datacenter: "{{ select_item.datacenter }}"
+      # esxi_hostname: "{{ select_item.esxi_hostname }}"
+      name: "{{ select_item.name }}"
+    controller_item: "{{ select_item.controller | combine(vmware_guest_controller, recursive=True) }}"
+  ansible.builtin.set_fact:
+    controller_list: "{{ controller_list | default([]) + [controller_item] }}"
+
+- debug: msg="{{ controller_list }}" verbosity=3

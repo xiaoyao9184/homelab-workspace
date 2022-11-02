@@ -1,0 +1,90 @@
+---
+
+- name: dispose
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --inventory $PWD/ansible/inventory-local.yml \
+        $PWD/../../../esxi/vm/template/ansibel-playbook.dispose.yml
+  vars_prompt:
+    - name: vm_username
+      prompt: "What is ESXi/vCenter server username?"
+      private: no
+      default: 
+    - name: vm_password
+      prompt: "What is ESXi/vCenter server password?"
+      private: yes
+      default: 
+    - name: vm_name
+      prompt: "What is vm or group?"
+      private: no
+      default: template
+  hosts: localhost
+  tasks: 
+
+    - include_tasks: "{{ playbook_dir }}/../../ansible-tasks/vm-group.set.yml"
+      vars:
+        group:
+          name: "{{ vm_name }}"
+          all: "{{ esxi.group }}"
+
+    - include_tasks: "{{ playbook_dir }}/../../ansible-tasks/vm-list.set.yml"
+      vars:
+        list:
+          select: "{{ vm_group }}"
+          all: "{{ esxi.vm }}"
+
+    - name: set vm_guest_list
+      ansible.builtin.set_fact:
+        vm_guest_list: []
+
+    - name: expand guest with absent
+      loop: "{{ vm_list }}"
+      loop_control:
+        loop_var: vm_item
+      when: 
+        - vm_item.guest is defined
+      vars:
+        guest_item: "{{ esxi.guest[vm_item.guest] }}"
+        guest_combine: 
+          state: absent
+          force: true
+        guest: "{{ guest_item | combine(guest_combine, recursive=True) }}"
+        vm_guest_combine: 
+          guest: "{{ guest }}"
+        vm_guest_item: "{{ vm_item | combine(vm_guest_combine, recursive=True) }}"
+      ansible.builtin.set_fact:
+        vm_guest_list: "{{ vm_guest_list + [vm_guest_item] }}"
+
+    - debug: msg="{{ vm_guest_list }}"
+
+    - include_tasks: "{{ playbook_dir }}/../../ansible-tasks/guest-list.set.yml"
+      vars:
+        list: "{{ vm_guest_list }}"
+
+    - name: remove a virtual machine
+      loop: "{{ guest_list }}"
+      loop_control:
+        loop_var: guest_item
+      community.vmware.vmware_guest: "{{ guest_item }}"
+      register: guest_result
+      # 2 min
+      async: 120
+      poll: 0
+
+    - name: wait task finished
+      loop: "{{ guest_result.results }}"
+      loop_control:
+        loop_var: result
+      ansible.builtin.async_status:
+        jid: "{{ result.ansible_job_id }}"
+        mode: status
+      register: guest_async
+      until: guest_async.finished
+      # 2 min
+      retries: 12
+      delay: 10
+
+    - debug: msg="{{ guest_async }}" verbosity=3
+
+    

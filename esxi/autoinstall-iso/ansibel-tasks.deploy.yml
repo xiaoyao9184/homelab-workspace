@@ -1,0 +1,61 @@
+---
+
+
+- name: install genisoimage
+  become: true
+  ansible.builtin.package:
+    name: genisoimage
+    state: present
+
+- name: set autoinstall_list
+  ansible.builtin.set_fact:
+    autoinstall_list: []
+
+- name: append autoinstall_list
+  loop: "{{ autoinstall.all | dict2items | selectattr('key','in',autoinstall.select) }}"
+  loop_control:
+    loop_var: kv
+  vars:
+    autoinstall:
+      name: "{{ kv.key }}"
+    autoinstall_item: "{{ kv.value | combine(autoinstall, recursive=True) }}"
+  ansible.builtin.set_fact:
+    autoinstall_list: "{{ autoinstall_list + [autoinstall_item] }}"
+
+- debug: msg="{{ autoinstall_list }}" verbosity=3
+
+- name: create autoinstall iso
+  loop: "{{ autoinstall_list }}"
+  loop_control:
+    loop_var: autoinstall_item
+  ansible.builtin.shell: 
+    cmd: genisoimage -output {{ autoinstall_item.output }} -volid cidata -joliet -rock user-data meta-data
+    chdir: "{{ autoinstall_item.path }}"
+
+- name: set vm_copy_list
+  ansible.builtin.set_fact:
+    vm_copy_list: []
+
+- name: append vm_copy_list
+  loop: "{{ autoinstall_list }}"
+  loop_control:
+    loop_var: autoinstall_item
+  when: autoinstall_item.vsphere_copy is defined
+  vars:
+    vsphere_copy:
+      hostname: "{{ esxi.server.hostname }}"
+      username: "{{ vm_username | default(esxi.server.username,true) }}"
+      password: "{{ vm_password | default(esxi.server.password,true) }}"
+      validate_certs: false
+      src: "{{ autoinstall_item.path }}/{{ autoinstall_item.output }}"
+    vm_copy_item: "{{ autoinstall_item.vsphere_copy | combine(vsphere_copy, recursive=True) }}"
+  ansible.builtin.set_fact:
+    vm_copy_list: "{{ vm_copy_list + [vm_copy_item] }}"
+
+- debug: msg="{{ vm_copy_list }}" verbosity=3
+
+- name: copy file to datastore
+  loop: "{{ vm_copy_list }}"
+  loop_control:
+    loop_var: vm_copy_item
+  community.vmware.vsphere_copy: "{{ vm_copy_item }}"

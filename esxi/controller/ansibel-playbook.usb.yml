@@ -1,0 +1,64 @@
+---
+
+- name: usb
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --inventory $PWD/ansible/inventory-local.yml \
+        $PWD/../../../esxi/ansibel-playbook.usb.yml
+  vars_prompt:
+    - name: vm_username
+      prompt: "What is ESXi/vCenter server username?"
+      private: no
+      default: 
+    - name: vm_password
+      prompt: "What is ESXi/vCenter server password?"
+      private: yes
+      default: 
+    - name: vm_name
+      prompt: "What is vm or group?"
+      private: no
+      default: all
+  hosts: localhost
+  tasks: 
+
+    - include_tasks: "{{ playbook_dir }}/../ansible-tasks/vm-group.set.yml"
+      vars:
+        group:
+          name: "{{ vm_name }}"
+          all: "{{ esxi.group }}"
+
+    - include_tasks: "{{ playbook_dir }}/../ansible-tasks/vm-list.set.yml"
+      vars:
+        list:
+          select: "{{ vm_group }}"
+          all: "{{ esxi.vm }}"
+
+    - name: set vm_controller_list
+      ansible.builtin.set_fact:
+        vm_controller_list: []
+
+    - name: expand controller
+      loop: "{{ vm_list }}"
+      loop_control:
+        loop_var: vm_item
+      when: 
+        - vm_item.guest is defined
+      vars:
+        vm_controller_combine: 
+          controller: "{{ esxi.guest_controller[vm_item.guest] }}"
+        vm_controller_item: "{{ vm_item | combine(vm_controller_combine, recursive=True) }}"
+      ansible.builtin.set_fact:
+        vm_controller_list: "{{ vm_controller_list + [vm_controller_item] }}"
+
+    - debug: msg="{{ vm_controller_list }}"
+
+    - include_tasks: "{{ playbook_dir }}/../../ansible-tasks/controller-list.set.yml"
+      vars:
+        list: "{{ vm_controller_list }}"
+
+    - name: change controller of vm
+      loop: "{{ controller_list }}"
+      loop_control:
+        loop_var: controller_item
+      community.vmware.vmware_guest_controller: "{{ controller_item }}"

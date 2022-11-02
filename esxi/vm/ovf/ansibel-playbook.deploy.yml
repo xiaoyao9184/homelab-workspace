@@ -1,0 +1,83 @@
+---
+
+- name: deploy
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --inventory $PWD/ansible/inventory-local.yml \
+        $PWD/../../../esxi/vm/ovf/ansibel-playbook.deploy.yml
+  vars_prompt:
+    - name: vm_username
+      prompt: "What is ESXi/vCenter server username?"
+      private: no
+      default: 
+    - name: vm_password
+      prompt: "What is ESXi/vCenter server password?"
+      private: yes
+      default: 
+    - name: vm_name
+      prompt: "What is vm or group?"
+      private: no
+      default: ovf
+  hosts: localhost
+  tasks: 
+
+    - include_tasks: "{{ playbook_dir }}/../../ansible-tasks/vm-group.set.yml"
+      vars:
+        group:
+          name: "{{ vm_name }}"
+          all: "{{ esxi.group }}"
+
+    - include_tasks: "{{ playbook_dir }}/../../ansible-tasks/vm-list.set.yml"
+      vars:
+        list:
+          select: "{{ vm_group }}"
+          all: "{{ esxi.vm }}"
+
+    - name: set vm_ovf_list
+      ansible.builtin.set_fact:
+        vm_ovf_list: []
+
+    - name: expand ovf
+      loop: "{{ vm_list }}"
+      loop_control:
+        loop_var: vm_item
+      when: vm_item.ovf is defined
+      vars:
+        vm_ovf_combine: 
+          _ovf: "{{ vm_item.ovf }}"
+          ovf: "{{ esxi.ovf[vm_item.ovf] }}"
+        vm_ovf_item: "{{ vm_item | combine(vm_ovf_combine, recursive=True) }}"
+      ansible.builtin.set_fact:
+        vm_ovf_list: "{{ vm_ovf_list + [vm_ovf_item] }}"
+
+    - debug: msg="{{ vm_ovf_list }}"
+
+    - include_tasks: "{{ playbook_dir }}/../../ansible-tasks/ovf-list.set.yml"
+      vars:
+        list: "{{ vm_ovf_list }}"
+
+    - name: create a virtual machine by ovf      
+      loop: "{{ ovf_list }}"
+      loop_control:
+        loop_var: ovf_item
+      community.vmware.vmware_deploy_ovf: "{{ ovf_item }}"
+      register: ovf_result
+      # 1 day
+      async: 86400
+      poll: 0
+
+    - name: wait task finished
+      loop: "{{ ovf_result.results }}"
+      loop_control:
+        loop_var: result
+      ansible.builtin.async_status:
+        jid: "{{ result.ansible_job_id }}"
+        mode: status
+      register: ovf_async
+      until: ovf_async.finished
+      # 1440 min/1 day
+      retries: 1440
+      delay: 60
+
+    - debug: msg="{{ ovf_async }}" verbosity=3

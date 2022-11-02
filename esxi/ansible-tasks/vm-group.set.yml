@@ -1,0 +1,8 @@
+---
+
+
+- name: vm-group.set|set vm_group
+  ansible.builtin.set_fact:
+    vm_group: "{{ group.all[group.name] | default([group.name]) }}"
+
+- debug: msg="{{ vm_group }}" verbosity=3
