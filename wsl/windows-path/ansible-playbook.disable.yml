@@ -1,0 +1,27 @@
+---
+
+- name: disable
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --ask-become-pass \
+        --inventory $PWD/ansible \
+        $PWD/../../../wsl/windows-path/ansible-playbook.disable.yml
+  hosts: localhost
+  tasks: 
+
+    - name: create file
+      become: true
+      ansible.builtin.file:
+        path: /etc/wsl.conf
+        mode: u=rw,g=rw,o=rw
+        state: touch
+
+    - name: change appendWindowsPath
+      become: true
+      community.general.ini_file:
+        path: /etc/wsl.conf
+        backup: yes
+        section: interop
+        option: appendWindowsPath
+        value: "false"
