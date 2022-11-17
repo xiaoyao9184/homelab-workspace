@@ -1,0 +1,90 @@
+---
+
+- name: build
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --ask-become-pass \
+        --inventory $PWD/ansible \
+        $PWD/../../../linux/openwrt/imagebuilder/ansible-playbook.build.yml
+    OPENWRT_RELEASE: "{{ openwrt.imagebuilder.OPENWRT_RELEASE }}"
+    OPENWRT_TARGET: "{{ openwrt.imagebuilder.OPENWRT_TARGET }}"
+  hosts: localhost
+  connection: local
+  tasks: 
+
+    - name: install build package 
+      become: true
+      ansible.builtin.package:
+        name: 
+          - build-essential
+          - libncurses5-dev
+          - libncursesw5-dev
+          - zlib1g-dev
+          - gawk
+          - git
+          - gettext
+          - libssl-dev
+          - xsltproc
+          - rsync
+          - wget
+          - unzip
+          - python
+        state: present
+      register: package_result
+      until: "package_result is not failed"
+      retries: 3
+      delay: 5
+
+    - name: check builder
+      ansible.builtin.stat:
+        path: "~/.openwrt/openwrt-imagebuilder-{{ OPENWRT_RELEASE }}-{{ OPENWRT_TARGET }}.Linux-x86_64.tar.xz"
+      register: builder_stat
+
+    - name: mkdir builder
+      ansible.builtin.file:
+        path: "~/.openwrt"
+        state: directory
+
+    - name: download builder
+      when: not builder_stat.stat.exists 
+      ansible.builtin.get_url:
+        url: "{{ url }}"
+        dest: "~/.openwrt/openwrt-imagebuilder-{{ OPENWRT_RELEASE }}-{{ OPENWRT_TARGET }}.Linux-x86_64.tar.xz"
+      vars:
+        url: "https://downloads.openwrt.org/releases/{{ OPENWRT_RELEASE }}/targets/{{ OPENWRT_TARGET | regex_replace('-', '/') }}/openwrt-imagebuilder-{{ OPENWRT_RELEASE }}-{{ OPENWRT_TARGET }}.Linux-x86_64.tar.xz"
+
+    - name: unarchive builder
+      ansible.builtin.unarchive:
+        src: "~/.openwrt/openwrt-imagebuilder-{{ OPENWRT_RELEASE }}-{{ OPENWRT_TARGET }}.Linux-x86_64.tar.xz"
+        dest: "~/.openwrt"
+
+    - name: info builder
+      ansible.builtin.shell:
+        cmd: make info
+        chdir: "~/.openwrt/openwrt-imagebuilder-{{ OPENWRT_RELEASE }}-{{ OPENWRT_TARGET }}.Linux-x86_64"
+      register: builder_info
+
+    - name: print builder
+      ansible.builtin.pause:
+        seconds: 1
+        prompt: |
+          //////////////////////////////////////////////////
+
+          {{ builder_info.stdout }}
+          //////////////////////////////////////////////////
+
+    - name: set builder_file
+      when: openwrt.imagebuilder.BUILDER_FILE is defined
+      ansible.builtin.set_fact:
+        builder_file: "FILES={{ openwrt.imagebuilder.BUILDER_FILE }}"
+        
+    - name: build builder
+      ansible.builtin.shell:
+        cmd: "make image PROFILE={{ profile }} PACKAGES=\"{{ packages }}\" {{ file }}"
+        chdir: "~/.openwrt/openwrt-imagebuilder-{{ OPENWRT_RELEASE }}-{{ OPENWRT_TARGET }}.Linux-x86_64"
+      register: builder_info
+      vars:
+        profile: "{{ openwrt.imagebuilder.BUILDER_PROFILE }}"
+        packages: "{{ openwrt.imagebuilder.BUILDER_PACKAGES | join(' ') }}"
+        file: "{{ builder_file | default('') }}"
