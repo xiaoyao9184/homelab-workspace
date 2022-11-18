@@ -36,36 +36,46 @@
       retries: 3
       delay: 5
 
-    - name: check builder
-      ansible.builtin.stat:
-        path: "~/.openwrt/openwrt-imagebuilder-{{ OPENWRT_RELEASE }}-{{ OPENWRT_TARGET }}.Linux-x86_64.tar.xz"
-      register: builder_stat
-
-    - name: mkdir builder
+    - name: mkdir builder path
       ansible.builtin.file:
         path: "~/.openwrt"
         state: directory
 
-    - name: download builder
+    - name: set builder_dir by snapshots
+      when: openwrt.imagebuilder.OPENWRT_RELEASE == 'snapshots'
+      ansible.builtin.set_fact:
+        builder_url: "https://downloads.openwrt.org/snapshots/targets/{{ OPENWRT_TARGET | regex_replace('-', '/') }}/openwrt-imagebuilder-{{ OPENWRT_TARGET }}.Linux-x86_64.tar.xz"
+        builder_dir: "~/.openwrt/openwrt-imagebuilder-{{ OPENWRT_TARGET }}.Linux-x86_64"
+
+    - name: set builder_dir by releases
+      when: openwrt.imagebuilder.OPENWRT_RELEASE != 'snapshots'
+      ansible.builtin.set_fact:
+        builder_url: "https://downloads.openwrt.org/releases/{{ OPENWRT_RELEASE }}/targets/{{ OPENWRT_TARGET | regex_replace('-', '/') }}/openwrt-imagebuilder-{{ OPENWRT_RELEASE }}-{{ OPENWRT_TARGET }}.Linux-x86_64.tar.xz"
+        builder_dir: "~/.openwrt/openwrt-imagebuilder-{{ OPENWRT_RELEASE }}-{{ OPENWRT_TARGET }}.Linux-x86_64"
+
+    - name: check builder file
+      ansible.builtin.stat:
+        path: "{{ builder_dir }}.tar.xz"
+      register: builder_stat
+
+    - name: download builder file
       when: not builder_stat.stat.exists 
       ansible.builtin.get_url:
-        url: "{{ url }}"
-        dest: "~/.openwrt/openwrt-imagebuilder-{{ OPENWRT_RELEASE }}-{{ OPENWRT_TARGET }}.Linux-x86_64.tar.xz"
-      vars:
-        url: "https://downloads.openwrt.org/releases/{{ OPENWRT_RELEASE }}/targets/{{ OPENWRT_TARGET | regex_replace('-', '/') }}/openwrt-imagebuilder-{{ OPENWRT_RELEASE }}-{{ OPENWRT_TARGET }}.Linux-x86_64.tar.xz"
+        url: "{{ builder_url }}"
+        dest: "{{ builder_dir }}.tar.xz"
 
-    - name: unarchive builder
+    - name: unarchive builder file
       ansible.builtin.unarchive:
-        src: "~/.openwrt/openwrt-imagebuilder-{{ OPENWRT_RELEASE }}-{{ OPENWRT_TARGET }}.Linux-x86_64.tar.xz"
+        src: "{{ builder_dir }}.tar.xz"
         dest: "~/.openwrt"
 
-    - name: info builder
+    - name: get builder info
       ansible.builtin.shell:
         cmd: make info
-        chdir: "~/.openwrt/openwrt-imagebuilder-{{ OPENWRT_RELEASE }}-{{ OPENWRT_TARGET }}.Linux-x86_64"
+        chdir: "{{ builder_dir }}"
       register: builder_info
 
-    - name: print builder
+    - name: print builder info
       ansible.builtin.pause:
         seconds: 1
         prompt: |
@@ -79,10 +89,10 @@
       ansible.builtin.set_fact:
         builder_file: "FILES={{ openwrt.imagebuilder.BUILDER_FILE }}"
         
-    - name: build builder
+    - name: run builder make
       ansible.builtin.shell:
         cmd: "make image PROFILE={{ profile }} PACKAGES=\"{{ packages }}\" {{ file }}"
-        chdir: "~/.openwrt/openwrt-imagebuilder-{{ OPENWRT_RELEASE }}-{{ OPENWRT_TARGET }}.Linux-x86_64"
+        chdir: "{{ builder_dir }}"
       register: builder_info
       vars:
         profile: "{{ openwrt.imagebuilder.BUILDER_PROFILE }}"
