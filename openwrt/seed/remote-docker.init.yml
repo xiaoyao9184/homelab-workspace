@@ -1,11 +1,11 @@
 ---
 
-- name: install
+- name: init
   vars:
     run_wsl: |
       ansible-playbook \
         --inventory $PWD/ansible \
-        $PWD/../../../openwrt/python/ansible-playbook.install.yml
+        $PWD/../../../openwrt/python/remote-docker.init.yml
   hosts: openwrt
   roles:
     - gekmihesg.openwrt
@@ -35,6 +35,7 @@
           # - pyyaml
           - lxml
           - psycopg2-binary
+          - jmespath
       register: pip_result
       until: "pip_result is not failed"
       retries: 3
