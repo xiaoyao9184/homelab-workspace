@@ -5,7 +5,7 @@
     run_wsl: |
       ansible-playbook \
         --inventory $PWD/ansible \
-        $PWD/../../../openwrt/python/remote-docker.init.yml
+        $PWD/../../../openwrt/seed/remote-docker.init.yml
   hosts: openwrt
   roles:
     - gekmihesg.openwrt
