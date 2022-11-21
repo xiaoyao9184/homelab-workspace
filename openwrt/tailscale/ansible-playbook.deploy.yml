@@ -95,7 +95,7 @@
       block:
 
         - name: tailscale up
-          ansible.builtin.shell: "/usr/local/bin/tailscale up --authkey {{ tailscale.up.authkey }} --advertise-routes={{ network_lan.stdout }}"
+          ansible.builtin.shell: "tailscale up --authkey {{ tailscale.up.authkey }} --advertise-routes={{ network_lan.stdout }}"
 
     - name: wait tailscale up
       block:
