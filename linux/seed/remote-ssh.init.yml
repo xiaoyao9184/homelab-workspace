@@ -1,0 +1,40 @@
+---
+
+
+- name: run
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --ask-pass \
+        --ask-become-pass \
+        --inventory $PWD/ansible/inventory-ssh.yml \
+        $PWD/../../../linux/seed/remote-ssh.init.yml
+  vars_prompt:
+    - name: seed_group
+      prompt: "What is seed host group(all host use one ssh key)?"
+      private: no
+      default: 
+    - name: seed_user
+      prompt: "What is seed host user(all host use one user)?"
+      private: no
+      default: 
+  hosts: localhost
+  connection: local
+  become: false
+  tasks: 
+
+    - include_tasks: "{{ playbook_dir }}/../../.seed/ansible-tasks/seed-ssh.create.yml"
+      vars:
+        host_group: "{{ seed_group }}"
+        remote_user: "{{ seed_user }}"
+        ansible_group: "linux"
+
+
+- name: run
+  hosts: linux
+  become: true
+  tasks: 
+
+    - include_tasks: "{{ playbook_dir }}/../../.seed/ansible-tasks/seed-ssh.approve.yml"
+
+    - debug: msg="ok of host {{ ansible_host }}"
