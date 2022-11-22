@@ -1,12 +1,12 @@
 ---
 
 
-- name: deploy
+- name: copy
   vars:
     run_wsl: |
       ansible-playbook \
         --inventory $PWD/ansible \
-        $PWD/../../../esxi/file/ansibel-playbook.deploy.yml
+        $PWD/../../../esxi/file/ansibel-playbook.copy.yml
   vars_prompt:
     - name: vm_username
       prompt: "What is ESXi/vCenter server username?"
@@ -52,19 +52,6 @@
       register: file_with_input
 
     - debug: msg="{{ file_with_input.results | map(attribute='user_input') }}"
-
-    # - name: expand file
-    #   loop: "{{ file_list }}"
-    #   loop_control:
-    #     loop_var: file_item
-    #   when: 
-    #     - file_item.vsphere_copy is defined
-    #   vars:
-    #     vsphere_file_item: "{{ file_item.vsphere_file }}"
-    #   ansible.builtin.set_fact:
-    #     vsphere_file_list: "{{ vsphere_file_list + [vsphere_file_item] }}"
-
-    # - debug: msg="{{ vsphere_file_list }}"
 
     - name: set vsphere_copy_list
       ansible.builtin.set_fact:
