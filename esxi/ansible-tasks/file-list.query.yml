@@ -11,9 +11,9 @@
 
 - debug: msg="{{ vm_iso_state }}" verbosity=3
 
-- name: fail miss iso on esxi datastore
+- name: fail miss file on esxi datastore
   when: 
     - (vm_iso_state.results | selectattr('status','!=',200) | length) > 0
   ansible.builtin.fail:
-    msg: "miss iso {{ vm_iso_state.results | selectattr('status','!=',200) | map(attribute='path') }}"
+    msg: "miss file {{ vm_iso_state.results | selectattr('status','!=',200) | map(attribute='path') }}"
 
