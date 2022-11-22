@@ -22,6 +22,7 @@
       remote_user: "{{ remote_user | default(prompt_remote_user.user_input) }}"
       host_group: "{{ host_group | default(prompt_host_group.user_input) }}"
       ansible_group: "{{ ansible_group | default('remote') }}"
+      keyscan_type: "{{ keyscan_type | default('ed25519') }}"
 
 # - debug: msg="{{ _ssh }}"
 
@@ -67,7 +68,7 @@
     loop_var: host
 
 - name: seed-ssh.create|get ssh ecdsa fingerprint for host
-  ansible.builtin.command: ssh-keyscan -t ed25519 {{ host }} | grep -v ^#
+  ansible.builtin.command: ssh-keyscan -t {{ _ssh.keyscan_type }} {{ host }} | grep -v ^#
   register: ecdsa_key
   loop: "{{ groups[_ssh.ansible_group] }}"
   loop_control:
