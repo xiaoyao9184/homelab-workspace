@@ -1,0 +1,8 @@
+---
+
+
+- name: config-group.set|set config_group
+  ansible.builtin.set_fact:
+    "{{ group.register }}": "{{ group.all[group.name] | default([group.name]) }}"
+
+- debug: msg="{{ group.register }}" verbosity=3
