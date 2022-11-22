@@ -1,7 +1,6 @@
 ---
 
 
-# TODO will remove all services in stack or compose
 - name: docker-compose.rm|set _compose
   ansible.builtin.set_fact:
     _compose: 
@@ -62,105 +61,109 @@
   ansible.builtin.debug:
     var: _compose
 
-
-- name: docker-compose.rm|have path
+- name: docker-compose.rm|stack
   when: 
-    - _compose.path != ''
+    - _compose.type == 'stack'
   block:
 
-    - include_tasks: file-content.read.yml
-      vars:
-        content: 
-          files: "{{ [_compose.path] | product(_compose.files) | map('join', '/') }}"
-          result_var: _contents
-
-    - name: docker-compose.rm|set content list
-      ansible.builtin.set_fact:
-        _configs: []
-        _networks: []
-        _secrets: []
-        _services: []
-        _volumes: []
-
-    - name: docker-compose.rm|read content item
-      ansible.builtin.set_fact:
-        _configs: "{{ _configs + configs }}"
-        _networks: "{{ _networks + networks }}"
-        _secrets: "{{ _secrets + secrets }}"
-        _services: "{{ _services + services }}"
-        _volumes: "{{ _volumes + volumes }}"
-      vars:
-        query_internal: "[? value.external!=`true`]"
-        configs: "{{ content.configs | default({}) | dict2items | json_query(query_internal) }}"
-        networks: "{{ content.networks | default({}) | dict2items | json_query(query_internal) }}"
-        secrets: "{{ content.secrets | default({}) | dict2items | json_query(query_internal) }}" 
-        services: "{{ content.services | default({}) | dict2items | json_query(query_internal) }}" 
-        volumes: "{{ content.volumes | default({}) | dict2items | json_query(query_internal) }}"
-      loop: "{{ _contents }}"
-      loop_control:
-        loop_var: content
-
-    - name: docker-compose.rm|print content list
-      ansible.builtin.debug:
-        verbosity: 3
-        msg: 
-          - "{{ _contents }}"
-          - "{{ _configs }}"
-          - "{{ _networks }}"
-          - "{{ _secrets }}"
-          - "{{ _services }}"
-          - "{{ _volumes }}"
-
-    - include_tasks: docker-services.rm.yml
-      vars: 
-        services: "{{ _services }}"
-        services_prefix: "{{ _compose.name }}"
-
-    - include_tasks: docker-networks.rm.yml
-      vars: 
-        networks: "{{ _networks }}"
-        networks_prefix: "{{ _compose.name }}"
-
-    - include_tasks: docker-volumes.rm.yml
-      vars: 
-        volumes: "{{ _volumes }}"
-        volumes_prefix: "{{ _compose.name }}"
-
-    - include_tasks: docker-configs.rm.yml
-      vars: 
-        configs: "{{ _configs }}"
-        configs_prefix: "{{ _compose.name }}"
-
-    - include_tasks: docker-secrets.rm.yml
-      vars: 
-        secrets: "{{ _secrets }}"
-        secrets_prefix: "{{ _compose.name }}"
-          
-    - name: docker-compose.rm|reset content list
-      ansible.builtin.set_fact:
-        _contents: !!null
-        _configs: !!null
-        _networks: !!null
-        _secrets: !!null
-        _services: !!null
-        _volumes: !!null
-
-- name: docker-compose.rm|no path
-  when: 
-    - _compose.path == ''
-  block:
-
-    - name: docker-compose.rm|stack
-      when: _compose.type == 'stack'
+    - name: docker-compose.rm|stack no path
+      when: 
+        - _compose.path == ''
       community.docker.docker_stack:
         state: absent
         name: "{{ _compose.name }}"
 
-    - name: docker-compose.rm|compose
-      when: _compose.type == 'compose'
-      community.docker.docker_compose:
-        state: absent
-        project_name: "{{ _compose.name }}"
+    - name: docker-compose.rm|stack have path
+      when: 
+        - _compose.path != ''
+      block:
+
+        - include_tasks: file-content.read.yml
+          vars:
+            content: 
+              files: "{{ [_compose.path] | product(_compose.files) | map('join', '/') }}"
+              result_var: _contents
+
+        - name: docker-compose.rm|set content list
+          ansible.builtin.set_fact:
+            _configs: []
+            _networks: []
+            _secrets: []
+            _services: []
+            _volumes: []
+
+        - name: docker-compose.rm|read content item
+          ansible.builtin.set_fact:
+            _configs: "{{ _configs + configs }}"
+            _networks: "{{ _networks + networks }}"
+            _secrets: "{{ _secrets + secrets }}"
+            _services: "{{ _services + services }}"
+            _volumes: "{{ _volumes + volumes }}"
+          vars:
+            query_internal: "[? value.external!=`true`]"
+            configs: "{{ content.configs | default({}) | dict2items | json_query(query_internal) }}"
+            networks: "{{ content.networks | default({}) | dict2items | json_query(query_internal) }}"
+            secrets: "{{ content.secrets | default({}) | dict2items | json_query(query_internal) }}" 
+            services: "{{ content.services | default({}) | dict2items | json_query(query_internal) }}" 
+            volumes: "{{ content.volumes | default({}) | dict2items | json_query(query_internal) }}"
+          loop: "{{ _contents }}"
+          loop_control:
+            loop_var: content
+
+        - name: docker-compose.rm|print content list
+          ansible.builtin.debug:
+            verbosity: 3
+            msg: 
+              - "{{ _contents }}"
+              - "{{ _configs }}"
+              - "{{ _networks }}"
+              - "{{ _secrets }}"
+              - "{{ _services }}"
+              - "{{ _volumes }}"
+
+        - include_tasks: docker-services.rm.yml
+          vars: 
+            services: "{{ _services }}"
+            services_prefix: "{{ _compose.name }}"
+
+        - include_tasks: docker-networks.rm.yml
+          vars: 
+            networks: "{{ _networks }}"
+            networks_prefix: "{{ _compose.name }}"
+
+        - include_tasks: docker-volumes.rm.yml
+          vars: 
+            volumes: "{{ _volumes }}"
+            volumes_prefix: "{{ _compose.name }}"
+
+        - include_tasks: docker-configs.rm.yml
+          vars: 
+            configs: "{{ _configs }}"
+            configs_prefix: "{{ _compose.name }}"
+
+        - include_tasks: docker-secrets.rm.yml
+          vars: 
+            secrets: "{{ _secrets }}"
+            secrets_prefix: "{{ _compose.name }}"
+              
+        - name: docker-compose.rm|reset content list
+          ansible.builtin.set_fact:
+            _contents: !!null
+            _configs: !!null
+            _networks: !!null
+            _secrets: !!null
+            _services: !!null
+            _volumes: !!null
+
+# will remove all services in compose
+- name: docker-compose.rm|compose
+  when: 
+    - _compose.type == 'compose'
+    - _compose.path != ''
+  community.docker.docker_compose:
+    state: absent
+    project_name: "{{ _compose.name }}"
+    project_src: "{{ _compose.path }}"
 
 - name: docker-compose.rm|reset _compose
   ansible.builtin.set_fact:
