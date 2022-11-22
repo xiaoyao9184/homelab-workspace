@@ -65,14 +65,14 @@
         vmdk_combine:
           vsphere_file:
             datastore: "{{ guest_item.datastore }}"
-            path: "/{{ vm_item.name }}/{{ vmdk_item.filename }}"
+            path: "/{{ vm_item.name }}.disk/{{ vmdk_item.filename }}"
         vmdk: "{{ vmdk_item | combine(vmdk_combine, recursive=True) }}"
         guest_item: "{{ esxi.guest[vm_item.guest] }}"
         guest_combine: 
           disk:
             - type: thin
               datastore: "{{ guest_item.datastore }}"
-              filename: "[{{ guest_item.datastore }}] {{ vm_item.name }}/{{ vmdk_item.filename }}"
+              filename: "[{{ guest_item.datastore }}] {{ vm_item.name }}.disk/{{ vmdk_item.filename }}"
         guest: "{{ guest_item | combine(guest_combine, recursive=True) }}"
         vm_guest_combine: 
           guest: "{{ guest }}"
