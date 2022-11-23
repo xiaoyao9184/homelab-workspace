@@ -56,43 +56,53 @@
     - name: down tailscale
       ansible.builtin.shell: "tailscale down"
       register: tailscale_result
+          
+    - name: print result
+      debug:
+        msg:
+          - "{{ tailscale_result }}"
 
     - name: stop service
       ansible.builtin.shell: /etc/init.d/tailscale stop
 
     - name: disable service
       ansible.builtin.shell: /etc/init.d/tailscale disable
-      
-    - name: print result
-      debug:
-        msg:
-          - "{{ tailscale_result }}"
 
-    - name: kill process
-      ansible.builtin.shell: kill $(ps | grep '[p]/etc/config/tailscaled.state' | awk '{print $1}')
+    - name: opkg uninstall
+      opkg:
+        name: tailscale
+        state: absent
+      register: opkg_tailscale
       ignore_errors: yes
 
-    - name: rm process config
-      ansible.builtin.file:
-        path: "/etc/config/tailscaled.state"
-        state: absent
+    - when: opkg_tailscale is failed
+      block: 
 
-    - name: rm service file
-      ansible.builtin.file:
-        path: "/etc/init.d/tailscale"
-        state: absent
+        - name: kill process
+          ansible.builtin.shell: kill $(ps | grep '[p]/etc/config/tailscaled.state' | awk '{print $1}')
+          ignore_errors: yes
 
-    - name: rm bin file
-      ansible.builtin.file:
-        path: "/usr/bin/tailscale"
-        state: absent
+        - name: rm process config
+          ansible.builtin.file:
+            path: "/etc/config/tailscaled.state"
+            state: absent
 
-    - name: rm daemon file
-      ansible.builtin.file:
-        path: "/usr/bin/tailscaled"
-        state: absent
+        - name: rm service file
+          ansible.builtin.file:
+            path: "/etc/init.d/tailscale"
+            state: absent
 
-    - name: rm stdout file
-      ansible.builtin.file:
-        path: "/tmp/tailscale.up.log"
-        state: absent
+        - name: rm bin file
+          ansible.builtin.file:
+            path: "/usr/bin/tailscale"
+            state: absent
+
+        - name: rm daemon file
+          ansible.builtin.file:
+            path: "/usr/bin/tailscaled"
+            state: absent
+
+        - name: rm stdout file
+          ansible.builtin.file:
+            path: "/tmp/tailscale.up.log"
+            state: absent

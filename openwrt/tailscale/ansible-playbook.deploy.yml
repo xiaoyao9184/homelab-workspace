@@ -1,46 +1,75 @@
 ---
 
-
-- name: download
+- name: deploy
   vars:
     run_wsl: |
       ansible-playbook \
         --inventory $PWD/ansible \
         $PWD/../../../openwrt/tailscale/ansible-playbook.deploy.yml
+  hosts: openwrt
+  roles:
+    - gekmihesg.openwrt
+  tasks: 
+
+    - name: check fw4
+      ansible.builtin.shell: command -v fw4
+      register: opkg_fw4
+
+    - when: 
+        - opkg_fw4.stdout != ''
+      block:
+
+        - name: opkg iptables-nft
+          opkg:
+            name: iptables-nft
+          ignore_errors: yes
+
+    - name: opkg tailscale
+      opkg:
+        update_cache: true
+        name: tailscale
+      register: opkg_tailscale
+      ignore_errors: yes
+
+
+- name: download
   hosts: localhost
   connection: local
   tasks: 
 
-    - name: clear dir
-      ansible.builtin.file:
-        path: "{{ playbook_dir }}/openwrt-tailscale-enabler"
-        state: absent
+    - when: hostvars[groups['openwrt'][0]]['opkg_tailscale'] is failed
+      block:
 
-    - name: mkdir dir
-      ansible.builtin.file:
-        path: "{{ playbook_dir }}/openwrt-tailscale-enabler"
-        state: directory
+        - name: clear dir
+          ansible.builtin.file:
+            path: "{{ playbook_dir }}/openwrt-tailscale-enabler"
+            state: absent
 
-    - name: get latest release
-      ansible.builtin.uri:
-        url: https://api.github.com/repos/adyanth/openwrt-tailscale-enabler/releases/latest
-        return_content: true
-      register: json_reponse
+        - name: mkdir dir
+          ansible.builtin.file:
+            path: "{{ playbook_dir }}/openwrt-tailscale-enabler"
+            state: directory
 
-    - name: download latest release
-      ansible.builtin.get_url:
-        url: "{{ json_reponse.json.assets[0].browser_download_url }}"
-        dest: "{{ playbook_dir }}/openwrt-tailscale-enabler/openwrt-tailscale-enabler.tar.gz"
+        - name: get latest release
+          ansible.builtin.uri:
+            url: https://api.github.com/repos/adyanth/openwrt-tailscale-enabler/releases/latest
+            return_content: true
+          register: json_reponse
 
-    - name: extract latest release
-      ansible.builtin.unarchive:
-        src: "{{ playbook_dir }}/openwrt-tailscale-enabler/openwrt-tailscale-enabler.tar.gz"
-        dest: "{{ playbook_dir }}/openwrt-tailscale-enabler"
+        - name: download latest release
+          ansible.builtin.get_url:
+            url: "{{ json_reponse.json.assets[0].browser_download_url }}"
+            dest: "{{ playbook_dir }}/openwrt-tailscale-enabler/openwrt-tailscale-enabler.tar.gz"
 
-    - name: clear latest release
-      ansible.builtin.file:
-        path: "{{ playbook_dir }}/openwrt-tailscale-enabler/openwrt-tailscale-enabler.tar.gz"
-        state: absent
+        - name: extract latest release
+          ansible.builtin.unarchive:
+            src: "{{ playbook_dir }}/openwrt-tailscale-enabler/openwrt-tailscale-enabler.tar.gz"
+            dest: "{{ playbook_dir }}/openwrt-tailscale-enabler"
+
+        - name: clear latest release
+          ansible.builtin.file:
+            path: "{{ playbook_dir }}/openwrt-tailscale-enabler/openwrt-tailscale-enabler.tar.gz"
+            state: absent
 
 
 - name: deploy
@@ -49,42 +78,35 @@
     - gekmihesg.openwrt
   tasks: 
 
-    - name: opkg jq
-      opkg:
-        update_cache: true
-        name: jq
-      ignore_errors: yes
+    - when: opkg_tailscale is failed
+      block: 
 
-    - name: opkg libustream-openssl
-      opkg:
-        name: libustream-openssl
-      ignore_errors: yes
+        - name: opkg install
+          loop:
+            - jq
+            - libustream-openssl
+            - ca-bundle
+            - kmod-tun
+          opkg:
+            update_cache: true
+            name: "{{ item }}"
+          ignore_errors: yes
 
-    - name: opkg ca-bundle
-      opkg:
-        name: ca-bundle
-      ignore_errors: yes
+        - name: copy file
+          ansible.builtin.copy:
+            src: "{{ playbook_dir }}/openwrt-tailscale-enabler/" 
+            dest: /
+            mode: '0755'
 
-    - name: opkg kmod-tun
-      opkg:
-        name: kmod-tun
-      ignore_errors: yes
+        - name: start service
+          ansible.builtin.shell: /etc/init.d/tailscale start
 
-    - name: copy file
-      ansible.builtin.copy:
-        src: "{{ playbook_dir }}/openwrt-tailscale-enabler/" 
-        dest: /
-        mode: '0755'
+        - name: enable service
+          ansible.builtin.shell: /etc/init.d/tailscale enable
 
-    - name: start service
-      ansible.builtin.shell: /etc/init.d/tailscale start
-
-    - name: enable service
-      ansible.builtin.shell: /etc/init.d/tailscale enable
-
-    - name: ls service
-      ansible.builtin.shell: ls /etc/rc.d/S*tailscale*
-      register: service_rc
+        - name: ls service
+          ansible.builtin.shell: ls /etc/rc.d/S*tailscale*
+          register: service_rc
 
     - name: get lan network
       ansible.builtin.shell: "ip route | grep src | grep br-lan | awk '{print $1}'"
@@ -98,6 +120,7 @@
           ansible.builtin.shell: "tailscale up --authkey {{ tailscale.up.authkey }} --advertise-routes={{ network_lan.stdout }}"
 
     - name: wait tailscale up
+      when: tailscale.up.authkey is undefined
       block:
 
         - name: up tailscale
