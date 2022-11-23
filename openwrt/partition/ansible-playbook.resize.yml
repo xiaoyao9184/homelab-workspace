@@ -1,0 +1,22 @@
+---
+
+
+- name: resize
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --inventory $PWD/ansible \
+        $PWD/../../../openwrt/partition/ansible-playbook.resize.yml
+  hosts: openwrt
+  roles:
+    - gekmihesg.openwrt
+  tasks: 
+
+    - name: copy file
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/shell.resize.sh" 
+        dest: /tmp/shell.resize.sh
+        mode: '0755'
+
+    - name: run file
+      ansible.builtin.shell: /tmp/shell.resize.sh
