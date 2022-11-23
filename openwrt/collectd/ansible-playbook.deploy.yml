@@ -1,0 +1,67 @@
+---
+
+
+- name: deploy
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --inventory $PWD/ansible \
+        $PWD/../../../openwrt/collectd/ansible-playbook.deploy.yml
+  hosts: openwrt
+  roles:
+    - gekmihesg.openwrt
+  tasks: 
+
+    - name: opkg install
+      loop:
+        - collectd
+        - collectd-mod-cpu
+        - collectd-mod-interface
+        - collectd-mod-iwinfo
+        - collectd-mod-load
+        - collectd-mod-memory
+        - collectd-mod-network
+        -   -mod-uptime
+        - luci-app-statistics
+      opkg:
+        update_cache: true
+        name: "{{ item }}"
+      ignore_errors: yes
+
+    - name: uci set
+      loop:
+        - command: set
+          key: luci_statistics.collectd_network.enable
+          value: '1'
+        - command: set
+          key: luci_statistics.collectd_network.Forward
+          value: '0'
+        - command: set
+          key: luci_statistics.influxdb
+          value: 'collectd_network_server'
+        - command: set
+          key: luci_statistics.influxdb.port
+          value: '25826'
+        - command: set
+          key: luci_statistics.influxdb.host
+          value: 'influxdb.lan'
+      uci:
+        command: "{{ item.command }}"
+        key: "{{ item.key }}"
+        value: "{{ item.value }}"
+
+    - name: uci commit
+      uci:
+        command: "commit"
+
+    - name: enable and start collectd
+      service:
+        name: collectd
+        state: started
+        enabled: yes
+
+    - name: enable and start luci_statistics
+      service:
+        name: luci_statistics
+        state: started
+        enabled: yes
