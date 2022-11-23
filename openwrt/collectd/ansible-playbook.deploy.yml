@@ -21,7 +21,7 @@
         - collectd-mod-load
         - collectd-mod-memory
         - collectd-mod-network
-        -   -mod-uptime
+        - collectd-mod-uptime
         - luci-app-statistics
       opkg:
         update_cache: true
