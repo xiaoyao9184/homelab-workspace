@@ -1,0 +1,104 @@
+---
+
+- name: convert
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --ask-become-pass \
+        --inventory $PWD/ansible \
+        $PWD/../../../linux/openwrt/vmdk-converter/ansible-playbook.convert.yml
+    OPENWRT_RELEASE: "{{ openwrt.imagebuilder.OPENWRT_RELEASE }}"
+    OPENWRT_TARGET: "{{ openwrt.imagebuilder.OPENWRT_TARGET }}"
+  vars_prompt:
+    - name: prompt_path
+      prompt: "input image path(img.gz/img)[from image-builder]"
+      private: no
+      default: 
+  hosts: localhost
+  connection: local
+  tasks:
+ 
+    - name: install qemu-img 
+      become: true
+      ansible.builtin.package:
+        name: 
+          - qemu-utils
+        state: present
+      register: package_result
+      until: "package_result is not failed"
+      retries: 3
+      delay: 5
+
+    - name: set image_path
+      when: prompt_path != ''
+      ansible.builtin.set_fact:
+        image_path: "{{ prompt_path }}"
+
+    - when: prompt_path == ''
+      block:
+
+        - name: set image_path by inventory snapshots
+          when: OPENWRT_RELEASE == 'snapshots'
+          vars:
+            _version: "{{ OPENWRT_TARGET }}"
+            _name: "openwrt-imagebuilder-{{ _version }}.Linux-x86_64"
+            _build_dir: "~/.openwrt/{{ _name }}@{{ openwrt.imagebuilder.BUILDER_NAME }}"
+            _resize_type: "{{ openwrt.vmdk.converter.type }}"
+            _build_filename: "openwrt-{{ _version }}-{{ _resize_type }}.img.gz"
+          ansible.builtin.set_fact:
+            image_path: "{{ _build_dir }}/{{ _build_filename }}"
+
+        - name: set image_path by inventory releases
+          when: OPENWRT_RELEASE != 'snapshots'
+          vars:
+            _version: "{{ OPENWRT_RELEASE }}-{{ OPENWRT_TARGET }}"
+            _name: "openwrt-imagebuilder-{{ _version }}.Linux-x86_64"
+            _build_dir: "~/.openwrt/{{ _name }}@{{ openwrt.imagebuilder.BUILDER_NAME }}"
+            _resize_type: "{{ openwrt.vmdk.converter.type }}"
+            _build_filename: "openwrt-{{ _version }}-{{ _resize_type }}.img.gz"
+          ansible.builtin.set_fact:
+            image_path: "{{ _build_dir }}/{{ _build_filename }}"
+
+        - name: print image_path by inventory
+          ansible.builtin.pause:
+            seconds: 1
+            prompt: |
+              //////////////////////////////////////////////////
+
+              {{ image_path }}
+              //////////////////////////////////////////////////
+
+    - name: stat image_path
+      ansible.builtin.stat:
+        path: "{{ image_path }}"
+      register: image_stat
+
+    - when: image_stat.stat.path is regex('.gz$')
+      block:
+
+        - name: unarchive image gz
+          ansible.builtin.shell:
+            cmd: "gzip -dk {{ image_stat.stat.path }}"
+            chdir: "{{ image_stat.stat.path | dirname }}"
+          ignore_errors: yes
+          # ansible.builtin.unarchive:
+          #   src: "{{ image_stat.stat.path }}"
+          #   dest: "{{ image_stat.stat.path | dirname }}"
+
+        - name: realpath image_path
+          ansible.builtin.set_fact:
+            image_path: "{{ image_stat.stat.path | regex_replace('.gz$','') }}"
+
+    - name: convert image
+      ansible.builtin.shell:
+        cmd: "qemu-img convert -f raw -O vmdk {{ image_path }} {{ image_path | regex_replace('.img$','.vmdk') }}"
+      register: convert_result
+
+    - name: print convert_result
+      ansible.builtin.pause:
+        seconds: 1
+        prompt: |
+          //////////////////////////////////////////////////
+
+          {{ convert_result.stdout }}
+          //////////////////////////////////////////////////
