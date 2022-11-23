@@ -18,6 +18,10 @@
         name: python3-pip
         state: present
 
+    - name: set pip sources
+      when: pip.mirror is defined
+      ansible.builtin.shell: pip3 config set global.index-url {{ pip.mirror }}
+
     - name: install the package for Community.Docker
       become: true
       ansible.builtin.pip:

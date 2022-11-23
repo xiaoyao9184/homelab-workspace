@@ -17,6 +17,10 @@
         name: python3-pip
       ignore_errors: yes
 
+    - name: set pip sources
+      when: pip.mirror is defined
+      ansible.builtin.shell: pip3 config set global.index-url {{ pip.mirror }}
+
     - name: update pip
       ansible.builtin.shell: python -m pip install -U pip
       register: pip_result
@@ -50,4 +54,3 @@
       until: "pip_result is not failed"
       retries: 3
       delay: 5
-
