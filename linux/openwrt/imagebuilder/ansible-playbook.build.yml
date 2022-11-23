@@ -42,16 +42,22 @@
         state: directory
 
     - name: set builder_dir by snapshots
-      when: openwrt.imagebuilder.OPENWRT_RELEASE == 'snapshots'
+      when: OPENWRT_RELEASE == 'snapshots'
+      vars:
+        version: "{{ OPENWRT_TARGET }}"
       ansible.builtin.set_fact:
-        builder_url: "https://downloads.openwrt.org/snapshots/targets/{{ OPENWRT_TARGET | regex_replace('-', '/') }}/openwrt-imagebuilder-{{ OPENWRT_TARGET }}.Linux-x86_64.tar.xz"
-        builder_dir: "~/.openwrt/openwrt-imagebuilder-{{ OPENWRT_TARGET }}.Linux-x86_64"
+        builder_version: "{{ version }}"
+        builder_url: "https://downloads.openwrt.org/snapshots/targets/{{ OPENWRT_TARGET | regex_replace('-', '/') }}/openwrt-imagebuilder-{{ version }}.Linux-x86_64.tar.xz"
+        builder_dir: "~/.openwrt/openwrt-imagebuilder-{{ version }}.Linux-x86_64"
 
     - name: set builder_dir by releases
-      when: openwrt.imagebuilder.OPENWRT_RELEASE != 'snapshots'
+      when: OPENWRT_RELEASE != 'snapshots'
+      vars:
+        version: "{{ OPENWRT_RELEASE }}-{{ OPENWRT_TARGET }}"
       ansible.builtin.set_fact:
-        builder_url: "https://downloads.openwrt.org/releases/{{ OPENWRT_RELEASE }}/targets/{{ OPENWRT_TARGET | regex_replace('-', '/') }}/openwrt-imagebuilder-{{ OPENWRT_RELEASE }}-{{ OPENWRT_TARGET }}.Linux-x86_64.tar.xz"
-        builder_dir: "~/.openwrt/openwrt-imagebuilder-{{ OPENWRT_RELEASE }}-{{ OPENWRT_TARGET }}.Linux-x86_64"
+        builder_version: "{{ version }}"
+        builder_url: "https://downloads.openwrt.org/releases/{{ OPENWRT_RELEASE }}/targets/{{ OPENWRT_TARGET | regex_replace('-', '/') }}/openwrt-imagebuilder-{{ version }}.Linux-x86_64.tar.xz"
+        builder_dir: "~/.openwrt/openwrt-imagebuilder-{{ version }}.Linux-x86_64"
 
     - name: check builder file
       ansible.builtin.stat:
@@ -98,3 +104,8 @@
         profile: "{{ openwrt.imagebuilder.BUILDER_PROFILE }}"
         packages: "{{ openwrt.imagebuilder.BUILDER_PACKAGES | join(' ') }}"
         file: "{{ builder_file | default('') }}"
+
+    - name: copy build file
+      ansible.builtin.copy:
+        src: "{{ builder_dir }}/build_dir/target-x86_64_musl/linux-x86_64/tmp/"
+        dest: "{{ builder_dir }}@{{ openwrt.imagebuilder.BUILDER_NAME }}"
