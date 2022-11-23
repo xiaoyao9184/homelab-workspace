@@ -1,0 +1,27 @@
+---
+
+
+- name: mirrors
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --inventory $PWD/ansible \
+        $PWD/../../../openwrt/opkg/ansible-playbook.mirrors.yml
+  vars_prompt:
+    - name: mirror_host
+      prompt: "mirror for replace 'downloads.openwrt.org'?"
+      private: no
+      default: mirrors.cloud.tencent.com
+  hosts: openwrt
+  roles:
+    - gekmihesg.openwrt
+  tasks: 
+
+    - name: replace distfeeds
+      ansible.builtin.shell: "sed -i.bak 's|//downloads.openwrt.org|//{{ mirror_host }}/openwrt|g' /etc/opkg/distfeeds.conf"
+
+    - name: opkg update
+      opkg:
+        update_cache: true
+        name: bash
+      ignore_errors: yes
