@@ -96,6 +96,6 @@
         seconds: 1
         prompt: |
           //////////////////////////////////////////////////
-          {{ image_path }}
+          {{ image_path | regex_replace('.img$','.vmdk') }}
           {{ convert_result.stdout }}
           //////////////////////////////////////////////////

@@ -79,6 +79,10 @@
         path: "{{ build_dir }}"
       register: build_stat
 
+    - name: realpath build_dir
+      ansible.builtin.set_fact:
+        build_dir: "{{ build_stat.stat.path }}"
+
     - name: unarchive builder_file
       when: not build_stat.stat.exists
       ansible.builtin.unarchive:
