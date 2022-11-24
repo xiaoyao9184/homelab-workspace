@@ -1,11 +1,11 @@
 ---
 
-- name: dispose
+- name: deploy
   vars:
     run_wsl: |
       ansible-playbook \
         --inventory $PWD/ansible/inventory-local.yml \
-        $PWD/../../../esxi/vm/autoinstall-iso/ansibel-playbook.dispose.yml
+        $PWD/../../../esxi/vm/ovf/ansible-playbook.deploy.yml
   vars_prompt:
     - name: vm_username
       prompt: "What is ESXi/vCenter server username?"
@@ -18,7 +18,7 @@
     - name: vm_name
       prompt: "What is vm or group?"
       private: no
-      default: autoinstall
+      default: ovf
   hosts: localhost
   tasks: 
 
@@ -34,56 +34,50 @@
           select: "{{ vm_group }}"
           all: "{{ esxi.vm }}"
 
-    - name: set vm_guest_list
+    - name: set vm_ovf_list
       ansible.builtin.set_fact:
-        vm_guest_list: []
+        vm_ovf_list: []
 
-    - name: expand guest with absent
+    - name: expand ovf
       loop: "{{ vm_list }}"
       loop_control:
         loop_var: vm_item
-      when: 
-        - vm_item.guest is defined
+      when: vm_item.ovf is defined
       vars:
-        guest:
-          name: "{{ vm_item.name }}"
-          state: absent
-          force: true
-        vm_guest_combine: 
-          guest: "{{ guest }}"
-        vm_guest_item: "{{ vm_item | combine(vm_guest_combine, recursive=True) }}"
+        vm_ovf_combine: 
+          _ovf: "{{ vm_item.ovf }}"
+          ovf: "{{ esxi.ovf[vm_item.ovf] }}"
+        vm_ovf_item: "{{ vm_item | combine(vm_ovf_combine, recursive=True) }}"
       ansible.builtin.set_fact:
-        vm_guest_list: "{{ vm_guest_list + [vm_guest_item] }}"
+        vm_ovf_list: "{{ vm_ovf_list + [vm_ovf_item] }}"
 
-    - debug: msg="{{ vm_guest_list }}"
+    - debug: msg="{{ vm_ovf_list }}"
 
-    - include_tasks: "{{ playbook_dir }}/../../ansible-tasks/guest-list.set.yml"
+    - include_tasks: "{{ playbook_dir }}/../../ansible-tasks/ovf-list.set.yml"
       vars:
-        list: "{{ vm_guest_list }}"
+        list: "{{ vm_ovf_list }}"
 
-    - name: remove a virtual machine
-      loop: "{{ guest_list }}"
+    - name: create a virtual machine by ovf      
+      loop: "{{ ovf_list }}"
       loop_control:
-        loop_var: guest_item
-      community.vmware.vmware_guest: "{{ guest_item }}"
-      register: guest_result
-      # 2 min
-      async: 120
+        loop_var: ovf_item
+      community.vmware.vmware_deploy_ovf: "{{ ovf_item }}"
+      register: ovf_result
+      # 1 day
+      async: 86400
       poll: 0
 
     - name: wait task finished
-      loop: "{{ guest_result.results }}"
+      loop: "{{ ovf_result.results }}"
       loop_control:
         loop_var: result
       ansible.builtin.async_status:
         jid: "{{ result.ansible_job_id }}"
         mode: status
-      register: guest_async
-      until: guest_async.finished
-      # 2 min
-      retries: 12
-      delay: 10
+      register: ovf_async
+      until: ovf_async.finished
+      # 1440 min/1 day
+      retries: 1440
+      delay: 60
 
-    - debug: msg="{{ guest_async }}" verbosity=3
-
-    
+    - debug: msg="{{ ovf_async }}" verbosity=3

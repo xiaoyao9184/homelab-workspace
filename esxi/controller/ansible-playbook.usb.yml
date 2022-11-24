@@ -5,7 +5,7 @@
     run_wsl: |
       ansible-playbook \
         --inventory $PWD/ansible/inventory-local.yml \
-        $PWD/../../../esxi/ansibel-playbook.usb.yml
+        $PWD/../../../esxi/ansible-playbook.usb.yml
   vars_prompt:
     - name: vm_username
       prompt: "What is ESXi/vCenter server username?"

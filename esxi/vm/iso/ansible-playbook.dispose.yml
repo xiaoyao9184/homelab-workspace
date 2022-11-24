@@ -5,7 +5,7 @@
     run_wsl: |
       ansible-playbook \
         --inventory $PWD/ansible/inventory-local.yml \
-        $PWD/../../../esxi/vm/template/ansibel-playbook.dispose.yml
+        $PWD/../../../esxi/vm/iso/ansible-playbook.dispose.yml
   vars_prompt:
     - name: vm_username
       prompt: "What is ESXi/vCenter server username?"
@@ -18,7 +18,7 @@
     - name: vm_name
       prompt: "What is vm or group?"
       private: no
-      default: template
+      default: iso
   hosts: localhost
   tasks: 
 
@@ -45,11 +45,10 @@
       when: 
         - vm_item.guest is defined
       vars:
-        guest_item: "{{ esxi.guest[vm_item.guest] }}"
-        guest_combine: 
+        guest:
+          name: "{{ vm_item.name }}"
           state: absent
           force: true
-        guest: "{{ guest_item | combine(guest_combine, recursive=True) }}"
         vm_guest_combine: 
           guest: "{{ guest }}"
         vm_guest_item: "{{ vm_item | combine(vm_guest_combine, recursive=True) }}"

@@ -1,11 +1,11 @@
 ---
 
-- name: dispose
+- name: deploy
   vars:
     run_wsl: |
       ansible-playbook \
-        --inventory $PWD/ansible/inventory-local.yml \
-        $PWD/../../../esxi/vm/vmdk/ansibel-playbook.dispose.yml
+        --inventory $PWD/ansible \
+        $PWD/../../../esxi/vm/vmdk/ansible-playbook.deploy.yml
   vars_prompt:
     - name: vm_username
       prompt: "What is ESXi/vCenter server username?"
@@ -38,38 +38,75 @@
       ansible.builtin.set_fact:
         vm_guest_list: []
 
-    - name: expand guest with absent
+    - name: expand guest
       loop: "{{ vm_list }}"
       loop_control:
         loop_var: vm_item
       when: 
         - vm_item.guest is defined
+        - vm_item.vmdk is undefined
       vars:
+        vm_guest_combine: 
+          _guest: "{{ vm_item.guest }}"
+          guest: "{{ esxi.guest[vm_item.guest] }}"
+        vm_guest_item: "{{ vm_item | combine(vm_guest_combine, recursive=True) }}"
+      ansible.builtin.set_fact:
+        vm_guest_list: "{{ vm_guest_list + [vm_guest_item] }}"
+
+    - name: expand guest with vmdk disk
+      loop: "{{ vm_list }}"
+      loop_control:
+        loop_var: vm_item
+      when: 
+        - vm_item.guest is defined
+        - vm_item.vmdk is defined
+      vars:
+        vmdk_item: "{{ esxi.vmdk[vm_item.vmdk] }}"
+        vmdk_combine:
+          vsphere_file:
+            datastore: "{{ guest_item.datastore }}"
+            path: "{{ vm_item.name }}.disk/{{ vmdk_item.filename }}"
+        vmdk: "{{ vmdk_item | combine(vmdk_combine, recursive=True) }}"
         guest_item: "{{ esxi.guest[vm_item.guest] }}"
         guest_combine: 
-          state: absent
-          force: true
+          disk:
+            - type: thin
+              datastore: "{{ guest_item.datastore }}"
+              filename: "[{{ guest_item.datastore }}] {{ vm_item.name }}.disk/{{ vmdk_item.filename }}"
         guest: "{{ guest_item | combine(guest_combine, recursive=True) }}"
         vm_guest_combine: 
           guest: "{{ guest }}"
+          vmdk: "{{ vmdk }}"
         vm_guest_item: "{{ vm_item | combine(vm_guest_combine, recursive=True) }}"
       ansible.builtin.set_fact:
         vm_guest_list: "{{ vm_guest_list + [vm_guest_item] }}"
 
     - debug: msg="{{ vm_guest_list }}"
 
+
+    - include_tasks: "{{ playbook_dir }}/../../ansible-tasks/file-list.set.yml"
+      vars:
+        list: "{{ vm_guest_list | map(attribute='vmdk') }}"
+
+    - debug: msg="{{ file_list }}"
+
+    - include_tasks: "{{ playbook_dir }}/../../ansible-tasks/file-list.query.yml"
+      vars:
+        list: "{{ file_list }}"
+
+
     - include_tasks: "{{ playbook_dir }}/../../ansible-tasks/guest-list.set.yml"
       vars:
         list: "{{ vm_guest_list }}"
 
-    - name: remove a virtual machine
+    - name: create a virtual machine by vmdk  
       loop: "{{ guest_list }}"
       loop_control:
         loop_var: guest_item
       community.vmware.vmware_guest: "{{ guest_item }}"
       register: guest_result
-      # 2 min
-      async: 120
+      # 20 min
+      async: 1200 
       poll: 0
 
     - name: wait task finished
@@ -81,10 +118,8 @@
         mode: status
       register: guest_async
       until: guest_async.finished
-      # 2 min
-      retries: 12
-      delay: 10
+      # 30 min
+      retries: 30
+      delay: 60
 
     - debug: msg="{{ guest_async }}" verbosity=3
-
-    

@@ -1,11 +1,11 @@
 ---
 
-- name: deploy
+- name: dispose
   vars:
     run_wsl: |
       ansible-playbook \
         --inventory $PWD/ansible/inventory-local.yml \
-        $PWD/../../../esxi/vm/template/ansibel-playbook.deploy.yml
+        $PWD/../../../esxi/vm/vmdk/ansible-playbook.dispose.yml
   vars_prompt:
     - name: vm_username
       prompt: "What is ESXi/vCenter server username?"
@@ -18,7 +18,7 @@
     - name: vm_name
       prompt: "What is vm or group?"
       private: no
-      default: template
+      default: vmdk
   hosts: localhost
   tasks: 
 
@@ -38,32 +38,17 @@
       ansible.builtin.set_fact:
         vm_guest_list: []
 
-    - name: expand guest
+    - name: expand guest with absent
       loop: "{{ vm_list }}"
       loop_control:
         loop_var: vm_item
       when: 
         - vm_item.guest is defined
-        - vm_item.template is undefined
-      vars:
-        vm_guest_combine: 
-          _guest: "{{ vm_item.guest }}"
-          guest: "{{ esxi.guest[vm_item.guest] }}"
-        vm_guest_item: "{{ vm_item | combine(vm_guest_combine, recursive=True) }}"
-      ansible.builtin.set_fact:
-        vm_guest_list: "{{ vm_guest_list + [vm_guest_item] }}"
-
-    - name: expand guest with template
-      loop: "{{ vm_list }}"
-      loop_control:
-        loop_var: vm_item
-      when: 
-        - vm_item.guest is defined
-        - vm_item.template is defined
       vars:
         guest_item: "{{ esxi.guest[vm_item.guest] }}"
         guest_combine: 
-          template: "{{ vm_item.template }}"
+          state: absent
+          force: true
         guest: "{{ guest_item | combine(guest_combine, recursive=True) }}"
         vm_guest_combine: 
           guest: "{{ guest }}"
@@ -77,14 +62,14 @@
       vars:
         list: "{{ vm_guest_list }}"
 
-    - name: create a virtual machine by template  
+    - name: remove a virtual machine
       loop: "{{ guest_list }}"
       loop_control:
         loop_var: guest_item
       community.vmware.vmware_guest: "{{ guest_item }}"
       register: guest_result
-      # 20 min
-      async: 1200 
+      # 2 min
+      async: 120
       poll: 0
 
     - name: wait task finished
@@ -96,8 +81,10 @@
         mode: status
       register: guest_async
       until: guest_async.finished
-      # 30 min
-      retries: 30
-      delay: 60
+      # 2 min
+      retries: 12
+      delay: 10
 
     - debug: msg="{{ guest_async }}" verbosity=3
+
+    

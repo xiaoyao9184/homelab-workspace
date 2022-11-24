@@ -7,7 +7,7 @@
       ansible-playbook \
         --ask-become-pass \
         --inventory $PWD/ansible/inventory-local.yml \
-        $PWD/../../../esxi/vm/anaconda-iso/ansibel-playbook.deploy.yml
+        $PWD/../../../esxi/vm/anaconda-iso/ansible-playbook.deploy.yml
   vars_prompt:
     - name: vm_username
       prompt: "What is ESXi/vCenter server username?"
@@ -108,7 +108,7 @@
 
     - debug: msg="{{ vm_list | selectattr('anaconda','defined') | map(attribute='anaconda') }}"
 
-    - include_tasks: "{{ playbook_dir }}/../../anaconda-iso/ansibel-tasks.deploy.yml"
+    - include_tasks: "{{ playbook_dir }}/../../anaconda-iso/ansible-tasks.deploy.yml"
       vars:
         anaconda:
           select: "{{ vm_list | selectattr('anaconda','defined') | map(attribute='anaconda') }}"
