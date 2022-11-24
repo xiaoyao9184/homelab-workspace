@@ -1,12 +1,12 @@
 ---
 
 
-- name: extend
+- name: thin
   vars:
     run_wsl: |
       ansible-playbook \
         --inventory $PWD/ansible \
-        $PWD/../../../esxi/vmkfstools/ansibel-playbook.extend.yml
+        $PWD/../../../esxi/vmkfstools/ansibel-playbook.thin.yml
   vars_prompt:
     - name: vmkfstools_name
       prompt: "What is vmkfstools or group?"
@@ -39,14 +39,14 @@
         loop_var: vmkfstools_item
       when: 
         - vmkfstools_item.file is defined
-        - vmkfstools_item.size is defined
+        - vmkfstools_item.path is defined
       vars:
         file_item: "{{ esxi.file[vmkfstools_item.file] }}"
         datastore_name: "{{ file_item.vsphere_copy.datastore }}"
         datastore_path: "{{ file_item.vsphere_copy.path }}"
         vmkfstools_cmd_item: 
-          path: "/vmfs/volumes/{{ datastore_name }}/{{ datastore_path }}"
-          size: "{{ vmkfstools_item.size }}"
+          source: "/vmfs/volumes/{{ datastore_name }}/{{ datastore_path }}"
+          target: "{{ vmkfstools_item.path }}"
       ansible.builtin.set_fact:
         vmkfstools_cmd_list: "{{ vmkfstools_cmd_list + [vmkfstools_cmd_item] }}"
 
@@ -56,7 +56,7 @@
       loop: "{{ vmkfstools_cmd_list }}"
       loop_control:
         loop_var: vmkfstools_cmd_item
-      ansible.builtin.shell: "vmkfstools -X {{ vmkfstools_cmd_item.size }} {{ vmkfstools_cmd_item.path }}"
+      ansible.builtin.shell: "vmkfstools -i {{ vmkfstools_cmd_item.source }} {{ vmkfstools_cmd_item.target }} -d thin"
       register: vmkfstools_result
 
     - debug: msg="{{ vmkfstools_result.results }}"
