@@ -15,6 +15,7 @@
       include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/ws-dir.set.yml"
 
     - name: run container
+      become: true
       community.docker.docker_container:
         detach: true
         ports:
