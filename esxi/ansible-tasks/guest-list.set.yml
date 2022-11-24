@@ -1,7 +1,7 @@
 ---
 
 
-- name: set guest_list no datacenter
+- name: guest-list.set|set guest_list no datacenter
   loop: "{{ list }}"
   loop_control:
     loop_var: select_item
@@ -19,7 +19,7 @@
   ansible.builtin.set_fact:
     guest_list: "{{ guest_list | default([]) + [guest_item] }}"
 
-- name: set guest_list datacenter cluster
+- name: guest-list.set|set guest_list datacenter cluster
   loop: "{{ list }}"
   loop_control:
     loop_var: select_item
@@ -40,7 +40,7 @@
   ansible.builtin.set_fact:
     guest_list: "{{ guest_list | default([]) + [guest_item] }}"
 
-- name: set guest_list datacenter esxi_hostname
+- name: guest-list.set|set guest_list datacenter esxi_hostname
   loop: "{{ list }}"
   loop_control:
     loop_var: select_item

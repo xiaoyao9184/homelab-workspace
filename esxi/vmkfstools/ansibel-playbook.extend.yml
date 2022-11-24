@@ -11,7 +11,7 @@
     - name: vmkfstools_name
       prompt: "What is vmkfstools or group?"
       private: no
-      default: all
+      default: vmkfstools
   hosts: esxi
   tasks: 
 

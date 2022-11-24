@@ -19,7 +19,7 @@
     - name: file_name
       prompt: "What is file or group?"
       private: no
-      default: all
+      default: file
   hosts: localhost
   tasks: 
 

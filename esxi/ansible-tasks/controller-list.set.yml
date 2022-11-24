@@ -1,7 +1,7 @@
 ---
 
 
-- name: set controller_list no datacenter
+- name: controller-list.set|set controller_list no datacenter
   loop: "{{ list }}"
   loop_control:
     loop_var: select_item
@@ -19,7 +19,7 @@
   ansible.builtin.set_fact:
     controller_list: "{{ controller_list | default([]) + [controller_item] }}"
 
-- name: set controller_list datacenter cluster
+- name: controller-list.set|set controller_list datacenter cluster
   loop: "{{ list }}"
   loop_control:
     loop_var: select_item
@@ -40,7 +40,7 @@
   ansible.builtin.set_fact:
     controller_list: "{{ controller_list | default([]) + [controller_item] }}"
 
-- name: set controller_list datacenter esxi_hostname
+- name: controller-list.set|set controller_list datacenter esxi_hostname
   loop: "{{ list }}"
   loop_control:
     loop_var: select_item

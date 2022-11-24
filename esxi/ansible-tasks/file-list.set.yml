@@ -1,10 +1,16 @@
 ---
 
 
-- name: set file_list
+- name: file-list.set|set file_list
+  ansible.builtin.set_fact:
+    file_list: []
+
+- name: file-list.set|append file_list
   loop: "{{ list }}"
   loop_control:
     loop_var: select_item
+  when: 
+    - select_item.query | default(true) | bool
   vars:
     vsphere_file:
       host: "{{ esxi.server.hostname }}"
@@ -14,4 +20,4 @@
       state: file
     file_item: "{{ select_item.vsphere_file | combine(vsphere_file, recursive=True) }}"
   ansible.builtin.set_fact:
-    file_list: "{{ file_list | default([]) + [file_item] }}"
+    file_list: "{{ file_list + [file_item] }}"
