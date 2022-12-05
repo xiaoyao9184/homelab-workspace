@@ -12,11 +12,55 @@
     - gekmihesg.openwrt
   tasks: 
 
-    - name: copy file
-      ansible.builtin.copy:
-        src: "{{ playbook_dir }}/shell.resize.sh" 
-        dest: /tmp/shell.resize.sh
-        mode: '0755'
+    - name: opkg install
+      loop:
+        - lsblk
+        - losetup
+        - resize2fs
+      opkg:
+        update_cache: true
+        name: "{{ item }}"
+      ignore_errors: yes
 
-    - name: run file
-      ansible.builtin.shell: /tmp/shell.resize.sh
+    - name: get boot partition
+      ansible.builtin.shell: sed -n -e "\|\s/boot\s.*$|{s///p;q}" /etc/mtab
+      register: shell_boot
+
+    - name: get boot disk
+      ansible.builtin.shell: BOOT='{{ shell_boot.stdout }}' && echo ${BOOT%%[0-9]*}
+      register: shell_disk
+
+    - name: get next part
+      ansible.builtin.shell: BOOT='{{ shell_boot.stdout }}' && echo $((${BOOT##*[^0-9]}+1))
+      register: shell_part
+
+    - name: get next loop
+      ansible.builtin.shell: losetup -f
+      register: shell_loop
+
+    - name: set root
+      ansible.builtin.set_fact:
+        root: "{{ shell_disk.stdout }}{{ shell_part.stdout }}"
+
+    - name: get squashfs partition name
+      ansible.builtin.shell: |
+        lsblk -n -i -r -o NAME,MOUNTPOINT,FSTYPE | grep 'squashfs' | grep '/rom' | awk '{print $1}'
+      register: shell_squashfs
+
+    - name: loop root
+      when: shell_squashfs.stdout == ''
+      ansible.builtin.shell: losetup {{ shell_loop.stdout }} {{ root }}
+
+    - name: reset loop
+      when: shell_squashfs.stdout != ''
+      ansible.builtin.shell: |
+        ROOT='{{ root }}' && losetup -n -l | sed -n -e "\|\s.*\s${ROOT#/dev}\s.*$|{s///p;q}"
+      register: shell_loop
+
+    - name: resize loop
+      ansible.builtin.shell: resize2fs {{ shell_loop.stdout }}
+
+    - name: reboot
+      ansible.builtin.shell: "reboot"
+      ignore_errors: yes
+    
