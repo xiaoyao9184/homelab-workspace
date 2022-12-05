@@ -46,7 +46,7 @@
         datastore_path: "{{ file_item.vsphere_copy.path }}"
         vmkfstools_cmd_item: 
           source: "/vmfs/volumes/{{ datastore_name }}/{{ datastore_path }}"
-          target: "{{ vmkfstools_item.path }}"
+          target: "/vmfs/volumes/{{ datastore_name }}/{{ vmkfstools_item.path }}"
       ansible.builtin.set_fact:
         vmkfstools_cmd_list: "{{ vmkfstools_cmd_list + [vmkfstools_cmd_item] }}"
 
