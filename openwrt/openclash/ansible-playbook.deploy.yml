@@ -38,111 +38,41 @@
     - gekmihesg.openwrt
   tasks: 
 
-    - name: opkg bash
+    - name: opkg install
+      loop:
+        - bash
+        - coreutils-nohup
+        - curl
+        - ca-certificates
+        - ipset
+        - ip-full
+        - ruby
+        - ruby-yaml
+        - kmod-tun
+        - kmod-inet-diag
+        - unzip
+        - luci-compat
+        - luci
+        - luci-base
       opkg:
         update_cache: true
-        name: bash
+        name: "{{ item }}"
       ignore_errors: yes
-
-    - name: opkg coreutils-nohup
-      opkg:
-        name: coreutils-nohup
-      ignore_errors: yes
-
-    - name: opkg curl
-      opkg:
-        name: curl
-      ignore_errors: yes
-
-    - name: opkg ca-certificates
-      opkg:
-        name: ca-certificates
-      ignore_errors: yes
-
-    - name: opkg ipset
-      opkg:
-        name: ipset
-      ignore_errors: yes
-
-    - name: opkg ip-full
-      opkg:
-        name: ip-full
-      ignore_errors: yes
-
-    - name: opkg ruby
-      opkg:
-        name: ruby
-      ignore_errors: yes
-
-    - name: opkg ruby-yaml
-      opkg:
-        name: ruby-yaml
-      ignore_errors: yes
-
-    - name: opkg kmod-tun
-      opkg:
-        name: kmod-tun
-      ignore_errors: yes
-
-    - name: opkg kmod-inet-diag
-      opkg:
-        name: kmod-inet-diag
-      ignore_errors: yes
-
-    - name: opkg unzip
-      opkg:
-        name: unzip
-      ignore_errors: yes
-
-    - name: opkg luci-compat
-      opkg:
-        name: luci-compat
-      ignore_errors: yes
-
-    - name: opkg luci
-      opkg:
-        name: luci
-      ignore_errors: yes
-
-    - name: opkg luci-base
-      opkg:
-        name: luci-base
-      ignore_errors: yes
-
-
-    - name: check dnsmasq
-      ansible.builtin.shell: opkg list-installed | grep 'dnsmasq ' | awk '{print $1}'
-      register: opkg_dnsmasq
-
-    - name: check fw3
-      ansible.builtin.shell: command -v fw3
-      register: opkg_fw3
 
     - name: check fw4
       ansible.builtin.shell: command -v fw4
       register: opkg_fw4
 
-    - name: check libcap
+    - name: check dnsmasq-full
+      ansible.builtin.shell: opkg list-installed | grep 'dnsmasq-full' | awk '{print $1}'
+      register: opkg_dnsmasq
+
+    - name: check libcap-bin
       ansible.builtin.shell: opkg list-installed | grep 'libcap-bin' | awk '{print $1}'
       register: opkg_libcap
 
     - when: 
-        - opkg_dnsmasq.stdout != ''
-      block:
-
-        - name: opkg uninstall dnsmasq
-          opkg:
-            name: dnsmasq
-            state: absent
-          ignore_errors: yes
-
-        - name: opkg install dnsmasq-full
-          opkg:
-            name: dnsmasq-full
-          ignore_errors: yes
-
-    - when: 
-        - opkg_fw3.stdout != ''
+        - opkg_fw4.stdout == ''
       block:
 
         - name: opkg iptables
@@ -169,8 +99,20 @@
             name: kmod-nft-tproxy 
           ignore_errors: yes
 
+    - when: 
+        - opkg_dnsmasq.stdout == ''
+      block:
 
-    
+        - name: opkg uninstall dnsmasq
+          opkg:
+            name: dnsmasq
+            state: absent
+          ignore_errors: yes
+
+        - name: opkg install dnsmasq-full
+          opkg:
+            name: dnsmasq-full
+          ignore_errors: yes
 
     - when: 
         - opkg_libcap.stdout == ''
@@ -194,7 +136,6 @@
           opkg:
             name: libcap-bin
           ignore_errors: yes
-
 
     - name: copy file
       ansible.builtin.copy:
