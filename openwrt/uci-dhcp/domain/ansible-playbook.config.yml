@@ -51,3 +51,9 @@
 
     - name: commit dhcp domain
       ansible.builtin.shell: uci commit
+
+    - name: restart dnsmasq
+      service:
+        name: dnsmasq
+        state: restarted
+        enabled: yes
