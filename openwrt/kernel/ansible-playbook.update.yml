@@ -1,0 +1,59 @@
+---
+
+
+- name: download
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --inventory $PWD/ansible \
+        $PWD/../../../openwrt/kernel/ansible-playbook.update.yml 
+  vars_prompt:
+    - name: ipk_url
+      prompt: "What is kernal package url?"
+      private: no
+      default: https://downloads.openwrt.org/snapshots/targets/x86/64/packages/kernel_5.15.80-1-53ea5a0694b1d3faa99c939dd703b18d_x86_64.ipk
+  hosts: localhost
+  connection: local
+  tasks: 
+
+    - name: clear dir
+      ansible.builtin.file:
+        path: "{{ playbook_dir }}/kernel"
+        state: absent
+
+    - name: mkdir dir
+      ansible.builtin.file:
+        path: "{{ playbook_dir }}/kernel"
+        state: directory
+
+    - name: download kernel
+      ansible.builtin.get_url:
+        url: "{{ ipk_url }}"
+        dest: "{{ playbook_dir }}/kernel/kernel.ipk"
+
+- name: deploy
+  hosts: openwrt
+  roles:
+    - gekmihesg.openwrt
+  tasks: 
+
+    - name: get release
+      ansible.builtin.shell: "source /etc/openwrt_release && echo $DISTRIB_RELEASE"
+      register: shell_release
+
+    - name: check release
+      when: shell_release.stdout != 'SNAPSHOT'
+      ansible.builtin.fail:
+        msg: "only support SNAPSHOT release: {{ shell_release.stdout }}"
+
+    - name: copy file
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/kernel/kernel.ipk" 
+        dest: /tmp/kernel.ipk
+        mode: '0755'
+
+    - name: install kernel
+      ansible.builtin.shell: opkg install /tmp/kernel.ipk
+
+    - name: reboot
+      ansible.builtin.shell: reboot
