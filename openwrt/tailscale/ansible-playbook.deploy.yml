@@ -25,11 +25,19 @@
           ignore_errors: yes
 
     - name: opkg tailscale
+      when: 
+        - tailscale.install | default('opkg') == 'opkg'
       opkg:
         update_cache: true
         name: tailscale
-      register: opkg_tailscale
       ignore_errors: yes
+
+    # - name: set fact of 
+    # - name: register SEED host with variable
+    #   ansible.builtin.add_host:
+    #     name: "SEED"
+    #     remote_user: "{{ _ssh.remote_user }}"
+    #     host_group: "{{ _ssh.host_group }}"
 
 
 - name: download
@@ -37,7 +45,9 @@
   connection: local
   tasks: 
 
-    - when: hostvars[groups['openwrt'][0]]['opkg_tailscale'] is failed
+    - when: 
+        # - hostvars[groups['openwrt'][0]]['opkg_tailscale'] is failed
+        - hostvars[groups['openwrt'][0]]['tailscale']['install'] | default('opkg') != 'opkg'
       block:
 
         - name: clear dir
@@ -78,7 +88,9 @@
     - gekmihesg.openwrt
   tasks: 
 
-    - when: opkg_tailscale is failed
+    - when: 
+        # - opkg_tailscale is failed
+        - hostvars[groups['openwrt'][0]]['tailscale']['install'] | default('opkg') != 'opkg'
       block: 
 
         - name: opkg install
