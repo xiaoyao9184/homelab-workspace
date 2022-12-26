@@ -31,7 +31,7 @@
         uci set dhcp.@host[-1].mac='{{ item.mac }}'
         uci set dhcp.@host[-1].name='{{ item.cl_name }}'
         uci set dhcp.@host[-1].dns='1'
-        uci set dhcp.@host[-1].ip='{{ item.ip }}'
+        uci set dhcp.@host[-1].ip='{{ item.ip_addr }}'
         uci set dhcp.@host[-1].leasetime='{{ item.leasetime }}'
         uci set dhcp.@host[-1].tag='{{ item.tag }}'
       loop: "{{ host_csv.list }}"
