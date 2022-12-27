@@ -3,7 +3,7 @@
 # https://stackoverflow.com/questions/66193508/ansible-transforming-list-to-dictionary-with-items2dict
 
 
-- name: file-name.list.yml|set _attr
+- name: list-attr.rename|set _attr
   ansible.builtin.set_fact:
     _attr: "{{ attr }}"
     _rename_result: []
@@ -26,7 +26,7 @@
   loop_control:
     loop_var: attr_item
 
-- name: file-name.list.yml|set result_var
+- name: list-attr.rename|set result_var
   ansible.builtin.set_fact:
     "{{ _attr.result_var }}": "{{ _rename_result }}"
 

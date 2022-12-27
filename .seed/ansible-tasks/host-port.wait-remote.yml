@@ -1,6 +1,6 @@
 ---
 
-- name: set remote_docker
+- name: host-port.wait-remote|set remote_docker
   ansible.builtin.set_fact:
     remote_docker:
       name: "wait-port.{{ wait_name }}"
@@ -11,18 +11,18 @@
         path: "{{ workspace.remote }}/.seed/ansible-playbook/host-port.wait"
         name: "host-port.wait-{{ wait_name }}"
 
-- name: print remote_docker
+- name: host-port.wait-remote|print remote_docker
   ansible.builtin.debug:
     var: remote_docker
 
-- name: volume remote_docker
+- name: host-port.wait-remote|volume remote_docker
   include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-volume.local.yml"
   vars:
     vol_src: "{{ remote_docker.vol.src }}"
     vol_path: "{{ remote_docker.vol.path }}"
     vol_name: "{{ remote_docker.vol.name }}"
 
-- name: run remote_docker
+- name: host-port.wait-remote|run remote_docker
   community.docker.docker_container:
     name: "{{ remote_docker.name }}"
     state: started
@@ -41,7 +41,7 @@
   retries: 1000
   delay: 10
 
-- name: loop remote_docker
+- name: host-port.wait-remote|loop remote_docker
   include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-container.loop.yml"
   vars:
     container_name: "{{ remote_docker.name }}"

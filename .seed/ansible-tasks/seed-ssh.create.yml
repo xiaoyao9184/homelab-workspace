@@ -1,6 +1,6 @@
 ---
 
-- name: check remote_user
+- name: seed-ssh.create|check remote_user
   when: 
     - remote_user | default(None) == ''
   ansible.builtin.pause:
