@@ -27,7 +27,7 @@
         host_group: "{{ seed_group }}"
         remote_user: "{{ seed_user }}"
         ansible_group: "esxi"
-        keyscan_type: ecdsa
+        keyscan_type: ssh-rsa
 
 
 - name: run
