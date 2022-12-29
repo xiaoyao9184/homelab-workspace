@@ -69,21 +69,21 @@
 
 - name: seed-ssh.create|get ssh ecdsa fingerprint for host
   ansible.builtin.command: ssh-keyscan -t {{ _ssh.keyscan_type }} {{ host }} | grep -v ^#
-  register: ecdsa_key
+  register: keyscan_key_list
   loop: "{{ groups[_ssh.ansible_group] }}"
   loop_control:
     loop_var: host
   ignore_errors: yes
 
 - name: seed-ssh.create|set ssh ecdsa fingerprint to known_hosts
-  when: ecdsa_key is not failed
+  when: keyscan_key_list is not failed
   ansible.builtin.known_hosts:
     path: ~/.ssh/known_hosts
-    name: "{{ ecdsa_key_result.host }}"
-    key: "{{ ecdsa_key_result.stdout }}"
-  loop: "{{ ecdsa_key.results }}"
+    name: "{{ keyscan_key_item.host }}"
+    key: "{{ keyscan_key_item.stdout }}"
+  loop: "{{ keyscan_key_list.results }}"
   loop_control:
-    loop_var: ecdsa_key_result
+    loop_var: keyscan_key_item
 
 - name: seed-ssh.create|print info
   debug:
