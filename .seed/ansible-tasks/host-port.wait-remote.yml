@@ -1,26 +1,37 @@
 ---
 
+
+- name: host-port.wait-remote|read meta
+  ansible.builtin.set_fact:
+    meta_seed: "{{ lookup('file', meta_path) | from_json }}"
+  vars:
+    meta_path: "{{ ws_dir }}/.seed/seed.json"
+
 - name: host-port.wait-remote|set remote_docker
   ansible.builtin.set_fact:
     remote_docker:
       name: "wait-port.{{ wait_name }}"
-      cmd: "-e wait_port={{ wait_port | to_json | b64encode }} /workspace/ansible-playbook.yml"
+      cmd: "-e wait_port={{ wait_port | to_json | b64encode }} /workspace/.seed/ansible-playbook/host-port.wait.yml"
       network: "{{ wait_network | map('community.general.dict_kv', 'name') }}"
-      vol:
-        src: "{{ ws_dir }}/.seed/ansible-playbook/host-port.wait"
-        path: "{{ workspace.remote }}/.seed/ansible-playbook/host-port.wait"
-        name: "host-port.wait-{{ wait_name }}"
 
 - name: host-port.wait-remote|print remote_docker
   ansible.builtin.debug:
     var: remote_docker
 
-- name: host-port.wait-remote|volume remote_docker
-  include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-volume.local.yml"
+- name: host-port.wait-remote|add volume
+  include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-volume.add.yml"
   vars:
-    vol_src: "{{ remote_docker.vol.src }}"
-    vol_path: "{{ remote_docker.vol.path }}"
-    vol_name: "{{ remote_docker.vol.name }}"
+    volume: 
+      name: "workspace-volume.{{ meta_seed.workspace.name }}"
+
+- name: host-port.wait-remote|copy volume
+  include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-volume.copy.yml"
+  vars:
+    volume: 
+      name: "workspace-volume.{{ meta_seed.workspace.name }}"
+    copy:
+      src: "{{ ws_dir }}/.seed/"
+      dest: "/.seed"
 
 - name: host-port.wait-remote|run remote_docker
   community.docker.docker_container:
@@ -31,7 +42,7 @@
     command: "{{ remote_docker.cmd }}"
     networks: "{{ remote_docker.network }}"
     volumes:
-      - "{{ remote_docker.vol.name }}:/workspace"
+      - "workspace-volume.{{ meta_seed.workspace.name }}:/workspace"
     labels:
       "com.docker.stack.namespace": seed
       "com.github.xiaoyao9184.docker-seed.type": "host-port.wait"

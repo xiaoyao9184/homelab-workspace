@@ -1,0 +1,49 @@
+---
+
+- name: wait
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --extra-vars "wait_port=" \
+        --inventory $PWD/ansible \
+        $PWD/../../../.seed/ansible-playbook/host-port.wait.yml
+  hosts: localhost
+  connection: local
+  tasks: 
+
+    - name: set wait_port_param
+      ansible.builtin.set_fact:
+        wait_port_param: "{{ wait_port | b64decode | from_json | dict2items | json_query('[].{host: key, port: value}') }}"
+      register: set_result
+      ignore_errors: true
+
+    - when: set_result is failed
+      block:
+
+        - name: input host
+          ansible.builtin.pause:
+            prompt: "input host for wait"
+          register: input_host
+
+        - name: input port
+          ansible.builtin.pause:
+            prompt: "input port for wait"
+          register: input_port
+        
+        - name: set wait_port_param
+          ansible.builtin.set_fact:
+            wait_port_param: 
+              - port: "{{ input_port.user_input }}"
+                host: "{{ input_host.user_input }}"
+
+    - name: debug wait_port_param 
+      ansible.builtin.debug:
+        var: wait_port_param
+
+    - name: wait 7 days for port open
+      ansible.builtin.wait_for:
+        timeout: 604800
+        delay: 10
+        port: "{{ item.port }}"
+        host: "{{ item.host }}"
+      loop: "{{ wait_port_param }}"

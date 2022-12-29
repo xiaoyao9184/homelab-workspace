@@ -1,0 +1,151 @@
+---
+
+
+- name: docker-volume.copy|set _copy from copy
+  ansible.builtin.set_fact:
+    _copy: "{{ copy }}"
+
+- name: docker-volume.copy|default copy dest
+  when: _copy.dest is undefined
+  ansible.builtin.set_fact:
+    _copy: "{{ _copy | combine(_copy_update, recursive=True) }}"
+  vars:
+    _copy_update:
+      dest: ""
+
+- name: docker-volume.copy|print copy
+  ansible.builtin.debug:
+    var: _copy
+
+- name: docker-volume.copy|not loop
+  when: volume.key is undefined
+  block:
+
+    - name: docker-volume.copy|set _vol from volume
+      ansible.builtin.set_fact:
+        _vol: "{{ volume }}"
+
+- name: docker-volume.copy|in loop
+  when: volume.key is defined
+  block:
+
+    - name: docker-volume.copy|set _vol from volume.value
+      ansible.builtin.set_fact:
+        _vol: "{{ volume.value | default({},true) }}"
+
+    # - name: docker-volume.copy|combine _vol.name form volume.key
+    #   when: _vol.name is undefined
+    #   ansible.builtin.set_fact:
+    #     _vol: "{{ _vol | combine(_vol_update, recursive=True) }}"
+    #   vars:
+    #     _vol_update:
+    #       name: "{{ volume.key }}"
+
+- name: docker-volume.copy|print volume
+  ansible.builtin.debug:
+    var: _vol
+
+- name: docker-volume.copy|copy to volume by bind
+  when: 
+    - _vol.driver | default('NONE') == 'local'
+    - _vol.driver_opts.type | default('NONE') == 'none'
+    - _vol.driver_opts.o | default('NONE') == 'bind'
+  block:
+
+    - name: docker-volume.copy|set direct copy 
+      ansible.builtin.set_fact:
+        _copy_direct: "{{ _copy }}"
+
+    - name: docker-volume.copy|get volume info
+      community.docker.docker_volume_info:
+        name: "{{ _vol.name }}"
+      register: _vol_info
+
+    - name: docker-volume.copy|update direct copy by volume mount point
+      when: 
+        - _vol_info.exists
+      ansible.builtin.set_fact:
+        _copy_direct: "{{ _copy_direct | combine(_copy_update, recursive=True) }}"
+      vars:
+        _copy_update:
+          dest: "{{ _vol_info.volume.Mountpoint }}/{{ _copy_direct.dest }}"
+
+    - name: docker-volume.copy|print copy
+      ansible.builtin.debug:
+        var: _copy_direct
+
+    - name: docker-volume.copy|copy
+      ansible.builtin.copy: "{{ _copy_direct }}"
+
+    - name: docker-volume.copy|reset _vol
+      ansible.builtin.set_fact:
+        _vol: !!null
+        _copy_direct: !!null
+        _vol_info: !!null
+
+- name: docker-volume.copy|copy to volume by container
+  when: 
+    # not run if already copy
+    - _vol is defined
+  block:
+
+    - name: docker-volume.copy|set remote copy 
+      ansible.builtin.set_fact:
+        _copy_remote: "{{ _copy | combine(_copy_update, recursive=True) }}"
+      vars:
+        _copy_update:
+          dest: "{{ workspace.remote }}/{{ _copy.dest }}"
+
+    - name: docker-volume.copy|print remote copy
+      ansible.builtin.debug:
+        var: _copy_remote
+
+    - name: docker-volume.copy|copy remote
+      ansible.builtin.copy: "{{ _copy_remote }}"
+
+    - name: docker-volume.copy|set container copy
+      ansible.builtin.set_fact:
+        _copy_container: "{{ _copy | combine(_copy_update, recursive=True) }}"
+      vars:
+        _copy_update:
+          src: "{{ _copy_remote.dest }}/."
+          dest: "/seed_vol/{{ _copy.dest }}"
+
+    - name: docker-volume.copy|print container copy
+      ansible.builtin.debug:
+        var: _copy_container
+
+    - name: docker-volume.copy|start volume container
+      community.docker.docker_container:
+        name: "{{ _vol.name }}"
+        state: started
+        image: alpine
+        command: "tail -f /dev/null"
+        volumes:
+          - "{{ _vol.name }}:/seed_vol"
+        labels:
+          "com.docker.stack.namespace": seed
+          "com.github.xiaoyao9184.docker-seed.type": "docker-volume.copy"
+          "com.github.xiaoyao9184.docker-seed.creator": "{{ lookup('ansible.builtin.env', 'SEED_NAME') | default('docker-volume.copy',true) }}"
+      register: result_vol_container
+      until: "result_vol_container is not failed"
+      retries: 1000
+      delay: 10
+
+    - name: docker-volume.copy|copy volume container
+      ansible.builtin.shell: "docker cp {{ _copy_container.src }} {{ _vol.name }}:/{{ _copy_container.dest }}"
+      
+    - name: docker-volume.copy|stop volume container
+      community.docker.docker_container:
+        name: "{{ _vol.name }}"
+        state: stopped
+
+    - name: docker-volume.copy|reset _vol
+      ansible.builtin.set_fact:
+        _vol: !!null
+        _copy_remote: !!null
+        _copy_container: !!null
+
+- name: docker-volume.copy|reset _copy
+  ansible.builtin.set_fact:
+    _copy: !!null

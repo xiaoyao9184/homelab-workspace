@@ -13,12 +13,19 @@
       debug:
         var: loop_docker_result.container.State
 
-    - name: docker-container.loop|fail loop container running
+    - name: docker-container.loop|fail loop container is running
       when: 
         - loop_docker_result.exists
         - loop_docker_result.container.State.Running
       ansible.builtin.fail:
         msg: "still loop container {{ container_name }}"
+
+    - name: docker-container.loop|fail loop container exit error
+      when: 
+        - loop_docker_result.exists
+        - loop_docker_result.container.State.ExitCode != 0
+      ansible.builtin.fail:
+        msg: "error exit container {{ container_name }}"
 
   rescue:
     
