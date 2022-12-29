@@ -113,7 +113,7 @@
         src: "{{ seed_ws_dir }}"
         name: "{{ seed_ws_name }}"
         exist: false
-        dest: "~/.seed/seed/workspace/default"
+        dest: "~/.seed/workspace/default"
         map: "/workspace"
     block:
       - name: seed-docker.run|get seed_ws.src stat
@@ -157,7 +157,7 @@
           seed_ws: "{{ seed_ws | combine(seed_ws_update, recursive=True) }}"
         vars:
           seed_ws_update:
-            dest: "~/.seed/seed/workspace/{{ seed_ws.name }}"
+            dest: "~/.seed/workspace/{{ seed_ws.name }}"
 
       - name: seed-docker.run|mkdir seed_ws.dest dir
         when: 
@@ -239,7 +239,7 @@
         src: "{{ seed_id_path }}"
         name: "{{ seed_id_name }}"
         exist: false
-        dest: "~/.seed/seed/key/default/id_rsa"
+        dest: "~/.seed/key/default/id_rsa"
         map: "/root/.ssh/id_rsa"
     block:
       - name: seed-docker.run|get seed_id.src stat
@@ -274,7 +274,7 @@
           seed_id: "{{ seed_id | combine(seed_id_update, recursive=True) }}"
         vars:
           seed_id_update:
-            dest: "~/.seed/seed/key/{{ seed_id.name }}/id_rsa"
+            dest: "~/.seed/key/{{ seed_id.name }}/id_rsa"
 
       - name: seed-docker.run|get seed_id.dest stat
         ansible.builtin.stat:
