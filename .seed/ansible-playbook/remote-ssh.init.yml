@@ -1,7 +1,7 @@
 ---
 
 
-- name: run
+- name: init
   vars:
     run_wsl: |
       ansible-playbook \
@@ -29,7 +29,7 @@
         remote_user: "{{ seed_user }}"
 
 
-- name: run
+- name: init
   hosts: remote
   become: true
   tasks: 
