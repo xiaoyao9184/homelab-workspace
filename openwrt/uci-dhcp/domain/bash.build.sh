@@ -39,7 +39,6 @@ do
     name=$(echo "$cl_name" | tr -d '"' | tr -d '\r' )
     mac=$(echo "$mac" | tr -d '"' | tr -d '\r' )
     ip=$(echo "$ip_addr" | tr -d '"' | tr -d '\r' )
-    echo "$ip - $name - @$location"
 
     template=$(cat << EOF
 uci add dhcp domain
@@ -49,6 +48,7 @@ EOF
 )
     if [[ "$name" ]]
     then
+        echo "$ip - $name - @$location"
         build_file=${build_path}/${build_filename}@${location}.${build_extension}
         echo "$template" >> ${build_file}
     fi
@@ -84,7 +84,6 @@ do
     where=$(echo "$where" | tr -d '"' | tr -d '\r' )
     name=$(echo "$cl_name" | tr -d '"' | tr -d '\r' )
     ip=$(echo "$ip_addr" | tr -d '"' | tr -d '\r' )
-    echo "$ip - $name - @$where"
 
     template=$(cat << EOF
 uci add dhcp domain
@@ -95,6 +94,7 @@ EOF
 )
     if [[ "$name" ]]
     then
+        echo "$ip - $name - @$where"
         build_file=${build_path}/${build_filename}@${where}.${build_extension}
         echo "$template" >> ${build_file}
     fi

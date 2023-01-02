@@ -46,7 +46,7 @@ do
     location=$(echo "$location" | tr -d '"' | tr -d '\r' )
     tag=$(echo "$tag" | tr -d '"' | tr -d '\r' )
     ip=$(echo "$ip_addr" | tr -d '"' | tr -d '\r' )
-    echo "$ip - $tag"
+    
     template=$(cat << EOF
 
 uci delete dhcp.${tag}
@@ -58,6 +58,7 @@ EOF
 )
     if [[ "$tag" ]]
     then
+        echo "$ip - $tag"
         build_file=${build_path}/${build_filename}@${location}.${build_extension}
         echo "$template" >> ${build_file}
     fi

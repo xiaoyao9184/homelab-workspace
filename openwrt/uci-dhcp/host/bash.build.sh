@@ -45,7 +45,7 @@ do
     then
         name=$(echo "$cl_name" | tr -d '"' | tr -d '\r' )
     fi
-    echo "$ip - $mac - $name"
+
     template=$(cat << EOF
 uci add dhcp host # =cfg${hash}
 uci set dhcp.@host[-1].mac='${mac}'
@@ -58,6 +58,7 @@ EOF
 )
     if [[ "$name" ]]
     then
+        echo "$ip - $mac - $name"
         build_file=${build_path}/${build_filename}@${location}.${build_extension}
         echo "$template" >> ${build_file}
     fi
