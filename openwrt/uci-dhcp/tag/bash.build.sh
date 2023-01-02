@@ -11,7 +11,7 @@
 
 current_path="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 [[ -z "$build_path" ]] && build_path=${current_path}/build/
-[[ -z "$build_name" ]] && build_name=dhcp_tag
+[[ -z "$build_name" ]] && build_name=dhcp_tag.sh
 [[ -z "$mapping_dhcp_tag" ]] && mapping_dhcp_tag=${current_path}/dhcp_tag.csv
 
 build_extension="${build_name##*.}"
