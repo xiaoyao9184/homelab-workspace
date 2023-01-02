@@ -24,7 +24,6 @@
 
     - name: set dhcp host
       when: 
-        - item.cl_name != ''
         - item.location in location[location.at]
       ansible.builtin.shell: |
         uci add dhcp host
