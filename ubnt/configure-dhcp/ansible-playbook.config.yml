@@ -27,6 +27,11 @@
       delegate_to: localhost
       connection: local
 
+    - name: delete dns
+      community.network.edgeos_config:
+        lines:
+          - set service dhcp-server shared-network-name LAN subnet
+
     - name: configure dhcp
       when: 
         - item.cl_name != ''

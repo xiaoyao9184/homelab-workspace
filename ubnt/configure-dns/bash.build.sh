@@ -10,6 +10,15 @@ build_filename="${build_name%.*}"
 rm -rdf ${build_path}
 mkdir -p ${build_path}
 
+# no location 
+build_file=${build_path}/${build_filename}.${build_extension}
+cat <<EOT >> ${build_file}
+configure
+delete service dns forwarding options
+commit
+save
+EOT
+
 # read all where
 declare -a wheres
 while IFS="," read -r where ip_addr cl_name comment ubnt_domain

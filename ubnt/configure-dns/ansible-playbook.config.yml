@@ -27,6 +27,11 @@
       delegate_to: localhost
       connection: local
 
+    - name: delete dns
+      community.network.edgeos_config:
+        lines:
+          - delete service dns forwarding options
+
     - name: configure dns by domain_csv
       when: 
         - item.cl_name != ''

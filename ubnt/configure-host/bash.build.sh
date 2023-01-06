@@ -11,6 +11,15 @@ build_filename="${build_name%.*}"
 rm -rdf ${build_path}
 mkdir -p ${build_path}
 
+# no location 
+build_file=${build_path}/${build_filename}.${build_extension}
+cat <<EOT >> ${build_file}
+configure
+delete system static-host-mapping host-name
+commit
+save
+EOT
+
 # read all location
 declare -a locations
 while IFS="," read -r location tag leasetime ip_addr mac cl_name comment

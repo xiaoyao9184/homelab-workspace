@@ -27,6 +27,11 @@
       delegate_to: localhost
       connection: local
 
+    - name: delete host
+      community.network.edgeos_config:
+        lines:
+          - delete system static-host-mapping host-name
+
     - name: configure host by dhcp_csv
       when: 
         - item.cl_name != ''
