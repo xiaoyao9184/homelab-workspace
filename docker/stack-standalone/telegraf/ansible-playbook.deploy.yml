@@ -8,7 +8,7 @@
         $PWD/../../../docker/stack-standalone/telegraf/ansible-playbook.deploy.yml
   vars_prompt:
     - name: service_names
-      prompt: "What is service name(same as config file name in inventory_dir/telegraf)?"
+      prompt: "What is service name(same as config file name WITHOUT extension in inventory_dir/telegraf)?"
       private: no
       default: 
   environment:
