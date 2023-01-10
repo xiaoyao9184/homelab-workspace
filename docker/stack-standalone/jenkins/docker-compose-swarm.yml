@@ -13,7 +13,7 @@ networks:
 
 services:
   jenkins:
-    image: jenkins/jenkins:2.371
+    image: jenkins/jenkins:2.375
     env_file: external_env-all.env
     # environment:
     #   DOCKER_TLS_CERTDIR: /certs
