@@ -6,7 +6,7 @@
     run_wsl: |
       ansible-playbook \
         --ask-pass \
-        --inventory $PWD/ansible/inventory-ssh.yml \
+        --inventory $PWD/ansible \
         $PWD/../../../esxi/seed/remote-ssh.init.yml
   vars_prompt:
     - name: seed_group

@@ -4,7 +4,7 @@
   vars:
     run_wsl: |
       ansible-playbook \
-        --inventory $PWD/ansible/inventory-local.yml \
+        --inventory $PWD/ansible \
         $PWD/../../../esxi/vm/vmdk/ansible-playbook.dispose.yml
   vars_prompt:
     - name: vm_username
