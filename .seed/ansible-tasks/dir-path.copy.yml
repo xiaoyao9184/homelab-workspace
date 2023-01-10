@@ -41,6 +41,30 @@
   ansible.builtin.set_fact:
     dir_path: "{{ _path.dest }}"
 
+# https://github.com/ansible/ansible/issues/29003
+- name: dir-path.copy|realpath of dir_path
+  when: dir_path.find("~") != -1
+  block:
+
+    - name: dir-path.copy|mkdir dir_path
+      ansible.builtin.file:
+        path: "{{ dir_path }}"
+        state: directory
+        mode: 0777
+
+    - name: dir-path.copy|stats of dir_path
+      ansible.builtin.stat:
+        path: "{{ dir_path }}"
+      register: _stat_dir
+
+    - name: dir-path.copy|replace dir_path
+      ansible.builtin.set_fact:
+        dir_path: "{{ _stat_dir.stat.path  }}"
+          
+    - name: dir-path.copy|reset _stat_path
+      ansible.builtin.set_fact:
+        _stat_dir: !!null
+
 - name: dir-path.copy|print dir_path
   ansible.builtin.debug:
     msg: 
