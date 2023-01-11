@@ -1,0 +1,42 @@
+---
+
+- name: install
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --ask-become-pass \
+        --inventory $PWD/ansible \
+        $PWD/../../../linux/sdkman/ansible-playbook.install.yml
+  hosts: linux
+  tasks: 
+
+    - name: install sdkman
+      ansible.builtin.include_role: 
+        name: comcast.sdkman
+      vars:
+        sdkman_user: "{{ ansible_user_id }}"
+        sdkman_group: "{{ ansible_user_id }}"
+        sdkman_auto_answer: true
+        sdkman_update: true
+        sdkman_install_packages: "{{ sdkman.sdkman_install_packages }}"
+        sdkman_defaults: "{{ sdkman.sdkman_defaults }}"
+        sdkman_flush_caches_before:
+          - temp
+        sdkman_flush_caches_after:
+          - archives
+          - broadcast
+          - candidates
+          - temp
+        sdkman_offline_mode: false
+        sdkman_update_alternatives: []
+
+    - name: list sdk
+      ansible.builtin.shell: /bin/bash -c "source ~/.sdkman/bin/sdkman-init.sh && sdk current"
+      register: sdk_list
+    
+    - name: print sdk
+      ansible.builtin.pause:
+        seconds: 1
+        prompt: |
+
+          {{ sdk_list.stdout }}
