@@ -1,0 +1,37 @@
+---
+
+- name: install
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --ask-become-pass \
+        --inventory $PWD/ansible \
+        $PWD/../../../linux/nvm/ansible-playbook.install.yml
+  hosts: linux
+  tasks:
+
+    - name: install nodejs
+      ansible.builtin.include_role: 
+        name: stephdewit.nvm
+        apply:
+          environment:
+            NVM_DIR: "/home/{{ ansible_user_id }}/.nvm"
+      vars:
+        nvm_version: "{{ loop_var.nvm_version }}"
+        nvm_node_version: "{{ loop_var.nvm_node_version }}"
+      loop: "{{ nvm.install }}"
+      loop_control:
+        loop_var: loop_var
+
+    # https://gist.github.com/komuw/b3b5d24977d4df7bd549
+    - name: list nodejs
+      ansible.builtin.shell: /bin/bash -c "source ~/.nvm/nvm.sh && nvm ls"
+      register: nvm_list
+      ignore_errors: true
+    
+    - name: print nodejs
+      ansible.builtin.pause:
+        seconds: 1
+        prompt: |
+
+          {{ nvm_list.stdout }}
