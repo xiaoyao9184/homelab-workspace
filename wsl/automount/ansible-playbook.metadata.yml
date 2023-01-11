@@ -1,12 +1,12 @@
 ---
 
-- name: disable
+- name: metadata
   vars:
     run_wsl: |
       ansible-playbook \
         --ask-become-pass \
         --inventory $PWD/ansible \
-        $PWD/../../../wsl/windows-path/ansible-playbook.disable.yml
+        $PWD/../../../wsl/automount/ansible-playbook.metadata.yml
   hosts: localhost
   tasks: 
 
@@ -17,11 +17,11 @@
         mode: u=rw,g=rw,o=rw
         state: touch
 
-    - name: change interop.appendWindowsPath
+    - name: change automount.options
       become: true
       community.general.ini_file:
         path: /etc/wsl.conf
         backup: yes
-        section: interop
-        option: appendWindowsPath
-        value: "false"
+        section: automount
+        option: options
+        value: "metadata,umask=022,fmask=111"
