@@ -1,0 +1,22 @@
+---
+
+- name: clone
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --inventory $PWD/ansible \
+        $PWD/../../../linux/nvm/ansible-playbook.clone.yml
+  hosts: linux
+  tasks:
+
+    - name: clone nvm
+      git:
+        repo: "{{ git_url }}"
+        dest: "~/.nvm"
+        version: "v{{ nvm_version }}"
+      vars:
+        nvm_version: "{{ loop_var.nvm_version }}"
+        git_url: "{{ loop_var.git_url | default('https://github.com/creationix/nvm.git') }}"
+      loop: "{{ nvm.install }}"
+      loop_control:
+        loop_var: loop_var
