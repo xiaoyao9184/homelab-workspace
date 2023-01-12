@@ -31,6 +31,10 @@
       community.network.edgeos_config:
         lines:
           - delete system static-host-mapping host-name
+      register: delete_result
+      until: "delete_result is not failed"
+      retries: 2
+      delay: 1
 
     - name: configure host by dhcp_csv
       when: 

@@ -27,10 +27,14 @@
       delegate_to: localhost
       connection: local
 
-    - name: delete dns
+    - name: delete dhcp
       community.network.edgeos_config:
         lines:
           - set service dhcp-server shared-network-name LAN subnet
+      register: delete_result
+      until: "delete_result is not failed"
+      retries: 2
+      delay: 1
 
     - name: configure dhcp
       when: 
