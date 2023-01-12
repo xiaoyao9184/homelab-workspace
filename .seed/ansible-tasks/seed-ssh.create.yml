@@ -43,6 +43,11 @@
     size: 2048
     type: rsa
     comment: "{{ _ssh.host_group }}"
+  # https://github.com/microsoft/WSL/issues/670
+  register: generate_result
+  until: "generate_result is not failed"
+  retries: 3
+  delay: 1
 
 - name: seed-ssh.create|install the package for ssh_config task
   ansible.builtin.pip:
