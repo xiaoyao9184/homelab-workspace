@@ -42,8 +42,8 @@
         - item.location in location[location.at]
       community.network.edgeos_config:
         lines:
-          - delete system static-host-mapping host-name {{ item.cl_name }}
-          - set system static-host-mapping host-name {{ item.cl_name }} inet {{ item.ip_addr }}
+          - delete system static-host-mapping host-name {{ item.cl_name }}.lan
+          - set system static-host-mapping host-name {{ item.cl_name }}.lan inet {{ item.ip_addr }}
       loop: "{{ dhcp_csv.list }}"
 
     - name: load domain_csv
