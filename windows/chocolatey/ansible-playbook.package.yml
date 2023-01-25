@@ -1,13 +1,13 @@
 ---
 
 
-- name: install
+- name: package
   vars:
     run_wsl: |
       ansible-playbook \
         --ask-pass \
         --inventory $PWD/ansible \
-        $PWD/../../../windows/chocolatey/ansible-playbook.install.yml
+        $PWD/../../../windows/chocolatey/ansible-playbook.package.yml
   vars_prompt:
     - name: group_select
       prompt: "What is packages group?"
@@ -25,9 +25,11 @@
 
     - name: install through chocolatey
       loop: "{{ _packages }}"
-      chocolatey.chocolatey.win_chocolatey:
-        name: "{{ item }}"
-        state: present
+      vars:
+        _default:
+          state: present
+        _win_chocolatey: "{{ item | combine(_default, recursive=True)  }}"
+      chocolatey.chocolatey.win_chocolatey: "{{ _win_chocolatey }}"
       register: package_result
       until: "package_result is not failed"
       retries: 3
