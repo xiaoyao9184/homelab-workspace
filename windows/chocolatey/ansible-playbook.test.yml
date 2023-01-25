@@ -1,0 +1,18 @@
+---
+
+
+- name: test
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --ask-pass \
+        --inventory $PWD/ansible \
+        $PWD/../../../windows/chocolatey/ansible-playbook.test.yml
+  hosts: windows
+  tasks: 
+
+    - name: test whoami
+      ansible.windows.win_command: whoami.exe
+      register: whoami_result
+
+    - debug: msg="{{ whoami_result.stdout }}"
