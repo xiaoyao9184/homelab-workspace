@@ -1,0 +1,36 @@
+---
+
+
+- name: config
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --ask-pass \
+        --inventory $PWD/ansible \
+        $PWD/../../../windows/optional-feature/ansible-playbook.config.yml
+  vars_prompt:
+    - name: group_select
+      prompt: "What is configs group?"
+      private: no
+      default: all
+  hosts: windows
+  tasks: 
+
+    - include_tasks: "{{ playbook_dir }}/../../.seed/ansible-tasks/list-group.select.yml"
+      vars:
+        group:
+          data: "{{ optional_features }}"
+          select: "{{ group_select }}"
+          register: "_features"
+
+    - name: enable optional feature
+      loop: "{{ _features }}"
+      vars:
+        _default:
+          state: present
+        _win_optional_feature: "{{ item | combine(_default, recursive=True)  }}"
+      ansible.windows.win_optional_feature: "{{ _win_optional_feature }}"
+      register: config_result
+      until: "config_result is not failed"
+      retries: 3
+      delay: 5
