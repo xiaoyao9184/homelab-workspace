@@ -1,0 +1,36 @@
+---
+
+
+- name: config
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --ask-pass \
+        --inventory $PWD/ansible \
+        $PWD/../../../windows/chocolatey/ansible-playbook.config.yml
+  vars_prompt:
+    - name: group_select
+      prompt: "What is configs group?"
+      private: no
+      default: all
+  hosts: windows
+  tasks: 
+
+    - include_tasks: "{{ playbook_dir }}/../../.seed/ansible-tasks/list-group.select.yml"
+      vars:
+        group:
+          data: "{{ chocolatey.configs }}"
+          select: "{{ group_select }}"
+          register: "_configs"
+
+    - name: config the chocolatey
+      loop: "{{ _configs }}"
+      vars:
+        _default:
+          state: present
+        _win_chocolatey_config: "{{ item | combine(_default, recursive=True)  }}"
+      chocolatey.chocolatey.win_chocolatey_config: "{{ _win_chocolatey_config }}"
+      register: config_result
+      until: "config_result is not failed"
+      retries: 3
+      delay: 5
