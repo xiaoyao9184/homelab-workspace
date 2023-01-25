@@ -1,0 +1,23 @@
+---
+
+
+# TODO winget cant run with winrm
+- name: install
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --ask-pass \
+        --inventory $PWD/ansible \
+        $PWD/../../../windows/winget/ansible-playbook.install.yml
+  hosts: windows
+  become: false
+  # become_method: runas
+  tasks: 
+
+    - name: install through winget
+      loop: "{{ winget.packages }}"
+      ansible.windows.win_command: "winget install --accept-package-agreements '{{ item }}'"
+      # register: package_result
+      # until: "package_result is not failed"
+      # retries: 3
+      # delay: 5
