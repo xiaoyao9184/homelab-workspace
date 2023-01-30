@@ -1,0 +1,21 @@
+---
+
+
+- name: file
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --inventory $PWD/ansible \
+        $PWD/../../../windows/chocolatey/ansible-playbook.file.yml
+  hosts: localhost
+  tasks: 
+
+    - name: template chocolatey Packages.config
+      loop: "{{ chocolatey.packages | dict2items }}"
+      loop_control:
+        loop_var: group_item
+      vars: 
+        packages: "{{ group_item.value }}"
+      ansible.builtin.template: 
+        src: "{{ playbook_dir }}/package.config.j2"
+        dest: "{{ inventory_dir }}/../choco/{{ group_item.key }}.config"
