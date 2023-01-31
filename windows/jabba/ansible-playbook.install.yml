@@ -1,0 +1,47 @@
+---
+
+
+- name: install
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --ask-pass \
+        --inventory $PWD/ansible \
+        $PWD/../../../windows/jabba/ansible-playbook.install.yml
+  hosts: windows
+  tasks: 
+
+    - name: env jabba
+      when: jabba.home is defined
+      ansible.windows.win_environment:
+        state: present
+        name: JABBA_HOME
+        value: "{{ jabba.home }}"
+        level: machine
+
+    - name: install jabba
+      ansible.windows.win_powershell: 
+        script: |
+          [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+          Invoke-Expression (
+            Invoke-WebRequest https://github.com/shyiko/jabba/raw/master/install.ps1 -UseBasicParsing
+          ).Content
+
+    - name: test jabba
+      ansible.windows.win_command: 
+        cmd: jabba --version
+        chdir: "{{ jabba.home | default('%UserProfile%/.jabba') }}/bin"
+      register: jabba_result
+
+    - name: print jabba
+      ansible.builtin.pause:
+        seconds: 1
+        prompt: |
+          {{ jabba_result.stdout }}
+
+    - name: install jdk
+      loop: "{{ jabba.jdk }}"
+      ansible.windows.win_command: 
+        cmd: "jabba install {{ item }}"
+        chdir: "{{ jabba.home | default('%UserProfile%/.jabba') }}/bin"
+      register: jabba_result
