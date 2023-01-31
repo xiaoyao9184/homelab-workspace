@@ -1,0 +1,37 @@
+---
+
+
+- name: cache
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --ask-pass \
+        --inventory $PWD/ansible \
+        $PWD/../../../windows/nvm/ansible-playbook.cache.yml
+  hosts: windows
+  tasks: 
+
+    - name: mkdir nvm.root
+      ansible.windows.win_file:
+        path: "{{ nvm.root }}"
+        state: directory
+
+    - name: set nvm root
+      ansible.windows.win_command: 
+        cmd: "nvm root {{ nvm.root }}"
+
+    - name: test nvm
+      ansible.windows.win_command: 
+        cmd: nvm version
+      register: nvm_result
+
+    - name: print nvm
+      ansible.builtin.pause:
+        seconds: 1
+        prompt: |
+          {{ nvm_result.stdout }}
+
+    - name: install nodejs
+      loop: "{{ nvm.nodejs }}"
+      ansible.windows.win_command: 
+        cmd: "nvm install {{ item }}"
