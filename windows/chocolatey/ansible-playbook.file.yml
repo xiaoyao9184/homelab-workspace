@@ -7,7 +7,8 @@
       ansible-playbook \
         --inventory $PWD/ansible \
         $PWD/../../../windows/chocolatey/ansible-playbook.file.yml
-  hosts: localhost
+    ansible_connection: local
+  hosts: windows
   tasks: 
 
     - name: template chocolatey Packages.config
