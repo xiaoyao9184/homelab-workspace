@@ -52,22 +52,27 @@
     - name: set service_name_list
       ansible.builtin.set_fact:
         service_name_list: "{{ service_names.split(',') }}"
-        cfg_copy_list: []
+        dir_copy_list: "[] + {{ telegraf.dir_copy }}" 
         cfg_list: []
+        net_list: "{{ telegraf.net }}"
+        env_list: []
         template_list: []
 
     - name: add service_name_list
       ansible.builtin.set_fact:
-        cfg_copy_list: "{{ cfg_copy_list + [cfg_copy] }}"
+        dir_copy_list: "{{ dir_copy_list + [dir_copy] }}"
         cfg_list: "{{ cfg_list + [cfg] }}"
         template_list: "{{ template_list + [template] }}"
       vars:
-        cfg_copy:
+        dir_copy:
           - src: "{{ inventory_dir }}/../telegraf/{{ name }}.conf"
             dest: "{{ dir_path }}/telegraf/{{ name }}.conf"
         cfg:
           - name: "external_cfg-telegraf-conf-{{ name }}"
             file: "{{ dir_path }}/telegraf/{{ name }}.conf"
+        env:
+          - dest: "{{ dir_path }}/docker-compose/external_env-{{ name }}.env"
+            data: "{{ telegraf.env }}"
         template:
           name: "{{ name }}"
           opt:
@@ -81,17 +86,10 @@
       loop_control:
         loop_var: name
 
-    - name: mkdir for serivce
-      ansible.builtin.file:
-        path: "{{ item }}"
-        state: directory
-      loop:
-        - "{{ dir_path }}/telegraf"
-        - "{{ dir_path }}/docker-compose-swarm"
-
-    - name: copy file for cfg
+    - name: overwrite dir_copy
+      loop: "{{ dir_copy_list }}"
+      when: item.src is defined
       ansible.builtin.copy: "{{ item }}"
-      loop: "{{ cfg_copy_list | flatten }}"
 
     - name: add external_cfg
       include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-configs.add.yml"
@@ -101,17 +99,19 @@
     - name: add external_net
       include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-networks.add.yml"
       vars:
-        networks: 
-          external_net-influxdb:
-            driver: overlay
-            attachable: true
+        networks: "{{ net_list | flatten }}"
 
     - name: build env_file
-      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-env.create.yml"
+      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-envs.create.yml"
       vars:
-        env: 
-          dest: "{{ dir_path }}/docker-compose-swarm/external_env-all.env"
-          data: "{{ telegraf.env }}"
+        envs: "{{ env_list | flatten }}"
+
+    - name: mkdir for serivce
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+      loop:
+        - "{{ dir_path }}/docker-compose-swarm"
 
     - name: add compose service
       include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-compose.add.yml"

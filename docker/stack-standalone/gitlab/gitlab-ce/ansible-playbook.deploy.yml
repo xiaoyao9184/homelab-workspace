@@ -23,14 +23,15 @@
     - name: copy dir_path
       include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/dir-path.copy.yml"
 
+    - name: overwrite dir_copy
+      loop: "{{ gitlab.dir_copy }}"
+      when: item.src is defined
+      ansible.builtin.copy: "{{ item }}"
+
     - name: add external_sec
       include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-secrets.add.yml"
       vars:
         secrets: "{{ gitlab.sec }}"
-
-    - name: copy file for cfg
-      ansible.builtin.copy: "{{ item }}"
-      loop: "{{ gitlab.cfg_copy }}"
 
     - name: add external_cfg
       include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-configs.add.yml"
@@ -41,10 +42,6 @@
       include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-volumes.add.yml"
       vars:
         volumes: "{{ gitlab.vol }}"
-
-    - name: copy file for vol
-      ansible.builtin.copy: "{{ item }}"
-      loop: "{{ gitlab.vol_copy }}"
 
     - name: add external_net
       include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-networks.add.yml"
@@ -70,4 +67,3 @@
           path: "{{ dir_path }}"
           files: 
             - "docker-compose-swarm.yml"
-

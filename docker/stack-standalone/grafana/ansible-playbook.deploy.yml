@@ -20,14 +20,15 @@
     - name: copy dir_path
       include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/dir-path.copy.yml"
 
+    - name: overwrite dir_copy
+      loop: "{{ grafana.dir_copy }}"
+      when: item.src is defined
+      ansible.builtin.copy: "{{ item }}"
+
     - name: add external_vol
       include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-volumes.add.yml"
       vars:
         volumes: "{{ grafana.vol }}"
-
-    - name: copy file for vol
-      ansible.builtin.copy: "{{ item }}"
-      loop: "{{ grafana.vol_copy }}"
 
     - name: add external_net
       include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-networks.add.yml"

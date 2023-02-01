@@ -47,25 +47,13 @@
     - name: set service_name_list
       ansible.builtin.set_fact:
         service_name_list: "{{ service_names.split(',') }}"
-        vol_copy_list: []
-        vol_list: []
         template_list: []
 
     - name: add service_name_list
       ansible.builtin.set_fact:
-        vol_copy_list: "{{ vol_copy_list + [vol_copy] }}"
-        vol_list: "{{ vol_list + [vol] }}"
         template_list: "{{ template_list + [template] }}"
       vars:
         service: "{{ rclone_proxy.service[name] }}"
-        vol_copy: "{{ service.vol_copy }}"
-        vol:
-          - name: "external_vol-rclone-config-{{ name }}"
-            driver: local
-            driver_opts:
-              type: none
-              device: "{{ service.vol_map.config }}"
-              o: bind
         template:
           name: "{{ name }}"
           opt:

@@ -22,6 +22,7 @@ services:
       - SYS_ADMIN
     devices:
       - /dev/fuse
+    env_file: external_env-{{ VARS.SERIVCE_NAME }}.env
     volumes:
       - config:/config
       # - {{ VARS.BIND_DATA }}:/mnt/mediaefs:shared

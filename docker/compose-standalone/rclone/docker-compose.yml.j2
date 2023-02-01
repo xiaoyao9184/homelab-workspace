@@ -20,6 +20,7 @@ services:
       - SYS_ADMIN
     devices:
       - /dev/fuse
+    env_file: external_env-{{ VARS.SERIVCE_NAME }}.env
     volumes:
       - config:/config/rclone
       - {{ VARS.BIND_DATA }}:/data:shared

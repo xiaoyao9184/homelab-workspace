@@ -23,9 +23,10 @@
     - name: copy dir_path
       include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/dir-path.copy.yml"
 
-    - name: copy file for cfg
+    - name: overwrite dir_copy
+      loop: "{{ shadowsocks_libev.dir_copy }}"
+      when: item.src is defined
       ansible.builtin.copy: "{{ item }}"
-      loop: "{{ shadowsocks_libev.cfg_copy }}"
 
     - name: add external_cfg
       include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-configs.add.yml"

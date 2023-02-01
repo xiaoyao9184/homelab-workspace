@@ -52,22 +52,12 @@
     - name: set service_name_list
       ansible.builtin.set_fact:
         service_name_list: "{{ service_names.split(',') }}"
-        cfg_copy_list: []
-        cfg_list: []
         template_list: []
 
     - name: add service_name_list
       ansible.builtin.set_fact:
-        cfg_copy_list: "{{ cfg_copy_list + [cfg_copy] }}"
-        cfg_list: "{{ cfg_list + [cfg] }}"
         template_list: "{{ template_list + [template] }}"
       vars:
-        cfg_copy:
-          - src: "{{ inventory_dir }}/../telegraf/{{ name }}.conf"
-            dest: "{{ dir_path }}/telegraf/{{ name }}.conf"
-        cfg:
-          - name: "external_cfg-telegraf-conf-{{ name }}"
-            file: "{{ dir_path }}/telegraf/{{ name }}.conf"
         template:
           name: "{{ name }}"
           opt:

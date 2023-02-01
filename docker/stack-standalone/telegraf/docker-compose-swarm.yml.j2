@@ -15,7 +15,7 @@ services:
     image: telegraf:1.24.1
     hostname: "{{ VARS.HOMENAME }}"
     user: telegraf:{{ VARS.USR_GROUP }}
-    env_file: external_env-all.env
+    env_file: external_env-{{ VARS.SERIVCE_NAME }}.env
     configs:
       - source: conf-{{ VARS.SERIVCE_NAME }}
         target: /etc/telegraf/telegraf.conf

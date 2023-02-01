@@ -47,18 +47,21 @@
     - name: set service_name_list
       ansible.builtin.set_fact:
         service_name_list: "{{ service_names.split(',') }}"
-        vol_copy_list: []
+        dir_copy_list: "[] + {{ rclone.dir_copy }}" 
         vol_list: []
+        net_list: "{{ rclone.net }}"
+        env_list: []
         template_list: []
 
     - name: add service_name_list
       ansible.builtin.set_fact:
-        vol_copy_list: "{{ vol_copy_list + [vol_copy] }}"
+        dir_copy_list: "{{ dir_copy_list + [dir_copy] }}"
         vol_list: "{{ vol_list + [vol] }}"
+        env_list: "{{ env_list + [env] }}"
         template_list: "{{ template_list + [template] }}"
       vars:
         service: "{{ rclone_proxy.service[name] }}"
-        vol_copy: "{{ service.vol_copy }}"
+        dir_copy: "{{ service.dir_copy }}"
         vol: 
           - name: "external_vol-rclone-config-{{ name }}"
             driver: local
@@ -66,6 +69,9 @@
               type: none
               device: "{{ service.vol_map.config }}"
               o: bind
+        env:
+          - dest: "{{ dir_path }}/docker-compose/external_env-{{ name }}.env"
+            data: "{{ service.env | default(rclone.env) }}"
         template:
           name: "{{ name }}"
           opt:
@@ -78,36 +84,32 @@
       loop_control:
         loop_var: name
 
-    - name: mkdir for serivce
-      ansible.builtin.file:
-        path: "{{ item }}"
-        state: directory
-      loop:
-        - "{{ dir_path }}/docker-compose"
+    - name: overwrite dir_copy
+      loop: "{{ dir_copy_list }}"
+      when: item.src is defined
+      ansible.builtin.copy: "{{ item }}"
 
     - name: add external_vol
       include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-volumes.add.yml"
       vars:
         volumes: "{{ vol_list | flatten }}"
 
-    - name: copy file for vol
-      ansible.builtin.copy: "{{ item }}"
-      loop: "{{ vol_copy_list | flatten }}"
-    
     - name: add external_net
       include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-networks.add.yml"
       vars:
-        networks: 
-          external_net-rclone:
-            driver: bridge
-            attachable: true
+        networks: "{{ net_list | flatten }}"
 
     - name: build env_file
-      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-env.create.yml"
+      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-envs.create.yml"
       vars:
-        env: 
-          dest: "{{ dir_path }}/docker-compose/external_env-all.env"
-          data: "{{ rclone_proxy.env }}"
+        envs: "{{ env_list | flatten }}"
+
+    - name: mkdir for serivce
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+      loop:
+        - "{{ dir_path }}/docker-compose"
 
     - name: add compose service
       include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-compose.add.yml"
