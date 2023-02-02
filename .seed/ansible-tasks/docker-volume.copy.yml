@@ -42,7 +42,7 @@
   ansible.builtin.debug:
     var: _vol_info
 
-- name: docker-volume.copy|copy to volume by bind
+- name: docker-volume.copy|copy to volume direct by bind
   when: 
     - _vol_info.exists
     - _vol_info.volume.Driver | default('NONE') == 'local'
@@ -50,58 +50,89 @@
     - _vol_info.volume.Options.o | default('NONE') == 'bind'
   block:
 
-    - name: docker-volume.copy|set system copy by volume mount point
+    - name: docker-volume.copy|set copy to volume bind device
       vars:
         _copy_update:
           dest: "{{ _vol_info.volume.Options.device }}/{{ _cp.dest }}"
       ansible.builtin.set_fact:
-        _copy_system: "{{ _cp | combine(_copy_update, recursive=True) }}"
+        _copy: "{{ _cp | combine(_copy_update, recursive=True) }}"
 
-    - name: docker-volume.copy|print system copy
+    - name: docker-volume.copy|print copy
       ansible.builtin.debug:
-        var: _copy_system
+        var: _copy
 
-    - name: docker-volume.copy|copy system
-      ansible.builtin.copy: "{{ _copy_system }}"
+    - name: docker-volume.copy|copy bind
+      ansible.builtin.copy: "{{ _copy }}"
 
     - name: docker-volume.copy|reset _copy
       ansible.builtin.set_fact:
-        _copy_system: !!null
-        _copy_done: true
+        _copy: !!null
+        _done: true
 
 - name: docker-volume.copy|copy to volume by container
   when: 
     - _vol_info.exists
-    - not (_copy_done | default(false) | bool)
+    - not (_done | default(false) | bool)
   block:
 
-    - name: docker-volume.copy|set system copy by workspace remote
-      vars:
-        _copy_update:
-          dest: "{{ workspace.remote }}/{{ _cp.dest }}"
-      ansible.builtin.set_fact:
-        _copy_system: "{{ _cp | combine(_copy_update, recursive=True) }}"
+    - when: _cp.remote_src | default(false) | bool
+      block:
 
-    - name: docker-volume.copy|print system copy
+        - name: docker-volume.copy|set docker cp from remote src
+          ansible.builtin.set_fact:
+            _docker_cp: 
+              src: "{{ _cp.src }}/."
+              dest: "/seed_vol/{{ _cp.dest }}"
+
+    - when: not ( _cp.remote_src | default(false) | bool )
+      block:
+        
+        - name: docker-volume.copy|set temporary path by remote dir or workspace
+          ansible.builtin.set_fact:
+            _temp_path: "{{ dir_path | default(workspace.remote) }}/.temp_vol_cp/{{ _vol.name }}"
+
+        - debug: msg="{{ _temp_path }}" verbosity=3
+        
+        - name: docker-volume.copy|create temporary path 
+          ansible.builtin.file:
+            path: "{{ _temp_path }}"
+            state: directory
+
+        - name: docker-volume.copy|empty temporary path
+          ansible.builtin.file:
+            path: "{{ _temp_path }}/"
+            state: absent
+
+        - name: docker-volume.copy|set temporary copy from temporary path
+          vars:
+            _copy_update:
+              dest: "{{ _temp_path }}"
+          ansible.builtin.set_fact:
+            _temp_copy: "{{ _cp | combine(_copy_update, recursive=True) }}"
+
+        - name: docker-volume.copy|print temporary copy
+          ansible.builtin.debug:
+            var: _temp_copy
+
+        - name: docker-volume.copy|copy temporary
+          ansible.builtin.copy: "{{ _temp_copy }}"
+
+        - name: docker-volume.copy|set docker cp from temporary path
+          ansible.builtin.set_fact:
+            _docker_cp: 
+              src: "{{ _temp_path }}/."
+              dest: "/seed_vol/{{ _cp.dest }}"
+
+        - name: docker-volume.copy|reset _temp_copy
+          ansible.builtin.set_fact:
+            _temp_path: !!null
+            _temp_copy: !!null
+
+    - name: docker-volume.copy|print docker cp
       ansible.builtin.debug:
-        var: _copy_system
+        var: _docker_cp
 
-    - name: docker-volume.copy|copy system
-      ansible.builtin.copy: "{{ _copy_system }}"
-
-    - name: docker-volume.copy|set container copy by system copy
-      vars:
-        _copy_update:
-          src: "{{ _copy_system.dest }}/."
-          dest: "/seed_vol/{{ _cp.dest }}"
-      ansible.builtin.set_fact:
-        _copy_container: "{{ _cp | combine(_copy_update, recursive=True) }}"
-
-    - name: docker-volume.copy|print container copy
-      ansible.builtin.debug:
-        var: _copy_container
-
-    - name: docker-volume.copy|start volume container
+    - name: docker-volume.copy|start copy container
       community.docker.docker_container:
         name: "{{ _vol.name }}"
         state: started
@@ -118,23 +149,22 @@
       retries: 1000
       delay: 10
 
-    - name: docker-volume.copy|copy volume container
-      ansible.builtin.shell: "docker cp {{ _copy_container.src }} {{ _vol.name }}:/{{ _copy_container.dest }}"
+    - name: docker-volume.copy|copy to container
+      ansible.builtin.shell: "docker cp {{ _docker_cp.src }} {{ _vol.name }}:/{{ _docker_cp.dest }}"
       
-    - name: docker-volume.copy|stop volume container
+    - name: docker-volume.copy|stop copy container
       community.docker.docker_container:
         name: "{{ _vol.name }}"
         state: stopped
 
-    - name: docker-volume.copy|reset _copy
+    - name: docker-volume.copy|reset _docker_cp
       ansible.builtin.set_fact:
-        _copy_system: !!null
-        _copy_container: !!null
-        _copy_done: true
+        _docker_cp: !!null
+        _done: true
 
 - name: docker-volume.copy|reset _vol
   ansible.builtin.set_fact:
-    _copy_done: !!null
+    _done: !!null
     _vol_info: !!null
     _cp: !!null
     _vol: !!null
