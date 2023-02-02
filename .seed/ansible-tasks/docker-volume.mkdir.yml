@@ -31,9 +31,9 @@
 
 - name: docker-volume.mkdir|mkdir
   when: 
-    - _vol.driver == 'local'
-    - _vol.driver_opts.type == 'none'
-    - _vol.driver_opts.o == 'bind'
+    - _vol.driver | default('NONE') == 'local'
+    - _vol.driver_opts.type | default('NONE') == 'none'
+    - _vol.driver_opts.o | default('NONE') == 'bind'
   ansible.builtin.file:
     path: "{{ _vol.driver_opts.device }}"
     state: directory
