@@ -81,7 +81,7 @@
 
 # seed_local
 - block:
-  - name: seed-docker.run|check in docker-seed with local mode
+  - name: seed-docker.run|check in docker-seed connect local(docker-in-docker)
     when: 
       - lookup('ansible.builtin.env', 'SEED_NAME') != ''
       - ansible_connection == 'local'

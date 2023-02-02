@@ -1,18 +1,18 @@
 ---
 
 
-- name: host-port.wait|set fact for docker-seed-local
+- name: host-port.wait|check in docker-seed connect local(docker-in-docker)
   when: 
     - lookup('ansible.builtin.env', 'SEED_NAME') != ''
     - ansible_connection == 'local'
   ansible.builtin.set_fact:
     seed_in_docker_connect_local: true
 
-- name: host-port.wait|wait for service:is docker-seed-local 
+- name: host-port.wait|wait for service:local mode
   when: seed_in_docker_connect_local is defined
   include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/host-port.wait-local.yml"
 
-- name: host-port.wait|wait for service:not docker-seed-local
+- name: host-port.wait|wait for service:remote mode
   when: seed_in_docker_connect_local is undefined
   include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/host-port.wait-remote.yml"
 
