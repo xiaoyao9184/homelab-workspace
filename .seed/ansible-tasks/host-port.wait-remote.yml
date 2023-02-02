@@ -29,7 +29,6 @@
   vars:
     volume: 
       name: "workspace-volume.{{ meta_seed.workspace.name }}"
-    copy:
       src: "{{ ws_dir }}/.seed/"
       dest: "/.seed"
 
