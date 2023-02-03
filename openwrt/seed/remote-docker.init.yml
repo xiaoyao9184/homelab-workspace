@@ -11,6 +11,24 @@
     - gekmihesg.openwrt
   tasks: 
 
+    - name: opkg dockerd
+      opkg:
+        update_cache: true
+        name: dockerd
+      ignore_errors: yes
+
+    - name: opkg luci-app-dockerman
+      opkg:
+        update_cache: true
+        name: luci-app-dockerman
+      ignore_errors: yes
+
+    - name: opkg sudo
+      opkg:
+        update_cache: true
+        name: sudo
+      ignore_errors: yes
+
     - name: opkg python3-pip
       opkg:
         update_cache: true
