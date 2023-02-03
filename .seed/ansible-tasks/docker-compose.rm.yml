@@ -28,6 +28,7 @@
     - name: docker-compose.rm|template file
       ansible.builtin.template: "{{ _template_item.opt }}"
       vars: 
+        # why see https://stackoverflow.com/questions/50477012/how-to-use-a-dictionary-of-registered-ansible-variables-in-vars
         VARS: "{{ _template_item.vars }}"
       loop: "{{ _template }}"
       loop_control:
