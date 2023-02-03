@@ -1,11 +1,11 @@
 ---
 
 
-- name: dir-path.copy|set _path
+- name: dir-path.copy|set _path _ws
   ansible.builtin.set_fact:
     _path:
       src: "{{ path.src | default(playbook_dir) | realpath }}"
-      dest: "{{ path.dest | default(playbook_dir) | realpath }}"
+      # dest: "{{ path.dest | default(playbook_dir) | realpath }}"
       cp: "{{ path.cp | default(true) }}"
     _ws:
       src: "{{ path.ws_src | default(ws_dir) }}"
@@ -21,7 +21,7 @@
     _update:
       cp: false
 
-- name: dir-path.copy|replace ws_dir
+- name: dir-path.copy|set _path.dest with _path.src replace _ws.src with _ws.dest
   ansible.builtin.set_fact:
     _path: "{{ _path | combine(_update, recursive=True) }}"
   vars:
@@ -52,16 +52,16 @@
         state: directory
         mode: 0777
 
-    - name: dir-path.copy|stats of dir_path
+    - name: dir-path.copy|stat of dir_path
       ansible.builtin.stat:
         path: "{{ dir_path }}"
       register: _stat_dir
 
-    - name: dir-path.copy|replace dir_path
+    - name: dir-path.copy|replace dir_path with _stat_dir.stat.path
       ansible.builtin.set_fact:
         dir_path: "{{ _stat_dir.stat.path  }}"
           
-    - name: dir-path.copy|reset _stat_path
+    - name: dir-path.copy|reset _stat_dir
       ansible.builtin.set_fact:
         _stat_dir: !!null
 
@@ -71,7 +71,7 @@
       - "dir_path {{ dir_path }}"
       - "from {{ _path.src }}"
 
-- name: dir-path.copy|reset _path
+- name: dir-path.copy|reset _path _ws
   ansible.builtin.set_fact:
     _path: !!null
     _ws: !!null
