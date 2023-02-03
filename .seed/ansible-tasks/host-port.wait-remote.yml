@@ -18,18 +18,24 @@
   ansible.builtin.debug:
     var: remote_docker
 
-- name: host-port.wait-remote|add volume
-  include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-volume.add.yml"
+- name: host-port.wait-remote|add workspace volume
+  include_tasks: docker-volume.add.yml
   vars:
     volume: 
       name: "workspace-volume.{{ meta_seed.workspace.name }}"
 
-- name: host-port.wait-remote|copy volume
-  include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-volume.copy.yml"
+- name: host-port.wait-remote|copy workspace/.seed to remote
+  ansible.builtin.copy:
+    src: "{{ ws_dir }}/.seed/"
+    dest: "{{ workspace.remote }}/.seed"
+
+- name: host-port.wait-remote|copy workspace/.seed volume
+  include_tasks: docker-volume.copy.yml
   vars:
     volume: 
       name: "workspace-volume.{{ meta_seed.workspace.name }}"
-      src: "{{ ws_dir }}/.seed/"
+      remote_src: true
+      src: "{{ workspace.remote }}/.seed/"
       dest: "/.seed"
 
 - name: host-port.wait-remote|run remote_docker
@@ -52,6 +58,6 @@
   delay: 10
 
 - name: host-port.wait-remote|loop remote_docker
-  include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-container.loop.yml"
+  include_tasks: docker-container.loop.yml
   vars:
     container_name: "{{ remote_docker.name }}"
