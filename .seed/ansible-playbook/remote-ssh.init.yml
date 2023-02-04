@@ -9,18 +9,43 @@
         --ask-become-pass \
         --inventory $PWD/ansible/inventory-ssh.yml \
         $PWD/../../../.seed/ansible-playbook/remote-ssh.init.yml
-  vars_prompt:
-    - name: seed_group
-      prompt: "What is seed host group(all host use one ssh key)?"
-      private: no
-      default: 
-    - name: seed_user
-      prompt: "What is seed host user(all host use one user)?"
-      private: no
-      default: 
+  # vars_prompt:
+  #   - name: seed_group
+  #     prompt: "What is seed host group(all host use one ssh key)?"
+  #     private: no
+  #     default: 
+  #   - name: seed_user
+  #     prompt: "What is seed host user(all host use one user)?"
+  #     private: no
+  #     default: 
   hosts: localhost
   connection: local
   become: false
+  run_once: true
+  pre_tasks:
+
+    - name: input group
+      when: seed_group is undefined
+      ansible.builtin.pause:
+        prompt: "What is seed host group(all host use one ssh key)?"
+      register: prompt
+
+    - name: set group
+      when: seed_group is undefined
+      ansible.builtin.set_fact:
+        seed_group: "{{ prompt.user_input }}"
+
+    - name: input user
+      when: seed_user is undefined
+      ansible.builtin.pause:
+        prompt: "What is seed host user(all host use one user)?"
+      register: prompt
+
+    - name: set user
+      when: seed_user is undefined
+      ansible.builtin.set_fact:
+        seed_user: "{{ prompt.user_input }}"
+
   tasks: 
 
     - include_tasks: "{{ playbook_dir }}/../ansible-tasks/seed-ssh.create.yml"
@@ -30,7 +55,7 @@
 
 
 - name: init
-  hosts: remote
+  hosts: ssh
   become: true
   tasks: 
 

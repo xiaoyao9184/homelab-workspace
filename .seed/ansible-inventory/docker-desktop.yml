@@ -7,10 +7,6 @@ all:
     workspace:
       remote: "~/.seed/remote_homelab" 
   children:
-    remote:
-      hosts:
-        localhost:
-
     windows:
       hosts:
         localhost:

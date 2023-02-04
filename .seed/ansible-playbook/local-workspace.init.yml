@@ -8,6 +8,23 @@
         --ask-become-pass \
         --inventory $PWD/ansible \
         $PWD/../../../.seed/ansible-playbook/local-workspace.init.yml
+    default:
+      package:
+        - sshpass
+        - rsync
+        - git
+      pip:
+        - docker
+        - docker-compose
+        - jsondiff
+        - pyyaml
+        - lxml
+        - psycopg2-binary
+        - PyVmomi
+      role: []
+      collection:
+        - community.docker
+        - community.general
   hosts: localhost
   connection: local
   # environment:
@@ -17,10 +34,7 @@
     - name: install system package 
       become: true
       ansible.builtin.package:
-        name: 
-          - sshpass
-          - rsync
-          - git
+        name: "{{ default.package + (workspace.init.package | default([]) | flatten) }}"
         state: present
       register: package_result
       until: "package_result is not failed"
@@ -28,43 +42,47 @@
       delay: 5
 
     - name: install pip package
+      loop: "{{ default.pip + (workspace.init.pip | default([]) | flatten) }}"
       ansible.builtin.pip:
         name: "{{ item }}"
         state: latest
-      loop: 
-          - docker
-          - docker-compose
-          - jsondiff
-          - pyyaml
-          - lxml
-          - psycopg2-binary
-          - PyVmomi
       register: pip_result
       until: "pip_result is not failed"
       retries: 3
       delay: 5
 
-    - name: install ansible collection
-      community.general.ansible_galaxy_install:
-        type: collection
-        name: "{{ item }}"
-      loop: 
-        - community.docker
-        - community.general
-      register: collection_result
-      until: "collection_result is not failed"
-      retries: 3
-      delay: 5
+    - name: stat of ansible requirements
+      ansible.builtin.stat:
+        path: "{{ inventory_dir }}/../requirements.yml"
+      register: _stat_requirements
 
-    - name: install ansible role
-      community.general.ansible_galaxy_install:
-        type: role
-        name: "{{ item }}"
-      loop: 
-        - gekmihesg.openwrt
-        - mrlesmithjr.netplan
-      register: role_result
-      until: "role_result is not failed"
+    - name: install ansible requirements
+      when: _stat_requirements.stat.exists
+      ansible.builtin.shell: "ansible-galaxy install -r {{ inventory_dir }}/../requirements.yml"
+      register: galaxy_result
+      until: "galaxy_result is not failed"
       retries: 3
       delay: 5
-      
+    
+    - when: not _stat_requirements.stat.exists
+      block:
+
+        - name: install ansible role
+          loop: "{{ default.role + (workspace.init.role | default([]) | flatten) }}"
+          community.general.ansible_galaxy_install:
+            type: role
+            name: "{{ item }}"
+          register: role_result
+          until: "role_result is not failed"
+          retries: 3
+          delay: 5
+
+        - name: install ansible collection
+          loop: "{{ default.collection + (workspace.init.collection | default([]) | flatten) }}"
+          community.general.ansible_galaxy_install:
+            type: collection
+            name: "{{ item }}"
+          register: collection_result
+          until: "collection_result is not failed"
+          retries: 3
+          delay: 5
