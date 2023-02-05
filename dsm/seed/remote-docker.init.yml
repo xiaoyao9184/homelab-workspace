@@ -19,6 +19,8 @@
         - docker
         - docker-compose
   hosts: dsm
+  environment:
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('',true) }}"
   tasks: 
 
     - name: install docker spk from server
@@ -48,10 +50,30 @@
       retries: 3
       delay: 5
 
-    - name: add user to docker
+    # cant add to root group for access docker
+    # - name: add user to docker
+    #   become: true
+    #   ansible.builtin.shell: "synogroup --add root {{ ansible_user_id }}"
+    # 
+    # https://davejansen.com/manage-docker-without-needing-sudo-on-your-synology-nas/
+    - name: stat docker api
       become: true
-      ansible.builtin.shell: "synogroup --add root {{ ansible_user_id }}"
-      # ansible.builtin.user:
-      #   name: "{{ ansible_user_id }}"
-      #   groups: docker
-      #   append: true
+      ansible.builtin.stat:
+        path: /var/run/docker.sock
+      register: docker_stat
+
+    - when: docker_stat.stat.gr_name != 'docker'
+      block:
+        
+      - name: add docker group
+        become: true
+        ansible.builtin.shell: "synogroup --add docker"
+        ignore_errors: true
+
+      - name: add user to docker group
+        become: true
+        ansible.builtin.shell: "synogroup --member docker {{ ansible_user_id }}"
+
+      - name: chown docker api
+        become: true
+        ansible.builtin.shell: "chown root:docker /var/run/docker.sock"
