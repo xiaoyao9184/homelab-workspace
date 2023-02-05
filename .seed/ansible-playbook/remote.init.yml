@@ -6,5 +6,8 @@
         --ask-become-pass \
         --inventory $PWD/ansible \
         $PWD/../../../.seed/ansible-playbook/remote.init.yml
-  when: groups.docker is defined
+  when: workspace.init.system is defined
+  import_playbook: "{{ workspace.init.system }}"
+
+- when: groups.docker is defined
   import_playbook: "{{ workspace.init.docker | default(playbook_dir + '/remote-docker.init.yml') }}"

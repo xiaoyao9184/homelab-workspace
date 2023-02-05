@@ -1,13 +1,12 @@
 ---
 
-
 - name: init
   vars:
     run_wsl: |
       ansible-playbook \
         --ask-become-pass \
         --inventory $PWD/ansible \
-        $PWD/../../../.seed/ansible-playbook/remote-docker.init.yml
+        $PWD/../../../dsm/seed/remote-docker.init.yml
     default:
       pip:
         - jsondiff
@@ -19,19 +18,24 @@
 
         - docker
         - docker-compose
-  hosts: docker
-  become: false
+  hosts: dsm
   tasks: 
 
-    - name: install python3-pip
+    - name: install docker spk from server
       become: true
-      ansible.builtin.package:
-        name: "{{ pip.package | default('python3-pip') }}"
-        state: present
+      ansible.builtin.shell: /usr/syno/bin/synopkg install_from_server Docker
+      ignore_errors: true
 
     - name: set pip sources
       when: pip.mirror is defined
       ansible.builtin.shell: pip3 config set global.index-url {{ pip.mirror }}
+
+    - name: update pip
+      ansible.builtin.shell: python -m pip install -U pip
+      register: pip_result
+      until: "pip_result is not failed"
+      retries: 3
+      delay: 5
 
     - name: install pip package
       become: true
@@ -46,7 +50,8 @@
 
     - name: add user to docker
       become: true
-      ansible.builtin.user:
-        name: "{{ ansible_user_id }}"
-        groups: docker
-        append: true
+      ansible.builtin.shell: "synogroup --add root {{ ansible_user_id }}"
+      # ansible.builtin.user:
+      #   name: "{{ ansible_user_id }}"
+      #   groups: docker
+      #   append: true

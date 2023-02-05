@@ -6,10 +6,27 @@
       ansible-playbook \
         --inventory $PWD/ansible \
         $PWD/../../../openwrt/seed/remote-docker.init.yml
+    default:
+      pip:
+        - jsondiff
+        - jmespath
+
+        - pyyaml
+        - lxml
+        - requests
+
+        - docker
+        - docker-compose
   hosts: openwrt
   roles:
     - gekmihesg.openwrt
   tasks: 
+
+    - name: opkg sudo
+      opkg:
+        update_cache: true
+        name: sudo
+      ignore_errors: yes
 
     - name: opkg dockerd
       opkg:
@@ -21,12 +38,6 @@
       opkg:
         update_cache: true
         name: luci-app-dockerman
-      ignore_errors: yes
-
-    - name: opkg sudo
-      opkg:
-        update_cache: true
-        name: sudo
       ignore_errors: yes
 
     - name: opkg python3-pip
@@ -46,27 +57,11 @@
       retries: 3
       delay: 5
 
-    - name: install the package for Community.Docker
+    - name: install pip package
+      become: true
+      loop: "{{ default.pip + (workspace.init.pip | default([]) | flatten) }}"
       ansible.builtin.pip:
         name: "{{ item }}"
-        state: latest
-      loop: 
-          - docker
-          - docker-compose
-          - jsondiff
-          # - pyyaml
-          - lxml
-          - psycopg2-binary
-          - jmespath
-      register: pip_result
-      until: "pip_result is not failed"
-      retries: 3
-      delay: 5
-
-    - name: install the package for docker-seed-ansible
-      ansible.builtin.pip:
-        name: 
-          - requests
         state: latest
       register: pip_result
       until: "pip_result is not failed"
