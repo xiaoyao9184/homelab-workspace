@@ -29,15 +29,26 @@
   ansible.builtin.debug:
     var: _vol
 
-- name: docker-volume.mkdir|mkdir
-  when: 
+
+- when: 
     - _vol.driver | default('NONE') == 'local'
     - _vol.driver_opts.type | default('NONE') == 'none'
     - _vol.driver_opts.o | default('NONE') == 'bind'
-  ansible.builtin.file:
-    path: "{{ _vol.driver_opts.device }}"
-    state: directory
-    mode: '0777'
+  block:
+
+    - name: docker-volume.mkdir|stat path
+      ansible.builtin.stat:
+        path: "{{ _vol.driver_opts.device }}"
+      register: device_stat
+      ignore_errors: true
+
+    - name: docker-volume.mkdir|mkdir path
+      when: not device_stat.stat.exists
+      ansible.builtin.file:
+        path: "{{ _vol.driver_opts.device }}"
+        state: directory
+        mode: '0777'
+      ignore_errors: true
 
 - name: docker-volume.mkdir|reset _vol
   ansible.builtin.set_fact:
