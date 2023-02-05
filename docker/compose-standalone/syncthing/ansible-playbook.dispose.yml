@@ -1,0 +1,34 @@
+---
+
+- name: dispose
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --inventory $PWD/ansible \
+        $PWD/../../../docker/compose-standalone/syncthing/ansible-playbook.dispose.yml
+  environment:
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('',true) }}"
+  hosts: docker
+  tasks: 
+
+    - name: set ws_dir
+      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/ws-dir.set.yml"
+
+    - name: set dir_name
+      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/dir-name.set.yml"
+
+    - name: copy dir_path
+      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/dir-path.copy.yml"
+      vars:
+        path:
+          cp: false
+
+    - name: remove stack service
+      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-compose.rm.yml"
+      vars:
+        compose:
+          type: compose
+          name: "{{ dir_name[0] }}"
+          path: "{{ dir_path }}"
+          files: 
+            - "docker-compose.yml"

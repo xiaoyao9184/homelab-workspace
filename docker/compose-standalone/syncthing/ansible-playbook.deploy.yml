@@ -1,0 +1,51 @@
+---
+
+- name: deploy
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --ask-become-pass \
+        --inventory $PWD/ansible \
+        $PWD/../../../docker/compose-standalone/syncthing/ansible-playbook.deploy.yml
+  environment:
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('',true) }}"
+  hosts: docker
+  tasks: 
+
+    - name: set ws_dir
+      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/ws-dir.set.yml"
+
+    - name: set dir_name
+      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/dir-name.set.yml"
+
+    - name: copy dir_path
+      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/dir-path.copy.yml"
+
+    - name: add external_vol
+      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-volumes.add.yml"
+      vars:
+        volumes: "{{ syncthing.vol }}"
+
+    - name: build env_file
+      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-env.create.yml"
+      vars:
+        env: 
+          dest: "{{ dir_path }}/external_env-all.env"
+          data: "{{ syncthing.env }}"
+
+    - name: add stack service
+      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-compose.add.yml"
+      vars:
+        compose:
+          type: compose
+          name: "{{ dir_name[0] }}"
+          path: "{{ dir_path }}"
+          files: 
+            - "docker-compose.yml"
+
+    - name: set inotify limit
+      become: true
+      ansible.posix.sysctl:
+        name: fs.inotify.max_user_watches
+        value: '204800'
+        state: present
