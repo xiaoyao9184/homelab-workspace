@@ -4,6 +4,7 @@
   vars:
     run_wsl: |
       ansible-playbook \
+        --ask-become-pass \
         --inventory $PWD/ansible \
         $PWD/../../../docker/container/portainer-ce/ansible-playbook.run.yml
   environment:
