@@ -7,22 +7,28 @@
     _service: 
       type: "{{ service.type | default('stack') }}"
       name: "{{ service.name }}"
+      project: "{{ service.project | default('NONE')  }}"
+      namespace: "{{ service.namespace | default('NONE')  }}"
       command: "{{ service.command | regex_replace('\\\\\\\n') }}"
       result: "{{ service.result }}"
 
 - name: docker-service.exec|set _filter stack
   when: _service.type == 'stack'
   ansible.builtin.set_fact:
-    _filter: "label=com.docker.swarm.service.name={{ _service.name }}"
+    _filter: 
+      - "label=com.docker.stack.namespace={{ _service.namespace }}"
+      - "label=com.docker.swarm.service.name={{ _service.namespace }}_{{ _service.name }}"
 
 - name: docker-service.exec|set _filter compose 
   when: _service.type == 'compose'
   ansible.builtin.set_fact:
-    _filter: "label=com.docker.compose.service={{ _service.name }}"
+    _filter: 
+      - "label=com.docker.compose.project={{ _service.project }}"
+      - "label=com.docker.compose.service={{ _service.name }}"
 
 - name: docker-service.exec|get container id
   when: _service.name is defined
-  shell: "docker ps -q -f {{ _filter }} | head -1"
+  shell: "docker ps -q -f {{ _filter | join(' -f ') }} | head -1"
   register: _container_id
   until: 
     - _container_id is not failed

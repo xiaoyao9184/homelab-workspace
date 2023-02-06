@@ -58,7 +58,8 @@
       include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-service.exec.yml"
       vars:
         service:
-          name: "gitlab_gitlab-ce"
+          name: "gitlab-ce"
+          namespace: "gitlab"
           # https://stackoverflow.com/questions/59701804/obtain-shared-runners-token-gitlab-api
           command: |
             gitlab-rails runner -e production "puts Gitlab::CurrentSettings.current_application_settings.runners_registration_token"
@@ -79,7 +80,8 @@
       include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-service.exec.yml"
       vars:
         service:
-          name: "{{ dir_name | join('_') }}_gitlab-runner"
+          name: "gitlab-runner"
+          namespace: "{{ dir_name | join('_') }}"
           command: |
             gitlab-runner register \
               --non-interactive \

@@ -67,6 +67,7 @@
         service:
           type: compose
           name: domoticz
+          project: "{{ dir_name[0] }}"
           command: "{{ command }}"
           result: exe_result
       loop: "{{ domoticz.exec }}"

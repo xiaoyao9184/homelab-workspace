@@ -58,7 +58,8 @@
         jenkins: 
           workspace: "{{ ws_dir }}"
           service:
-            name: "{{ dir_name[0] }}_jenkins"
+            name: "jenkins"
+            namespace: "{{ dir_name | join('_') }}"
             command: cat /var/jenkins_home/secrets/initialAdminPassword
             result: jenkins_passwd
 

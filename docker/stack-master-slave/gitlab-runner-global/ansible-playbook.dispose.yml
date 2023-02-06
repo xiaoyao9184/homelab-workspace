@@ -33,7 +33,8 @@
       include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-service.exec.yml"
       vars:
         service:
-          name: "{{ dir_name | join('_') }}_gitlab-runner"
+          name: "gitlab-runner"
+          namespace: "{{ dir_name | join('_') }}"
           command: |
             gitlab-runner unregister \
               --all-runners

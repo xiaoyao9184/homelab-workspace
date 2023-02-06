@@ -48,7 +48,8 @@
         nexus: 
           workspace: "{{ ws_dir }}"
           service:
-            name: "{{ dir_name[0] }}_nexus3"
+            name: "nexus3"
+            namespace: "{{ dir_name | join('_') }}"
             command: cat /nexus-data/admin.password
             result: nexus_passwd
 
