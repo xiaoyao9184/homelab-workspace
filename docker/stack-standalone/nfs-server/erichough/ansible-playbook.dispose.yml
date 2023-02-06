@@ -1,0 +1,52 @@
+---
+
+- name: dispose
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --inventory $PWD/ansible \
+        $PWD/../../../docker/stack-standalone/nfs-server/erichough/ansible-playbook.dispose.yml
+  environment:
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('',true) }}"
+  hosts: docker-manager[0]
+  tasks: 
+  
+    - name: fail for not support env
+      when: 
+        # - inventory_hostname != 'localhost'
+        - ansible_env.WSL_DISTRO_NAME | default('NONE') == 'NONE'
+      ansible.builtin.fail:
+        msg: "Only support window wsl2 docker-desktop see {{ playbook_dir }}/docker-compose-swarm.yml.j2"
+
+
+    - name: set ws_dir
+      include_tasks: "{{ playbook_dir }}/../../../../.seed/ansible-tasks/ws-dir.set.yml"
+
+    - name: set dir_name
+      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/dir-name.set.yml"
+      vars:
+        name:
+          high: 2
+
+    - name: copy dir_path
+      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/dir-path.copy.yml"
+      vars:
+        path:
+          cp: false
+
+    - name: remove stack service
+      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-compose.rm.yml"
+      vars:
+        compose:
+          type: stack
+          name: "{{ dir_name[0] }}"
+          path: "{{ dir_path }}"
+          # files: 
+          #   - "docker-compose-swarm.yml"
+          template: 
+            name: "docker-compose-swarm"
+            opt:
+              src: "{{ playbook_dir }}/docker-compose-swarm.yml.j2"
+              dest: "{{ dir_path }}/docker-compose-swarm.yml"
+            vars:
+              BIND_EXPORTS: "{{ dir_path }}/bind_exports"

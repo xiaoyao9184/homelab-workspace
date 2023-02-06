@@ -1,0 +1,66 @@
+---
+
+- name: update
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --inventory $PWD/ansible \
+        $PWD/../../../docker/stack-standalone/nfs-server/erichough/exports/ansible-playbook.update.yml
+  hosts: docker-nfs-node
+  tasks: 
+  
+    - name: fail for not support env
+      when: 
+        # - inventory_hostname != 'localhost'
+        - ansible_env.WSL_DISTRO_NAME | default('NONE') == 'NONE'
+      ansible.builtin.fail:
+        msg: "Only support window wsl2 docker-desktop see {{ playbook_dir }}/docker-compose-swarm.yml.j2"
+
+
+    - name: set ws_dir
+      include_tasks: "{{ playbook_dir }}/../../../../../.seed/ansible-tasks/ws-dir.set.yml"
+
+    - name: set dir_name
+      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/dir-name.set.yml"
+      vars:
+        name:
+          high: 3
+
+    - name: copy dir_path
+      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/dir-path.copy.yml"
+      vars:
+        path:
+          src: "{{ playbook_dir }}/"
+
+    - name: overwrite dir_copy
+      loop: "{{ nfs_node.exports.dir_copy }}"
+      when: item.src is defined
+      ansible.builtin.copy: "{{ item }}"
+
+    - name: copy to volume
+      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-volumes.copy.yml"
+      vars:
+        _default:
+          external_vol-erichough-nfs-server:
+            remote_src: true
+            src: "{{ dir_path }}/../data/"
+            dest: "./"
+        volumes: "{{ nfs_node.exports.vol_cp | default(_default) }}"
+
+    # https://medium.com/@jonsbun/why-need-to-be-careful-when-mounting-single-files-into-a-docker-container-4f929340834
+    - name: overwrite bind exports
+      ansible.builtin.shell: "cat {{ dir_path }}/../exports/exports > {{ dir_path }}/../bind_file-exports"
+
+    - name: exportfs on service
+      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-service.exec.yml"
+      vars:
+        service:
+          type: stack
+          name: "nfs-server"
+          namespace: "{{ dir_name[0] }}"
+          command: "exportfs"
+          result: exportfs_result
+
+    - name: print exportfs result
+      ansible.builtin.debug:
+        msg: "{{ exportfs_result }}"

@@ -1,0 +1,72 @@
+---
+
+- name: deploy
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --inventory $PWD/ansible \
+        $PWD/../../../docker/compose-standalone/nfs-server/erichough/ansible-playbook.deploy.yml
+  environment:
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('',true) }}"
+  hosts: docker-nfs-node
+  tasks: 
+
+    - name: set ws_dir
+      include_tasks: "{{ playbook_dir }}/../../../../.seed/ansible-tasks/ws-dir.set.yml"
+
+    - name: set dir_name
+      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/dir-name.set.yml"
+      vars:
+        name:
+          high: 2
+
+    - name: copy dir_path
+      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/dir-path.copy.yml"
+
+    - name: overwrite dir_copy
+      loop: "{{ nfs_node.dir_copy }}"
+      when: item.src is defined
+      ansible.builtin.copy: "{{ item }}"
+
+    - name: add external_vol
+      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-volumes.add.yml"
+      vars:
+        volumes: "{{ nfs_node.vol }}"
+
+    - name: copy to volume
+      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-volumes.copy.yml"
+      vars:
+        _default:
+          external_vol-erichough-nfs-server:
+            remote_src: true
+            src: "{{ dir_path }}/data/"
+            dest: "./"
+        volumes: "{{ nfs_node.vol_cp | default(_default) }}"
+
+    # https://medium.com/@jonsbun/why-need-to-be-careful-when-mounting-single-files-into-a-docker-container-4f929340834
+    - name: overwrite bind exports
+      ansible.builtin.shell: "cat {{ dir_path }}/exports/exports > {{ dir_path }}/bind_file-exports"
+
+    - name: build env_file
+      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-envs.create.yml"
+      vars:
+        envs: 
+          - dest: "{{ dir_path }}/external_env-server.env"
+            data: "{{ nfs_node.env }}"
+
+    - name: add stack service
+      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-compose.add.yml"
+      vars:
+        compose:
+          type: compose
+          name: "{{ dir_name[0] }}"
+          path: "{{ dir_path }}"
+          # files: 
+          #   - "docker-compose.yml"
+          template: 
+            name: "docker-compose"
+            opt:
+              src: "{{ playbook_dir }}/docker-compose.yml.j2"
+              dest: "{{ dir_path }}/docker-compose.yml"
+            vars:
+              BIND_EXPORTS: "{{ dir_path }}/bind_file-exports"

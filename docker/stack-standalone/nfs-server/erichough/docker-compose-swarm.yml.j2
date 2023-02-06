@@ -1,0 +1,84 @@
+version: "3.3"
+
+# not use config because cant update config without restart service
+# configs:
+#   stack_cfg-exports:
+#     file: ./exports/exports
+
+volumes:
+  external_vol-erichough-nfs-server:
+    external: true
+
+networks:
+  external_net-nfs:
+    external: true
+  # not use built-in network because other service cant join host network 
+  # external_net-host:
+  #   external: true
+  #   name: host
+
+services:
+  nfs-server:
+    image: erichough/nfs-server:2.2.1
+    env_file: external_env-server.env
+    environment:
+      - NFS_DISABLE_VERSION_3=true
+    # configs:
+    #   - source: stack_cfg-exports
+    #     target: /etc/exports
+    volumes:
+      - external_vol-erichough-nfs-server:/data
+      - /lib/modules:/lib/modules:ro
+      - {{ VARS.BIND_EXPORTS }}:/etc/exports
+    networks:
+      - external_net-nfs
+      # - external_net-host
+    ports:
+      # publish host mode port only run one service on one node no replicas
+      # - target: 111
+      #   published: 111
+      #   protocol: tcp
+      #   mode: host
+      # - target: 111
+      #   published: 111
+      #   protocol: udp
+      #   mode: host
+      - target: 2049
+        published: 2049
+        protocol: tcp
+        mode: host
+      - target: 2049
+        published: 2049
+        protocol: udp
+        mode: host
+      # - target: 32765
+      #   published: 32765
+      #   protocol: tcp
+      #   mode: host
+      # - target: 32765
+      #   published: 32765
+      #   protocol: udp
+      #   mode: host
+      # - target: 32767
+      #   published: 32767
+      #   protocol: tcp
+      #   mode: host
+      # - target: 32767
+      #   published: 32767
+      #   protocol: udp
+      #   mode: host
+    deploy:
+      placement:
+        constraints: 
+          - node.platform.os == linux
+          - node.labels.nfs-node == true
+      endpoint_mode: dnsrr
+    
+    user: root
+    # not support with swarm mode
+    # https://serverfault.com/questions/1066152/how-to-setup-privileged-in-docker-swarm
+    # privileged: true
+    cap_add:
+      - SYS_ADMIN
+      - SYS_MODULE
+      - CAP_SYS_ADMIN
