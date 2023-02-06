@@ -7,6 +7,11 @@
         --inventory $PWD/ansible \
         $PWD/../../../openwrt/seed/remote-docker.init.yml
     default:
+      opkg:
+        - sudo
+        - dockerd
+        - luci-app-dockerman
+        - python3-pip
       pip:
         - jsondiff
         - jmespath
@@ -23,27 +28,10 @@
   tasks: 
 
     - name: opkg sudo
+      loop: "{{ default.opkg + (remote.init.pip | default([]) | flatten) }}"
       opkg:
         update_cache: true
-        name: sudo
-      ignore_errors: yes
-
-    - name: opkg dockerd
-      opkg:
-        update_cache: true
-        name: dockerd
-      ignore_errors: yes
-
-    - name: opkg luci-app-dockerman
-      opkg:
-        update_cache: true
-        name: luci-app-dockerman
-      ignore_errors: yes
-
-    - name: opkg python3-pip
-      opkg:
-        update_cache: true
-        name: python3-pip
+        name: "{{ item }}"
       ignore_errors: yes
 
     - name: set pip sources
@@ -58,7 +46,6 @@
       delay: 5
 
     - name: install pip package
-      become: true
       loop: "{{ default.pip + (workspace.init.pip | default([]) | flatten) }}"
       ansible.builtin.pip:
         name: "{{ item }}"

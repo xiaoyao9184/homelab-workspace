@@ -9,6 +9,9 @@
         --inventory $PWD/ansible \
         $PWD/../../../.seed/ansible-playbook/remote-docker.init.yml
     default:
+      package:
+        - python3-pip
+        - rsync
       pip:
         - jsondiff
         - jmespath
@@ -23,11 +26,15 @@
   become: false
   tasks: 
 
-    - name: install python3-pip
+    - name: install system package 
       become: true
       ansible.builtin.package:
-        name: "{{ pip.package | default('python3-pip') }}"
+        name: "{{ default.package + (remote.init.package | default([]) | flatten) }}"
         state: present
+      register: package_result
+      until: "package_result is not failed"
+      retries: 3
+      delay: 5
 
     - name: set pip sources
       when: pip.mirror is defined
@@ -35,7 +42,7 @@
 
     - name: install pip package
       become: true
-      loop: "{{ default.pip + (workspace.init.pip | default([]) | flatten) }}"
+      loop: "{{ default.pip + (remote.init.pip | default([]) | flatten) }}"
       ansible.builtin.pip:
         name: "{{ item }}"
         state: latest

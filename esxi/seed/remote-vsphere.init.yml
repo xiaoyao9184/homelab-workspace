@@ -11,6 +11,7 @@
       pip:
         - jsondiff
         - jmespath
+
         - pyyaml
         - lxml
         - requests
@@ -32,7 +33,7 @@
 
     - name: install pip package
       become: true
-      loop: "{{ default.pip + (workspace.init.pip | default([]) | flatten) }}"
+      loop: "{{ default.pip + (remote.init.pip | default([]) | flatten) }}"
       ansible.builtin.pip:
         name: "{{ item }}"
         state: latest

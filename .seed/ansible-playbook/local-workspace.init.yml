@@ -14,13 +14,12 @@
         - rsync
         - git
       pip:
-        - docker
-        - docker-compose
         - jsondiff
+        - jmespath
+
         - pyyaml
         - lxml
-        - psycopg2-binary
-        - PyVmomi
+        - requests
       role: []
       collection:
         - community.docker
