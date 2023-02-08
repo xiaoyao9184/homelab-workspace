@@ -33,7 +33,7 @@
     - name: install system package 
       become: true
       ansible.builtin.package:
-        name: "{{ default.package + (workspace.init.package | default([]) | flatten) }}"
+        name: "{{ default.package + (local.init.package | default([]) | flatten) }}"
         state: present
       register: package_result
       until: "package_result is not failed"
@@ -41,7 +41,7 @@
       delay: 5
 
     - name: install pip package
-      loop: "{{ default.pip + (workspace.init.pip | default([]) | flatten) }}"
+      loop: "{{ default.pip + (local.init.pip | default([]) | flatten) }}"
       ansible.builtin.pip:
         name: "{{ item }}"
         state: latest
@@ -67,7 +67,7 @@
       block:
 
         - name: install ansible role
-          loop: "{{ default.role + (workspace.init.role | default([]) | flatten) }}"
+          loop: "{{ default.role + (local.init.role | default([]) | flatten) }}"
           community.general.ansible_galaxy_install:
             type: role
             name: "{{ item }}"
@@ -77,7 +77,7 @@
           delay: 5
 
         - name: install ansible collection
-          loop: "{{ default.collection + (workspace.init.collection | default([]) | flatten) }}"
+          loop: "{{ default.collection + (local.init.collection | default([]) | flatten) }}"
           community.general.ansible_galaxy_install:
             type: collection
             name: "{{ item }}"

@@ -7,6 +7,3 @@
         --inventory $PWD/ansible \
         $PWD/../../../.seed/ansible-playbook/local.init.yml
   import_playbook: "{{ playbook_dir }}/local-workspace.init.yml"
-
-- when: groups.ssh is defined
-  import_playbook: "{{ workspace.init.ssh | default(playbook_dir + '/remote-ssh.init.yml') }}"
