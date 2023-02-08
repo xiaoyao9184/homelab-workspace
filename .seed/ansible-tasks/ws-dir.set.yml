@@ -4,10 +4,20 @@
 - name: ws-dir.set
   block:
 
+    - name: ws-dir.set|set _dir by local.workspace
+      when: local.workspace is defined
+      ansible.builtin.set_fact:
+        _dir: "{{ local.workspace }}"
+
+    - name: ws-dir.set|set _dir by dir
+      when: dir is defined
+      ansible.builtin.set_fact:
+        _dir: "{{ dir }}"
+
     - name: ws-dir.set|set _current_dir
       when: _current_dir | default(None) == None
       ansible.builtin.set_fact:
-        _current_dir: "{{ dir | default(playbook_dir) }}"
+        _current_dir: "{{ _dir | default(playbook_dir) }}"
 
     - name: ws-dir.set|check _current_dir seed-path exists
       delegate_to: localhost
