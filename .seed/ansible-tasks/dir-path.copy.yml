@@ -9,7 +9,7 @@
       cp: "{{ path.cp | default(true) }}"
     _ws:
       src: "{{ path.ws_src | default(ws_dir) }}"
-      dest: "{{ path.ws_dest | default(workspace.remote) }}"
+      dest: "{{ path.ws_dest | default(remote.workspace) }}"
 
 - name: dir-path.copy|reset _path.cp when docker-seed-local
   when: 

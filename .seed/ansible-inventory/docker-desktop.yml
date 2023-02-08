@@ -4,8 +4,8 @@ all:
   vars:
     ansible_connection: local
 
-    workspace:
-      remote: "~/.seed/remote_homelab" 
+    remote:
+      workspace: "~/.seed/remote_homelab" 
   children:
     windows:
       hosts:

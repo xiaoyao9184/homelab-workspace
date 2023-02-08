@@ -89,7 +89,7 @@
         
         - name: docker-volume.copy|set temporary path by remote dir or workspace
           ansible.builtin.set_fact:
-            _temp_path: "{{ dir_path | default(workspace.remote) }}/.temp_vol_cp/{{ _vol.name }}"
+            _temp_path: "{{ dir_path | default(remote.workspace) }}/.temp_vol_cp/{{ _vol.name }}"
 
         - debug: msg="{{ _temp_path }}" verbosity=3
         

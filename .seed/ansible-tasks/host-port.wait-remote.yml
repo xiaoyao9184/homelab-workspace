@@ -27,7 +27,7 @@
 - name: host-port.wait-remote|copy workspace/.seed to remote
   ansible.builtin.copy:
     src: "{{ ws_dir }}/.seed/"
-    dest: "{{ workspace.remote }}/.seed"
+    dest: "{{ remote.workspace }}/.seed"
 
 - name: host-port.wait-remote|copy workspace/.seed volume
   include_tasks: docker-volume.copy.yml
@@ -35,7 +35,7 @@
     volume: 
       name: "workspace-volume.{{ meta_seed.workspace.name }}"
       remote_src: true
-      src: "{{ workspace.remote }}/.seed/"
+      src: "{{ remote.workspace }}/.seed/"
       dest: "/.seed"
 
 - name: host-port.wait-remote|run remote_docker
