@@ -78,7 +78,7 @@
             gitlab-runner register \
               --non-interactive \
               --url 'http://gitlab-ce/' \
-              --registration-token '{{ runner_token }}' \
+              --registration-token '{{ runner_token.stdout }}' \
               --executor 'docker' \
               --docker-image alpine:latest \
               --description 'docker-runner' \

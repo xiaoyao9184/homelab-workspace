@@ -56,7 +56,7 @@
 
 - name: docker-service.exec|set _service.result
   ansible.builtin.set_fact:
-    "{{ _service.result }}": "{{ _service_result.stdout }}"
+    "{{ _service.result }}": "{{ _service_result }}"
 
 - name: docker-service.exec|reset _service
   ansible.builtin.set_fact:
