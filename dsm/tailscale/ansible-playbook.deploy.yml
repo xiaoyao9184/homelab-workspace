@@ -90,14 +90,14 @@
       block:
 
         - name: tailscale up
-          ansible.builtin.shell: "/usr/local/bin/tailscale up --authkey {{ tailscale.up.authkey }}"
+          ansible.builtin.shell: "/usr/local/bin/tailscale up --authkey {{ tailscale.up.authkey }} --advertise-exit-node"
 
     - name: wait tailscale up
       when: tailscale.up.authkey is undefined
       block:
 
         - name: tailscale up
-          ansible.builtin.shell: /usr/local/bin/tailscale up &> /tmp/tailscale.up.log
+          ansible.builtin.shell: /usr/local/bin/tailscale up --advertise-exit-node &> /tmp/tailscale.up.log
           register: shell_tailscale
           async: 2592000               # 60*60*24*30 – 1 month
           poll: 0

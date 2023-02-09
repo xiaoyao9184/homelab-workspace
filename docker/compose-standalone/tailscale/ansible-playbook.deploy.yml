@@ -44,5 +44,5 @@
           type: compose
           name: tailscale
           project: "{{ dir_name[0] }}"
-          command: "tailscale up --authkey={{ tailscale.up.authkey }}"
+          command: "tailscale up --authkey={{ tailscale.up.authkey }} --advertise-exit-node"
           result: exe_result

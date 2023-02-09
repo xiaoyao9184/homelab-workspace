@@ -35,5 +35,5 @@ ls /dev/net/tun
 
 # Up
 sudo synopkg start Tailscale
-sudo tailscale up
+sudo tailscale up --advertise-exit-node
 echo "Then you can use tailscale command"

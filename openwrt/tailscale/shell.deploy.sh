@@ -33,7 +33,7 @@ else
 fi
 
 net_lan=$(ip route | grep src | grep br-lan | awk '{print $1}')
-tailscale up --advertise-routes=$net_lan
+tailscale up --advertise-routes=$net_lan --advertise-exit-node
 
 net_tailscale=$(ip addr show tailscale0 | grep "inet\b" | awk '{print $2}')
 

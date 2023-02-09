@@ -127,12 +127,12 @@
     - name: authkey tailscale up 
       when: tailscale.up.authkey is defined
       ansible.builtin.set_fact:
-        shell_tailscale: "tailscale up --authkey {{ tailscale.up.authkey }} --advertise-routes={{ network_lan.stdout }} &> /tmp/tailscale.up.log"
+        shell_tailscale: "tailscale up --authkey {{ tailscale.up.authkey }} --advertise-routes={{ network_lan.stdout }} --advertise-exit-node &> /tmp/tailscale.up.log"
 
     - name: default tailscale up
       when: tailscale.up.authkey is undefined
       ansible.builtin.set_fact:
-        shell_tailscale: "tailscale up --advertise-routes={{ network_lan.stdout }} &> /tmp/tailscale.up.log"
+        shell_tailscale: "tailscale up --advertise-routes={{ network_lan.stdout }} --advertise-exit-node &> /tmp/tailscale.up.log"
 
     - name: async up tailscale
       ansible.builtin.shell: "{{ shell_tailscale }}"
