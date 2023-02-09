@@ -14,9 +14,8 @@
 
     - name: opkg install
       loop:
+        - parted
         - lsblk
-        - losetup
-        - resize2fs
       opkg:
         update_cache: true
         name: "{{ item }}"
@@ -26,41 +25,77 @@
       ansible.builtin.shell: sed -n -e "\|\s/boot\s.*$|{s///p;q}" /etc/mtab
       register: shell_boot
 
-    - name: get boot disk
-      ansible.builtin.shell: BOOT='{{ shell_boot.stdout }}' && echo ${BOOT%%[0-9]*}
-      register: shell_disk
+    - when: shell_boot.stdout == ''
+      block:
 
-    - name: get next part
-      ansible.builtin.shell: BOOT='{{ shell_boot.stdout }}' && echo $((${BOOT##*[^0-9]}+1))
-      register: shell_part
+        - name: get root partition
+          ansible.builtin.shell: |
+            echo $(lsblk -n -i -r -o NAME,MOUNTPOINT,FSTYPE | grep 'ext4' | grep '/' | awk '{print $1}')
+          register: shell_root_name
 
-    - name: get next loop
-      ansible.builtin.shell: losetup -f
-      register: shell_loop
+        - name: get boot disk
+          ansible.builtin.shell: echo $(lsblk -no pkname /dev/${ROOT_NAME})
+          environment:
+            ROOT_NAME: "{{ shell_root_name.stdout }}"
+          register: shell_disk
 
-    - name: set root
-      ansible.builtin.set_fact:
-        root: "{{ shell_disk.stdout }}{{ shell_part.stdout }}"
+        - name: get last part
+          ansible.builtin.shell: cat /proc/partitions | grep ${ROOT_NAME} | tail -1 | awk '{print $2}'
+          environment:
+            ROOT_NAME: "{{ shell_root_name.stdout }}"
+          register: shell_part
 
-    - name: get squashfs partition name
+        - name: set disk part var
+          ansible.builtin.set_fact:
+            disk: "{{ shell_disk.stdout }}"
+            part: "{{ shell_part.stdout }}"
+
+    - when: shell_boot.stdout != ''
+      block:
+
+        - name: get boot disk
+          ansible.builtin.shell: echo ${BOOT%%[0-9]*}
+          environment:
+            BOOT: "{{ shell_boot.stdout }}"
+          register: shell_disk
+
+        - name: get next part
+          ansible.builtin.shell: echo $((${BOOT##*[^0-9]}+1))
+          environment:
+            BOOT: "{{ shell_boot.stdout }}"
+          register: shell_part
+
+        - name: set disk part var
+          ansible.builtin.set_fact:
+            disk: "{{ shell_disk.stdout }}"
+            part: "{{ shell_part.stdout }}"
+
+    - name: fix parted 
+      ansible.builtin.shell: | 
+        (
+          echo OK
+          echo Fix
+        ) | parted -l
+
+    - name: resize partition
+      ansible.builtin.shell: parted {{ disk }} resizepart {{ part }} 100%
+
+    - name: get partition table
       ansible.builtin.shell: |
-        lsblk -n -i -r -o NAME,MOUNTPOINT,FSTYPE | grep 'squashfs' | grep '/rom' | awk '{print $1}'
-      register: shell_squashfs
+        parted -l | grep '^Partition Table' | awk '{split($0,t,": ");print t[2]}'
+      register: shell_table
 
-    - name: loop root
-      when: shell_squashfs.stdout == ''
-      ansible.builtin.shell: losetup {{ shell_loop.stdout }} {{ root }}
-
-    - name: reset loop
-      when: shell_squashfs.stdout != ''
+    - name: get partition uuid
+      when: shell_table.stdout == 'gpt'
       ansible.builtin.shell: |
-        ROOT='{{ root }}' && losetup -n -l | sed -n -e "\|\s.*\s${ROOT#/dev}\s.*$|{s///p;q}"
-      register: shell_loop
+        lsblk -n -o PARTUUID {{ disk }}{{ part }}
+      register: shell_uuid
 
-    - name: resize loop
-      ansible.builtin.shell: resize2fs {{ shell_loop.stdout }}
+    - name: replace grub uuid
+      when: shell_table.stdout == 'gpt'
+      ansible.builtin.shell: |
+        sed -i -r -e "s|(PARTUUID=)\S+|\1{{ shell_uuid.stdout }}|g" /boot/grub/grub.cfg
 
     - name: reboot
       ansible.builtin.shell: "reboot"
       ignore_errors: yes
-    

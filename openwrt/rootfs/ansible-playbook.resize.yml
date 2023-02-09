@@ -1,0 +1,99 @@
+---
+
+
+- name: resize
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --inventory $PWD/ansible \
+        $PWD/../../../openwrt/rootfs/ansible-playbook.resize.yml
+  hosts: openwrt
+  roles:
+    - gekmihesg.openwrt
+  tasks: 
+
+    - name: opkg install
+      loop:
+        - lsblk
+        - losetup
+        - resize2fs
+      opkg:
+        update_cache: true
+        name: "{{ item }}"
+      ignore_errors: yes
+
+    - name: get next loop
+      ansible.builtin.shell: losetup -f
+      register: shell_loop
+
+    - name: set loop var
+      ansible.builtin.set_fact:
+        loop: "{{ shell_loop.stdout }}"
+
+    - name: get boot partition
+      ansible.builtin.shell: sed -n -e "\|\s/boot\s.*$|{s///p;q}" /etc/mtab
+      register: shell_boot
+
+    - when: shell_boot.stdout == ''
+      block:
+
+        - name: get root partition
+          ansible.builtin.shell: |
+            echo /dev/$(lsblk -n -i -r -o NAME,MOUNTPOINT,FSTYPE | grep 'ext4' | grep '/' | awk '{print $1}')
+          register: shell_root
+
+        - name: loop root
+          ansible.builtin.shell: losetup {{ loop }} {{ shell_root.stdout }}
+
+        - name: fsck root
+          ansible.builtin.shell: fsck.ext4 -y {{ loop }}
+          ignore_errors: true
+
+    - when: shell_boot.stdout != ''
+      block:
+
+        - name: get boot disk
+          ansible.builtin.shell: echo ${BOOT%%[0-9]*}
+          environment:
+            BOOT: "{{ shell_boot.stdout }}"
+          register: shell_disk
+
+        - name: get next part
+          ansible.builtin.shell: echo $((${BOOT##*[^0-9]}+1))
+          environment:
+            BOOT: "{{ shell_boot.stdout }}"
+          register: shell_part
+
+        - name: set root
+          ansible.builtin.set_fact:
+            root: "{{ shell_disk.stdout }}{{ shell_part.stdout }}"
+
+        - name: get squashfs partition name
+          ansible.builtin.shell: |
+            lsblk -n -i -r -o NAME,MOUNTPOINT,FSTYPE | grep 'squashfs' | grep '/rom' | awk '{print $1}'
+          register: shell_squashfs
+
+        - name: loop root
+          when: shell_squashfs.stdout == ''
+          ansible.builtin.shell: losetup {{ loop }} {{ root }}
+
+        - name: reset loop
+          when: shell_squashfs.stdout != ''
+          ansible.builtin.shell: |
+            losetup -n -l | sed -n -e "\|\s.*\s${ROOT#/dev}\s.*$|{s///p;q}"
+          environment:
+            ROOT: "{{ root }}"
+          register: shell_loop
+
+        - name: set loop var
+          when: shell_squashfs.stdout != ''
+          ansible.builtin.set_fact:
+            loop: "{{ shell_loop.stdout }}"
+
+    - name: resize loop
+      ansible.builtin.shell: resize2fs {{ loop }}
+
+    - name: reboot
+      ansible.builtin.shell: "reboot"
+      ignore_errors: yes
+    
