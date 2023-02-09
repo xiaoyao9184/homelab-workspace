@@ -27,7 +27,7 @@
     - gekmihesg.openwrt
   tasks: 
 
-    - name: opkg sudo
+    - name: install opkg package
       loop: "{{ default.opkg + (remote.init.pip | default([]) | flatten) }}"
       opkg:
         update_cache: true
