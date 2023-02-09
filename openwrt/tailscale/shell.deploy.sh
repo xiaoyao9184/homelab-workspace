@@ -22,7 +22,7 @@ then
     }
     version=$(get_latest_release "adyanth/openwrt-tailscale-enabler")
 
-    curl -L https://github.com/adyanth/openwrt-tailscale-enabler/releases/download/$version/openwrt-tailscale-enabler-$version.tgz > openwrt-tailscale-enabler-$version.tgz
+    curl -L ${github_url_prefix}https://github.com/adyanth/openwrt-tailscale-enabler/releases/download/$version/openwrt-tailscale-enabler-$version.tgz > openwrt-tailscale-enabler-$version.tgz
     tar x -zvC / -f openwrt-tailscale-enabler-$version.tgz
 
     /etc/init.d/tailscale start

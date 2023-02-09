@@ -23,13 +23,13 @@
 
     - name: get latest release
       ansible.builtin.uri:
-        url: https://api.github.com/repos/vernesong/OpenClash/releases
+        url: "https://api.github.com/repos/vernesong/OpenClash/releases"
         return_content: true
       register: json_reponse
 
     - name: download latest release
       ansible.builtin.get_url:
-        url: "{{ json_reponse.json[0].assets[0].browser_download_url }}"
+        url: "{{ github.url_prefix | default('') }}{{ json_reponse.json[0].assets[0].browser_download_url }}"
         dest: "{{ playbook_dir }}/luci-app-openclash/luci-app-openclash.ipk"
 
 - name: deploy

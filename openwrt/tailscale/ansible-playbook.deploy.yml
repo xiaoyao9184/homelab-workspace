@@ -62,13 +62,13 @@
 
         - name: get latest release
           ansible.builtin.uri:
-            url: https://api.github.com/repos/adyanth/openwrt-tailscale-enabler/releases/latest
+            url: "https://api.github.com/repos/adyanth/openwrt-tailscale-enabler/releases/latest"
             return_content: true
           register: json_reponse
 
         - name: download latest release
           ansible.builtin.get_url:
-            url: "{{ json_reponse.json.assets[0].browser_download_url }}"
+            url: "{{ github.url_prefix | default('') }}{{ json_reponse.json.assets[0].browser_download_url }}"
             dest: "{{ playbook_dir }}/openwrt-tailscale-enabler/openwrt-tailscale-enabler.tar.gz"
 
         - name: extract latest release

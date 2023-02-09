@@ -42,5 +42,5 @@ get_latest_release() {
     sed 's/^v//'
 }
 version=$(get_latest_release "vernesong/OpenClash")
-curl -L https://github.com/vernesong/OpenClash/releases/download/v$version/luci-app-openclash_${version}_all.ipk
+curl -L ${github_url_prefix}https://github.com/vernesong/OpenClash/releases/download/v$version/luci-app-openclash_${version}_all.ipk
 opkg install luci-app-openclash_${version}_all.ipk

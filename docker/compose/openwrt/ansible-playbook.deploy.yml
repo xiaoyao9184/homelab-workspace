@@ -14,7 +14,7 @@
 
     - name: git source
       ansible.builtin.git:
-        repo: https://github.com/xiaoyao9184/docker-openwrt.git
+        repo: "{{ github.url_prefix | default('') }}https://github.com/xiaoyao9184/docker-openwrt.git"
         dest: "{{ playbook_dir }}/docker-openwrt"
         version: master
 
