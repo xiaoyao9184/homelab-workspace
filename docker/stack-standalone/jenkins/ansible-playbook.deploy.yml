@@ -22,11 +22,6 @@
       vars:
         copys: "{{ jenkins.dir_copy }}"
 
-    - name: add external_cfg
-      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-configs.add.yml"
-      vars:
-        configs: "{{ jenkins.cfg }}"
-
     - name: add external_vol
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-volumes.add.yml"
       vars:
