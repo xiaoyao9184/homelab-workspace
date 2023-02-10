@@ -45,7 +45,6 @@ services:
       placement:
         constraints:
           - node.platform.os == linux
-          - node.role == manager
         preferences:
           - spread: node.platform.os
       labels:
@@ -98,7 +97,6 @@ services:
       placement:
         constraints:
           - node.platform.os == linux
-          - node.role == manager
         preferences:
           - spread: node.platform.os
       labels:
