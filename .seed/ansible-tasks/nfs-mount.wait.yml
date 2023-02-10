@@ -37,7 +37,7 @@
     group: root
 
 - name: loop nfs
-  include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/nfs-mount.loop.yml"
+  include_tasks: nfs-mount.loop.yml
 
 - name: rm wait_nfs.mount
   when: 
