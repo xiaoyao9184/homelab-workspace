@@ -11,17 +11,17 @@
   hosts: docker-manager
   tasks: 
 
-    - name: set ws_dir
-      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/ws-dir.set.yml"
+    - name: set ws
+      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/ws.set.yml"
 
-    - name: set dir_name
-      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/dir-name.set.yml"
+    - name: set dir
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.set.yml"
 
-    - name: copy dir_path
-      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/dir-path.copy.yml"
+    - name: copy dir
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.copy.yml"
 
     - name: add external_net
-      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-networks.add.yml"
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-networks.add.yml"
       vars:
         networks:
           external_net-traefik:
@@ -29,27 +29,27 @@
             attachable: true
               
     - name: build compose_file
-      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-compose.create.yml"
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-compose.create.yml"
       vars:
         compose: 
-          dest: "{{ dir_path }}/docker-compose-swarm.networks.yml"
+          dest: "{{ dir.remote }}/docker-compose-swarm.networks.yml"
           data: "{{ traefik.compose }}"
 
     - name: add stack service
-      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-compose.add.yml"
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-compose.add.yml"
       vars:
         compose:
           type: stack
-          name: "{{ dir_name[0] }}"
-          path: "{{ dir_path }}"
+          name: "{{ dir.names[0] }}"
+          path: "{{ dir.remote }}"
           files: 
             - "docker-compose-swarm.networks.yml"
             # - "docker-compose-swarm.yml"
           template:
             name: docker-compose-swarm
             opt:
-              src: "{{ playbook_dir }}/docker-compose-swarm.yml.j2"
-              dest: "{{ dir_path }}/docker-compose-swarm.yml"
+              src: "{{ dir.local }}/docker-compose-swarm.yml.j2"
+              dest: "{{ dir.remote }}/docker-compose-swarm.yml"
             vars:
               TOKEN: "{{ traefik.token }}"
               NETWORKS: "{{ traefik.compose.networks }}"

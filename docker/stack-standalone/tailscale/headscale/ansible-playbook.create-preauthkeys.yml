@@ -20,17 +20,16 @@
   hosts: docker-manager
   tasks: 
 
-    - name: set ws_dir
-      include_tasks: "{{ playbook_dir }}/../../../../.seed/ansible-tasks/ws-dir.set.yml"
+    - name: set ws
+      include_tasks: "{{ playbook_dir }}/../../../../.seed/ansible-tasks/ws.set.yml"
 
-    - name: set dir_name
-      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/dir-name.set.yml"
+    - name: set dir
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.set.yml"
       vars:
-        name:
-          high: 2
+        length: 2
 
     - name: get container id
-      shell: "docker ps -q -f label=com.docker.swarm.service.name={{ dir_name | join('_') }} | head -1"
+      shell: "docker ps -q -f label=com.docker.swarm.service.name={{ dir.names | join('_') }} | head -1"
       register: result_container_id
       until: "result_container_id.stdout != ''"
       retries: 1000

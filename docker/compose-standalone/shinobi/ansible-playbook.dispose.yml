@@ -11,24 +11,18 @@
   hosts: docker
   tasks: 
 
-    - name: set ws_dir
-      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/ws-dir.set.yml"
+    - name: set ws
+      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/ws.set.yml"
 
-    - name: set dir_name
-      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/dir-name.set.yml"
-
-    - name: copy dir_path
-      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/dir-path.copy.yml"
-      vars:
-        path:
-          cp: false
+    - name: set dir
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.set.yml"
 
     - name: remove compose service
-      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-compose.rm.yml"
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-compose.rm.yml"
       vars:
         compose:
           type: compose
-          name: "{{ dir_name[0] }}"
-          path: "{{ dir_path }}"
+          name: "{{ dir.names[0] }}"
+          path: "{{ dir.remote }}"
           files: 
             - "docker-compose.yml"

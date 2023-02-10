@@ -25,14 +25,14 @@
   
   tasks: 
 
-    - name: set ws_dir
-      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/ws-dir.set.yml"
+    - name: set ws
+      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/ws.set.yml"
 
-    - name: set dir_name
-      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/dir-name.set.yml"
+    - name: set dir
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.set.yml"
 
-    - name: copy dir_path
-      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/dir-path.copy.yml"
+    - name: copy dir
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.copy.yml"
 
     - name: copy wrt_path
       vars:
@@ -59,7 +59,7 @@
           when: wrt_path_conf.stat.exists
           ansible.builtin.copy:
             src: "{{ wrt_path.conf }}"
-            dest: "{{ dir_path }}/docker-openwrt/openwrt.conf"
+            dest: "{{ dir.remote }}/docker-openwrt/openwrt.conf"
             owner: root
             group: root
             mode: '0777'
@@ -67,7 +67,7 @@
         - name: copy wrt_path.etc to remote
           ansible.builtin.copy:
             src: "{{ wrt_path.etc }}/"
-            dest: "{{ dir_path }}/docker-openwrt/etc/config"
+            dest: "{{ dir.remote }}/docker-openwrt/etc/config"
             owner: root
             group: root
             mode: '0777'
@@ -79,11 +79,11 @@
 
     - name: add service
       ansible.builtin.blockinfile:
-        path: "/etc/systemd/system/{{ dir_name[0] }}.service"
+        path: "/etc/systemd/system/{{ dir.names[0] }}.service"
         create: yes
         block: |
           [Unit]
-          Description={{ dir_name[0] }}
+          Description={{ dir.names[0] }}
           Requires=docker.service
           After=docker.service
 
@@ -91,7 +91,7 @@
           Restart=always
           User=root
           Group=docker
-          WorkingDirectory={{ dir_path }}/docker-openwrt
+          WorkingDirectory={{ dir.remote }}/docker-openwrt
           ExecStart=/bin/bash -c "./run.sh"
 
           [Install]
@@ -101,4 +101,4 @@
       ansible.builtin.systemd:
         state: started
         daemon_reload: yes
-        name: "{{ dir_name[0] }}"
+        name: "{{ dir.names[0] }}"

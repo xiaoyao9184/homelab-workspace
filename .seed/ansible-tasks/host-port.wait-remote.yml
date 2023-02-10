@@ -5,7 +5,7 @@
   ansible.builtin.set_fact:
     meta_seed: "{{ lookup('file', meta_path) | from_json }}"
   vars:
-    meta_path: "{{ ws_dir }}/.seed/seed.json"
+    meta_path: "{{ ws.local }}/.seed/seed.json"
 
 - name: host-port.wait-remote|set remote_docker
   ansible.builtin.set_fact:
@@ -26,8 +26,8 @@
 
 - name: host-port.wait-remote|copy workspace/.seed to remote
   ansible.builtin.copy:
-    src: "{{ ws_dir }}/.seed/"
-    dest: "{{ remote.workspace }}/.seed"
+    src: "{{ ws.local }}/.seed/"
+    dest: "{{ ws.remote }}/.seed"
 
 - name: host-port.wait-remote|copy workspace/.seed volume
   include_tasks: docker-volume.copy.yml
@@ -35,7 +35,7 @@
     volume: 
       name: "workspace-volume.{{ meta_seed.workspace.name }}"
       remote_src: true
-      src: "{{ remote.workspace }}/.seed/"
+      src: "{{ ws.remote }}/.seed/"
       dest: "/.seed"
 
 - name: host-port.wait-remote|run remote_docker

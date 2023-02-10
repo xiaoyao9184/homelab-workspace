@@ -5,7 +5,7 @@ all:
     ansible_connection: local
 
     remote:
-      workspace: "~/.seed/remote_homelab" 
+      # workspace: "~/.seed/remote_homelab" 
   children:
     windows:
       hosts:

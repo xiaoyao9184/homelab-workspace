@@ -11,40 +11,36 @@
   hosts: docker-manager
   tasks: 
 
-    - name: set ws_dir
-      include_tasks: "{{ playbook_dir }}/../../../../.seed/ansible-tasks/ws-dir.set.yml"
+    - name: set ws
+      include_tasks: "{{ playbook_dir }}/../../../../.seed/ansible-tasks/ws.set.yml"
 
-    - name: set dir_name
-      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/dir-name.set.yml"
+    - name: set dir
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.set.yml"
       vars:
-        name:
-          high: 2
+        length: 2
 
-    - name: copy dir_path
-      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/dir-path.copy.yml"
-
-    - name: overwrite dir_copy
-      loop: "{{ gitlab.dir_copy }}"
-      when: item.src is defined
-      ansible.builtin.copy: "{{ item }}"
+    - name: copy dir
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.copy.yml"
+      vars:
+        copys: "{{ gitlab.dir_copy }}"
 
     - name: add external_sec
-      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-secrets.add.yml"
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-secrets.add.yml"
       vars:
         secrets: "{{ gitlab.sec }}"
 
     - name: add external_cfg
-      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-configs.add.yml"
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-configs.add.yml"
       vars:
         configs: "{{ gitlab.cfg }}"
 
     - name: add external_vol
-      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-volumes.add.yml"
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-volumes.add.yml"
       vars:
         volumes: "{{ gitlab.vol }}"
 
     - name: add external_net
-      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-networks.add.yml"
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-networks.add.yml"
       vars:
         networks:
           external_net-gitlab:
@@ -52,18 +48,18 @@
             attachable: true
 
     - name: build env_file
-      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-env.create.yml"
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-env.create.yml"
       vars:
         env: 
-          dest: "{{ dir_path }}/external_env-all.env"
+          dest: "{{ dir.remote }}/external_env-all.env"
           data: "{{ gitlab.env }}"
 
     - name: add stack service
-      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-compose.add.yml"
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-compose.add.yml"
       vars:
         compose:
           type: stack
-          name: "{{ dir_name[0] }}"
-          path: "{{ dir_path }}"
+          name: "{{ dir.names[0] }}"
+          path: "{{ dir.remote }}"
           files: 
             - "docker-compose-swarm.yml"

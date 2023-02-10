@@ -8,33 +8,21 @@
         $PWD/../../../docker/stack-master-slave/gitlab-runner-global/ansible-playbook.dispose.yml
   environment:
     PATH: "{{ ansible_env.PATH }}:{{ env_path | default('',true) }}"
-  hosts: docker-manager
-  tasks: 
-
-    - name: set ws_dir
-      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/ws-dir.set.yml"
-
-    - name: set dir_name
-      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/dir-name.set.yml"
-
-
-- name: dispose
-  vars:
-    run_wsl: |
-      ansible-playbook \
-        --inventory $PWD/ansible \
-        $PWD/../../../docker/stack-master-slave/gitlab-runner-global/ansible-playbook.dispose.yml
-  environment:
-    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('',true) }}"
   hosts: docker
   tasks: 
 
+    - name: set ws
+      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/ws.set.yml"
+
+    - name: set dir
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.set.yml"
+
     - name: exec unregister runner
-      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-service.exec.yml"
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-service.exec.yml"
       vars:
         service:
           name: "gitlab-runner"
-          namespace: "{{ dir_name | join('_') }}"
+          namespace: "{{ dir.names | join('_') }}"
           command: |
             gitlab-runner unregister \
               --all-runners
@@ -52,9 +40,15 @@
   hosts: docker-manager
   tasks: 
 
+    - name: set ws
+      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/ws.set.yml"
+
+    - name: set dir
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.set.yml"
+
     - name: remove stack service
-      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-compose.rm.yml"
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-compose.rm.yml"
       vars:
         compose:
           type: stack
-          name: "{{ dir_name[0] }}"
+          name: "{{ dir.names[0] }}"

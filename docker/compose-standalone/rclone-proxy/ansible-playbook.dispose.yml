@@ -16,24 +16,18 @@
   hosts: docker
   tasks: 
 
-    - name: set ws_dir
-      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/ws-dir.set.yml"
+    - name: set ws
+      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/ws.set.yml"
 
-    - name: set dir_name
-      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/dir-name.set.yml"
-
-    - name: copy dir_path
-      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/dir-path.copy.yml"
-      vars:
-        path:
-          cp: false
+    - name: set dir
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.set.yml"
 
     - name: default service_names
       when: service_names == ''
       block:
 
         - name: list config_files
-          include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/file-name.list.yml"
+          include_tasks: "{{ ws.local }}/.seed/ansible-tasks/file-name.list.yml"
           vars:
             name: 
               option_find: "{{ inventory_dir }}/../rclone"
@@ -57,8 +51,8 @@
         template:
           name: "{{ name }}"
           opt:
-            src: "{{ playbook_dir }}/docker-compose.yml.j2"
-            dest: "{{ dir_path }}/docker-compose/{{ name }}.yml"
+            src: "{{ dir.local }}/docker-compose.yml.j2"
+            dest: "{{ dir.remote }}/docker-compose/{{ name }}.yml"
           vars:
             SERIVCE_NAME: "{{ name }}"
             BIND_DATA: "{{ service.bind_map.data }}"
@@ -67,12 +61,12 @@
         loop_var: name
 
     - name: remove compose service
-      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-compose.rm.yml"
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-compose.rm.yml"
       vars:
         compose:
           type: compose
-          name: "{{ dir_name[0] }}"
-          path: "{{ dir_path }}/docker-compose"
+          name: "{{ dir.names[0] }}"
+          path: "{{ dir.remote }}/docker-compose"
           # files: 
           #   - "docker-compose.yml"
           template: "{{ template_list }}"

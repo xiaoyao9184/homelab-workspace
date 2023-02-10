@@ -16,24 +16,18 @@
   hosts: docker
   tasks: 
 
-    - name: set ws_dir
-      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/ws-dir.set.yml"
+    - name: set ws
+      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/ws.set.yml"
 
-    - name: set dir_name
-      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/dir-name.set.yml"
-
-    - name: copy dir_path
-      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/dir-path.copy.yml"
-      vars:
-        path:
-          cp: false
+    - name: set dir
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.set.yml"
 
     - name: default service_names
       when: service_names == ''
       block:
 
         - name: list config_files
-          include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/file-name.list.yml"
+          include_tasks: "{{ ws.local }}/.seed/ansible-tasks/file-name.list.yml"
           vars:
             name: 
               option_find: "{{ inventory_dir }}/../rclone"
@@ -70,13 +64,13 @@
               device: "{{ service.vol_map.config }}"
               o: bind
         env:
-          - dest: "{{ dir_path }}/docker-compose/external_env-{{ name }}.env"
+          - dest: "{{ dir.remote }}/docker-compose/external_env-{{ name }}.env"
             data: "{{ service.env | default(rclone.env) }}"
         template:
           name: "{{ name }}"
           opt:
-            src: "{{ playbook_dir }}/docker-compose.yml.j2"
-            dest: "{{ dir_path }}/docker-compose/{{ name }}.yml"
+            src: "{{ dir.local }}/docker-compose.yml.j2"
+            dest: "{{ dir.remote }}/docker-compose/{{ name }}.yml"
           vars:
             SERIVCE_NAME: "{{ name }}"
             BIND_DATA: "{{ service.bind_map.data }}"
@@ -84,23 +78,24 @@
       loop_control:
         loop_var: name
 
-    - name: overwrite dir_copy
-      loop: "{{ dir_copy_list }}"
-      when: item.src is defined
-      ansible.builtin.copy: "{{ item }}"
+        
+    - name: copy dir
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.copy.yml"
+      vars:
+        copys: "{{ dir_copy_list | flatten }}"
 
     - name: add external_vol
-      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-volumes.add.yml"
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-volumes.add.yml"
       vars:
         volumes: "{{ vol_list | flatten }}"
 
     - name: add external_net
-      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-networks.add.yml"
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-networks.add.yml"
       vars:
         networks: "{{ net_list | flatten }}"
 
     - name: build env_file
-      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-envs.create.yml"
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-envs.create.yml"
       vars:
         envs: "{{ env_list | flatten }}"
 
@@ -109,15 +104,15 @@
         path: "{{ item }}"
         state: directory
       loop:
-        - "{{ dir_path }}/docker-compose"
+        - "{{ dir.remote }}/docker-compose"
 
     - name: add compose service
-      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-compose.add.yml"
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-compose.add.yml"
       vars:
         compose:
           type: compose
-          name: "{{ dir_name[0] }}"
-          path: "{{ dir_path }}/docker-compose"
+          name: "{{ dir.names[0] }}"
+          path: "{{ dir.remote }}/docker-compose"
           # files: 
           #   - "docker-compose.yml"
           template: "{{ template_list }}"

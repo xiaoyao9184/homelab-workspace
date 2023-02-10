@@ -11,35 +11,35 @@
   hosts: docker
   tasks: 
 
-    - name: set ws_dir
-      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/ws-dir.set.yml"
+    - name: set ws
+      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/ws.set.yml"
 
-    - name: set dir_name
-      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/dir-name.set.yml"
+    - name: set dir
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.set.yml"
 
-    - name: copy dir_path
-      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/dir-path.copy.yml"
+    - name: copy dir
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.copy.yml"
 
     - name: add external_vol
-      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-volumes.add.yml"
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-volumes.add.yml"
       vars:
         volumes: "{{ shinobi.vol }}"
 
     - name: build env_file
-      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-envs.create.yml"
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-envs.create.yml"
       vars:
         envs: 
-          - dest: "{{ dir_path }}/external_env-shinobi.env"
+          - dest: "{{ dir.remote }}/external_env-shinobi.env"
             data: "{{ shinobi.env.shinobi }}"
-          - dest: "{{ dir_path }}/external_env-tf.env"
+          - dest: "{{ dir.remote }}/external_env-tf.env"
             data: "{{ shinobi.env.tf }}"
 
     - name: add compose service
-      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-compose.add.yml"
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-compose.add.yml"
       vars:
         compose:
           type: compose
-          name: "{{ dir_name[0] }}"
-          path: "{{ dir_path }}"
+          name: "{{ dir.names[0] }}"
+          path: "{{ dir.remote }}"
           files: 
             - "docker-compose.yml"

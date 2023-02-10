@@ -11,63 +11,63 @@
   hosts: docker
   tasks: 
 
-    - name: set ws_dir
-      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/ws-dir.set.yml"
+    - name: set ws
+      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/ws.set.yml"
 
-    - name: set dir_name
-      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/dir-name.set.yml"
+    - name: set dir
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.set.yml"
 
-    - name: copy dir_path
-      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/dir-path.copy.yml"
+    - name: copy dir
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.copy.yml"
 
     - name: add external_vol
-      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-volumes.add.yml"
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-volumes.add.yml"
       vars:
         volumes: "{{ domoticz.vol }}"
 
     - name: add external_net
-      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-networks.add.yml"
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-networks.add.yml"
       vars:
         networks: "{{ domoticz.net }}"
 
     - name: build env_file
-      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-env.create.yml"
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-env.create.yml"
       vars:
         env: 
-          dest: "{{ dir_path }}/external_env-all.env"
+          dest: "{{ dir.remote }}/external_env-all.env"
           data: "{{ domoticz.env }}"
 
     - name: add compose service
-      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-compose.add.yml"
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-compose.add.yml"
       vars:
         compose:
           type: compose
-          name: "{{ dir_name[0] }}"
-          path: "{{ dir_path }}"
+          name: "{{ dir.names[0] }}"
+          path: "{{ dir.remote }}"
           # files: 
           #   - "docker-compose.yml"
           template: 
             name: "docker-compose"
             opt:
-              src: "{{ playbook_dir }}/docker-compose.yml.j2"
-              dest: "{{ dir_path }}/docker-compose.yml"
+              src: "{{ dir.local }}/docker-compose.yml.j2"
+              dest: "{{ dir.remote }}/docker-compose.yml"
             vars:
               IP: "{{ domoticz.ip }}"
     
     - name: wait host port
-      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/host-port.wait.yml"
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/host-port.wait.yml"
       vars:
-        wait_name: "{{ dir_name | join('_') }}"
+        wait_name: "{{ dir.names | join('_') }}"
         wait_network: []
         wait_port: "{{ domoticz.wait_port }}"
 
     - name: exec service
-      include_tasks: "{{ ws_dir }}/.seed/ansible-tasks/docker-service.exec.yml"
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-service.exec.yml"
       vars:
         service:
           type: compose
           name: domoticz
-          project: "{{ dir_name[0] }}"
+          project: "{{ dir.names[0] }}"
           command: "{{ command }}"
           result: exe_result
       loop: "{{ domoticz.exec }}"

@@ -1,0 +1,38 @@
+---
+
+
+- name: dir.copy|set _copy
+  ansible.builtin.set_fact:
+    _copy: "{{ copys | default([]) }}"
+
+- name: dir.copy|append dir to _copy
+  when: not dir.synchronized
+  vars:
+    item:
+      src: "{{ dir.local }}/"
+      dest: "{{ dir.remote }}"
+  ansible.builtin.set_fact:
+    _copy: "{{ [ item ] + _copy }}"
+
+- name: dir.copy|mkdir dest parent
+  loop: "{{ _copy }}"
+  ansible.builtin.file:
+    path: "{{ item.dest | dirname }}"
+    state: directory
+
+# mean no src copy is just mkdir
+- name: dir.copy|mkdir dest
+  loop: "{{ _copy }}"
+  when: item.src is undefined
+  ansible.builtin.file:
+    path: "{{ item.dest }}"
+    state: directory
+
+- name: dir.copy|copy
+  loop: "{{ _copy }}"
+  when: item.src is defined
+  ansible.builtin.copy: "{{ item }}"
+
+- name: dir.copy|reset _copy
+  ansible.builtin.set_fact:
+    _copy: !!null

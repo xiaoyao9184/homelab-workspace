@@ -1,0 +1,103 @@
+---
+
+
+- block:
+
+  - when: _current_local_dir | default(None) == None
+    block:
+
+      - name: dir.set|set _current_local_dir by dir
+        when: dir is defined
+        ansible.builtin.set_fact:
+          _current_local_dir: "{{ dir }}"
+
+      - name: dir.set|set _current_local_dir default by playbook_dir
+        ansible.builtin.set_fact:
+          _current_local_name: []
+          _current_local_length: "{{ length | default(1) | int }}"
+          _current_local_dir: "{{ _current_local_dir | default(playbook_dir) }}"
+
+  - name: dir.set|set _current_local_basename
+    ansible.builtin.set_fact:
+      _current_local_basename: "{{ _current_local_dir | basename }}"
+
+  - name: dir.set|append name and add length
+    ansible.builtin.set_fact:
+      _current_local_name: "{{ [ _current_local_basename ] + _current_local_name }}"
+      _current_local_length: "{{ _current_local_length | int - 1 }}"
+
+  - name: dir.set|break dir-length not enough
+    when: _current_local_length | int > 0
+    ansible.builtin.fail:
+      msg: "not dir enough {{ _current_local_dir }}"
+
+  # mean: dir local and remote path is same not need copy
+  - name: dir.set|set _synchronized when docker-seed target local
+    when: 
+      - lookup('ansible.builtin.env', 'SEED_NAME') != ''
+      - ansible_connection == 'local'
+    ansible.builtin.set_fact:
+      _synchronized: true
+
+  - name: dir.set|set _current_remote_dir
+    vars:
+      local_realpath: "{{ _current_local_dir | realpath }}"
+      remote_dir: "{{ local_realpath | replace(ws.local,ws.remote) }}"
+    ansible.builtin.set_fact:
+      _realpath_local_dir: "{{ local_realpath }}"
+      _realpath_remote_dir: "{{ remote_dir }}"
+
+  # https://github.com/ansible/ansible/issues/29003
+  - when: _realpath_remote_dir.find("~") != -1
+    block:
+
+      - name: ws.set|mkdir _realpath_remote_dir
+        ansible.builtin.file:
+          path: "{{ _realpath_remote_dir }}"
+          state: directory
+
+      - name: ws.set|stat of _realpath_remote_dir
+        ansible.builtin.stat:
+          path: "{{ _realpath_remote_dir }}"
+        register: _stat_remote_dir
+
+      - name: ws.set|replace _realpath_remote_dir with stat path
+        ansible.builtin.set_fact:
+          _realpath_remote_dir: "{{ _stat_remote_dir.stat.path }}"
+
+      - name: ws.set|reset _stat_dir
+        ansible.builtin.set_fact:
+          _stat_remote_dir: !!null
+
+  - name: dir.set|set dir
+    ansible.builtin.set_fact:
+      dir: 
+        synchronized: "{{ _synchronized | default(false,true) | bool }}"
+        names: "{{ _current_local_name }}"
+        local: "{{ _realpath_local_dir }}"
+        remote: "{{ _realpath_remote_dir }}"
+
+  - name: dir.set|reset _current_*
+    ansible.builtin.set_fact:
+      _current_local_basename: !!null
+      _current_local_name: !!null
+      _current_local_dir: !!null
+      _current_local_length: !!null
+      _synchronized: !!null
+
+  - name: dir.set|print dir
+    ansible.builtin.debug:
+      var: dir
+
+  rescue:
+
+    - name: dir.set|fail _current_local_basename is '/'
+      when: _current_local_basename == '/'
+      ansible.builtin.fail:
+        msg: cant go parent find dir
+
+    - name: dir.set|get parent of _current_local_dir
+      ansible.builtin.set_fact:
+        _current_local_dir: "{{ _current_local_dir | dirname }}"
+
+    - include_tasks: dir.set.yml
