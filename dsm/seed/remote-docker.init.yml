@@ -30,14 +30,11 @@
 
     - name: set pip sources
       when: pip.mirror is defined
+      become: true
       ansible.builtin.shell: pip3 config set global.index-url {{ pip.mirror }}
 
-    - name: update pip
-      ansible.builtin.shell: python -m pip install -U pip
-      register: pip_result
-      until: "pip_result is not failed"
-      retries: 3
-      delay: 5
+    - name: ensurepip pip
+      ansible.builtin.shell: python3 -m ensurepip
 
     - name: install pip package
       become: true
