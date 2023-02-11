@@ -32,13 +32,6 @@
         name: tailscale
       ignore_errors: yes
 
-    # - name: set fact of 
-    # - name: register SEED host with variable
-    #   ansible.builtin.add_host:
-    #     name: "SEED"
-    #     remote_user: "{{ _ssh.remote_user }}"
-    #     host_group: "{{ _ssh.host_group }}"
-
 
 - name: download
   hosts: localhost
