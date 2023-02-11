@@ -1,0 +1,25 @@
+---
+
+
+- name: esxi-ssh.init|init _ssh
+  ansible.builtin.set_fact:
+    _ssh:
+      # get ssh public key path
+      pub_file: "~/.ssh/{{ ssh_group }}/id_rsa.pub"
+      remote_user: "{{ ssh_user }}"
+
+- name: esxi-ssh.init|mkdir
+  ansible.builtin.file:
+    path: "/etc/ssh/keys-{{ _ssh.remote_user }}"
+    state: directory
+
+- name: esxi-ssh.init|ensure authorized keys for remote user is installed
+  ansible.builtin.lineinfile:
+    path: "/etc/ssh/keys-{{ _ssh.remote_user}}/authorized_keys"
+    line: "{{ lookup('file', _ssh.pub_file) }}"
+    create: yes
+    mode: '0600'
+
+- name: esxi-ssh.init|reset _ssh
+  ansible.builtin.set_fact:
+    _ssh: !!null

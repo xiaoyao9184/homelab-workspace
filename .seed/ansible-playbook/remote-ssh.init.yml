@@ -1,7 +1,7 @@
 ---
 
 
-- name: init
+- name: init ssh at local
   vars:
     run_wsl: |
       ansible-playbook \
@@ -9,15 +9,6 @@
         --ask-become-pass \
         --inventory $PWD/ansible/inventory-ssh.yml \
         $PWD/../../../.seed/ansible-playbook/remote-ssh.init.yml
-  # vars_prompt:
-  #   - name: seed_group
-  #     prompt: "What is seed host group(all host use one ssh key)?"
-  #     private: no
-  #     default: 
-  #   - name: seed_user
-  #     prompt: "What is seed host user(all host use one user)?"
-  #     private: no
-  #     default: 
   hosts: localhost
   connection: local
   become: false
@@ -50,16 +41,38 @@
 
     - include_tasks: "{{ playbook_dir }}/../ansible-tasks/seed-ssh.create.yml"
       vars:
-        host_group: "{{ seed_group }}"
-        remote_user: "{{ seed_user }}"
+        ssh_group: "{{ seed_group }}"
+        ssh_user: "{{ seed_user }}"
+        ansible_group: "{{ local.init.ssh.hosts | default('') }}"
+        keyscan_type: "{{ local.init.ssh.keyscan | default('') }}"
+
+    - debug: 
+        msg: 
+          - "{{ hostvars['localhost'].seed_group }}"
+          - "{{ hostvars['localhost'].seed_user }}"
+        verbosity: 3
 
 
-- name: init
+- name: init ssh at ssh
   hosts: ssh
-  become: true
+  # become: true
+  gather_facts: no
+  pre_tasks:
+
+    - name: set task_path
+      vars:
+        remote: "{{ hostvars['localhost'].remote }}"
+        task_default: "{{ playbook_dir }}/../ansible-tasks/seed-ssh.approve.yml"
+      ansible.builtin.set_fact:
+        task_path: "{{ remote.init.ssh | default(task_default) }}"
+        seed_group: "{{ hostvars['localhost'].seed_group }}"
+        seed_user: "{{ hostvars['localhost'].seed_user }}"
+
   tasks: 
 
-    - include_tasks: "{{ playbook_dir }}/../ansible-tasks/seed-ssh.approve.yml"
+    - include_tasks: "{{ task_path }}"
+      vars:
+        ssh_group: "{{ seed_group }}"
+        ssh_user: "{{ seed_user }}"
 
     - debug: msg="ok of host {{ ansible_host }}"
-      

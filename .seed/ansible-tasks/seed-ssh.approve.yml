@@ -4,14 +4,14 @@
   ansible.builtin.set_fact:
     _ssh:
       # get ssh public key path
-      pub_path: "~/.ssh/{{ hostvars['SEED']['host_group'] }}/id_rsa.pub"
-      remote_user: "{{ hostvars['SEED']['remote_user'] }}"
+      pub_file: "~/.ssh/{{ ssh_group }}/id_rsa.pub"
+      remote_user: "{{ ssh_user }}"
 
 - name: seed-ssh.approve|ensure authorized keys for remote user is installed
   ansible.posix.authorized_key:
     user: "{{ _ssh.remote_user }}"
     state: present
-    key: "{{ lookup('file', _ssh.pub_path) }}"
+    key: "{{ lookup('file', _ssh.pub_file) }}"
 
 # - name: seed-ssh.approve|enable password authentication for root
 #   ansible.builtin.lineinfile:

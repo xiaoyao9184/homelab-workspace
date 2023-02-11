@@ -1,0 +1,59 @@
+---
+
+
+- name: seed-docker.init|init _docker
+  vars:
+    default_package:
+      - python3-pip
+      - rsync
+    default_pip:
+      - jsondiff
+      - jmespath
+
+      - pyyaml
+      - lxml
+      - requests
+
+      - docker
+      - docker-compose
+  ansible.builtin.set_fact:
+    _docker:
+      package: "{{ system_package | default(default_package,true) }}"
+      pip: "{{ system_pip | default(default_pip,true) }}"
+
+- name: seed-docker.init|install system package 
+  become: true
+  loop: "{{ _docker.package }}"
+  ansible.builtin.package:
+    name: "{{ item }}"
+    state: present
+  register: package_result
+  until: "package_result is not failed"
+  retries: 3
+  delay: 5
+
+- name: seed-docker.init|set pip sources
+  when: pip.mirror is defined
+  ansible.builtin.shell: pip3 config set global.index-url {{ pip.mirror }}
+
+- name: seed-docker.init|install pip package
+  become: true
+  loop: "{{ _docker.pip }}"
+  ansible.builtin.pip:
+    name: "{{ item }}"
+    state: latest
+  register: pip_result
+  until: "pip_result is not failed"
+  retries: 3
+  delay: 5
+
+- name: seed-docker.init|add user to docker
+  become: true
+  ansible.builtin.user:
+    name: "{{ ansible_user_id }}"
+    groups: docker
+    append: true
+
+- name: seed-docker.init|reset _docker
+  ansible.builtin.set_fact:
+    _docker: !!null

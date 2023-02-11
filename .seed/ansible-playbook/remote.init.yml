@@ -1,16 +1,14 @@
 ---
 
-- vars:
+- name: init
+  vars:
     run_wsl: |
       ansible-playbook \
+        --ask-pass \
         --ask-become-pass \
         --inventory $PWD/ansible \
         $PWD/../../../.seed/ansible-playbook/remote.init.yml
   when: groups.ssh is defined
-  import_playbook: "{{ remote.init.ssh | default(playbook_dir + '/remote-ssh.init.yml') }}"
+  import_playbook: remote-ssh.init.yml
 
-- when: remote.init.system is defined
-  import_playbook: "{{ remote.init.system }}"
-
-- when: groups.docker is defined
-  import_playbook: "{{ remote.init.docker | default(playbook_dir + '/remote-docker.init.yml') }}"
+- import_playbook: remote-system.init.yml

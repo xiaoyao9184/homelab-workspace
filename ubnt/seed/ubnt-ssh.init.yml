@@ -1,0 +1,22 @@
+---
+
+
+- name: ubnt-ssh.init|init _ssh
+  ansible.builtin.set_fact:
+    _ssh:
+      # get ssh public key path
+      pub_file: "~/.ssh/{{ ssh_group }}/id_rsa.pub"
+      remote_user: "{{ ssh_user }}"
+
+- name: ubnt-ssh.init|configure authentication public-keys
+  vars:
+    pub_key: "{{ lookup('file', _ssh.pub_file) }}"
+    pub_split: "{{ pub_key | split }}"
+  community.network.edgeos_config:
+    lines:
+      - set system login user ubnt authentication public-keys {{ _ssh.remote_user }} type ssh-rsa
+      - set system login user ubnt authentication public-keys {{ _ssh.remote_user }} key {{ pub_split[1] }}
+
+- name: ubnt-ssh.init|reset _ssh
+  ansible.builtin.set_fact:
+    _ssh: !!null

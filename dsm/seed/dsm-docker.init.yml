@@ -1,0 +1,70 @@
+---
+
+
+- name: dsm-docker.init|init _docker
+  vars:
+    default_pip:
+      - jsondiff
+      - jmespath
+
+      - pyyaml
+      - lxml
+      - requests
+
+      - docker
+      - docker-compose
+  ansible.builtin.set_fact:
+    _docker:
+      pip: "{{ system_pip | default(default_pip,true) }}"
+
+- name: dsm-docker.init|install docker spk from server
+  become: true
+  ansible.builtin.shell: synopkg install_from_server Docker
+  ignore_errors: true
+
+- name: dsm-docker.init|set pip sources
+  when: pip.mirror is defined
+  become: true
+  ansible.builtin.shell: pip3 config set global.index-url {{ pip.mirror }}
+
+- name: dsm-docker.init|ensurepip pip
+  ansible.builtin.shell: python3 -m ensurepip
+
+- name: dsm-docker.init|install pip package
+  become: true
+  loop: "{{ _docker.pip }}"
+  ansible.builtin.pip:
+    name: "{{ item }}"
+    state: latest
+  register: pip_result
+  until: "pip_result is not failed"
+  retries: 3
+  delay: 5
+
+# cant add to root group for access docker
+# - name: dsm-docker.init|add user to docker
+#   become: true
+#   ansible.builtin.shell: "synogroup --add root {{ ansible_user_id }}"
+# 
+# https://davejansen.com/manage-docker-without-needing-sudo-on-your-synology-nas/
+- name: dsm-docker.init|stat docker api
+  become: true
+  ansible.builtin.stat:
+    path: /var/run/docker.sock
+  register: docker_stat
+
+- when: docker_stat.stat.gr_name != 'docker'
+  block:
+    
+  - name: dsm-docker.init|add docker group
+    become: true
+    ansible.builtin.shell: "synogroup --add docker"
+    ignore_errors: true
+
+  - name: dsm-docker.init|add user to docker group
+    become: true
+    ansible.builtin.shell: "synogroup --member docker {{ ansible_user_id }}"
+
+  - name: dsm-docker.init|chown docker api
+    become: true
+    ansible.builtin.shell: "chown root:docker /var/run/docker.sock"

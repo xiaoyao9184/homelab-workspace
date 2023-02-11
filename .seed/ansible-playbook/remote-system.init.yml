@@ -1,0 +1,64 @@
+---
+
+
+- name: init system at local
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --ask-become-pass \
+        --inventory $PWD/ansible \
+        $PWD/../../../.seed/ansible-playbook/remote-system.init.yml
+  hosts: localhost
+  connection: local
+  become: false
+  run_once: true
+  pre_tasks:
+
+    - name: set group to docker automatic
+      when: 
+        - remote.init.system is undefined
+        - groups.docker is defined
+      ansible.builtin.set_fact:
+        ansible_group: "docker"
+
+    - name: input group 
+      when: ansible_group is undefined
+      ansible.builtin.pause:
+        prompt: "What is ansible host group for init system(empty skip)?"
+      register: prompt
+
+    - name: set group
+      when: ansible_group is undefined
+      ansible.builtin.set_fact:
+        ansible_group: "{{ prompt.user_input | default('SKIP',true) }}"
+
+  tasks: 
+
+    - debug: 
+        msg: 
+          - "{{ hostvars['localhost'].ansible_group }}"
+        verbosity: 3
+
+
+- name: "init system at {{ hostvars['localhost'].ansible_group }}"
+  hosts: "{{ hostvars['localhost'].ansible_group }}"
+  # become: true
+  environment:
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('',true) }}"
+  pre_tasks:
+
+    - name: set task_path
+      vars:
+        remote: "{{ hostvars['localhost'].remote }}"
+        task_default: "{{ playbook_dir }}/../ansible-tasks/seed-docker.init.yml"
+      ansible.builtin.set_fact:
+        task_path: "{{ remote.init.system | default(task_default) }}"
+
+  tasks: 
+
+    - include_tasks: "{{ task_path }}"
+      vars:
+        system_package: "{{ remote.init.package | default('') }}"
+        system_pip: "{{ remote.init.pip | default('') }}"
+
+    - debug: msg="ok of host {{ ansible_host }}"

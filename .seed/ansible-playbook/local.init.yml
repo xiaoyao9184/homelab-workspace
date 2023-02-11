@@ -6,4 +6,4 @@
         --ask-become-pass \
         --inventory $PWD/ansible \
         $PWD/../../../.seed/ansible-playbook/local.init.yml
-  import_playbook: "{{ playbook_dir }}/local-workspace.init.yml"
+  import_playbook: local-workspace.init.yml

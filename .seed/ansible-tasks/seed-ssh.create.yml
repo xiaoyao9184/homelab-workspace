@@ -1,48 +1,46 @@
 ---
 
-- name: seed-ssh.create|check remote_user
+- name: seed-ssh.create|check ssh_user
   when: 
-    - remote_user | default(None) == ''
+    - ssh_user | default(None) == ''
   ansible.builtin.pause:
-    prompt: "What is remote user?"
+    prompt: "What is ssh user?"
     echo: true
-  register: prompt_remote_user
+  register: prompt_ssh_user
 
-- name: seed-ssh.create|check host_group
+- name: seed-ssh.create|check ssh_group
   when: 
-    - host_group | default(None) == ''
+    - ssh_group | default(None) == ''
   ansible.builtin.pause:
-    prompt: "What is host group?"
+    prompt: "What is ssh group(also an dir name of ssh key)?"
     echo: true
-  register: prompt_host_group
+  register: prompt_ssh_group
 
-- name: seed-ssh.create|init _ssh
+- name: seed-ssh.create|set _ssh
   ansible.builtin.set_fact:
     _ssh:
-      remote_user: "{{ remote_user | default(prompt_remote_user.user_input) }}"
-      host_group: "{{ host_group | default(prompt_host_group.user_input) }}"
-      ansible_group: "{{ ansible_group | default('remote') }}"
-      keyscan_type: "{{ keyscan_type | default('ed25519') }}"
+      username: "{{ ssh_user | default(prompt_ssh_user.user_input) }}"
+      basename: "{{ ssh_group | default(prompt_ssh_group.user_input) }}"
+      ansible_group: "{{ ansible_group | default('ssh',true) }}"
+      keyscan_type: "{{ keyscan_type | default('ed25519',true) }}"
 
-# - debug: msg="{{ _ssh }}"
-
-- name: seed-ssh.create|register SEED host with variable
-  ansible.builtin.add_host:
-    name: "SEED"
-    remote_user: "{{ _ssh.remote_user }}"
-    host_group: "{{ _ssh.host_group }}"
+# - name: seed-ssh.create|register variable to SEED host
+#   ansible.builtin.add_host:
+#     name: "SEED"
+#     username: "{{ _ssh.username }}"
+#     basename: "{{ _ssh.basename }}"
 
 - name: seed-ssh.create|create a directory for ssh
   ansible.builtin.file:
-    path: "~/.ssh/{{ _ssh.host_group }}/"
+    path: "~/.ssh/{{ _ssh.basename }}/"
     state: directory
 
 - name: seed-ssh.create|generate an OpenSSH keypair rsa 2048
   community.crypto.openssh_keypair:
-    path: "~/.ssh/{{ _ssh.host_group }}/id_rsa"
+    path: "~/.ssh/{{ _ssh.basename }}/id_rsa"
     size: 2048
     type: rsa
-    comment: "{{ _ssh.host_group }}"
+    comment: "{{ _ssh.basename }}"
   # https://github.com/microsoft/WSL/issues/670
   register: generate_result
   until: "generate_result is not failed"
@@ -64,8 +62,8 @@
     ssh_config_file: "~/.ssh/config"
     host: "{{ host }}"
     hostname: "{{ host }}"
-    remote_user: "{{ _ssh.remote_user }}"
-    identity_file: "~/.ssh/{{ _ssh.host_group }}/id_rsa"
+    remote_user: "{{ _ssh.username }}"
+    identity_file: "~/.ssh/{{ _ssh.basename }}/id_rsa"
     # user_known_hosts_file: "~/.ssh/known_hosts"
     state: present
   loop: "{{ groups[_ssh.ansible_group] }}"
@@ -94,7 +92,7 @@
   debug:
     msg:
       - "user: {{ lookup('env', 'USER') }}"
-      - "path: ~/.ssh/{{ _ssh.host_group }}/"
+      - "path: ~/.ssh/{{ _ssh.basename }}/"
       - "config: ~/.ssh/config"
 
 - name: seed-ssh.create|reset _ssh

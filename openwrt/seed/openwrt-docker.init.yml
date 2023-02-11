@@ -1,0 +1,60 @@
+---
+
+
+- name: openwrt-docker.init|init _docker
+  vars:
+    default_package:
+      - sudo
+      - dockerd
+      - luci-app-dockerman
+      - python3-pip
+    default_pip:
+      - jsondiff
+      - jmespath
+
+      - pyyaml
+      - lxml
+      - requests
+
+      - docker
+      - docker-compose
+  ansible.builtin.set_fact:
+    _docker:
+      package: "{{ system_package | default(default_package,true) }}"
+      pip: "{{ system_pip | default(default_pip,true) }}"
+
+- name: openwrt-docker.init|role openwrt
+  ansible.builtin.include_role: 
+    name: gekmihesg.openwrt
+
+- name: openwrt-docker.init|replace opkg distfeeds
+  when: opkg.mirror is defined
+  ansible.builtin.shell: "sed -i.bak 's|//downloads.openwrt.org|//{{ opkg.mirror }}/openwrt|g' /etc/opkg/distfeeds.conf"
+
+- name: openwrt-docker.init|install opkg package
+  loop: "{{ _docker.package }}"
+  opkg:
+    update_cache: true
+    name: "{{ item }}"
+  ignore_errors: yes
+
+- name: openwrt-docker.init|set pip sources
+  when: pip.mirror is defined
+  ansible.builtin.shell: pip3 config set global.index-url {{ pip.mirror }}
+
+- name: openwrt-docker.init|update pip
+  ansible.builtin.shell: python -m pip install -U pip
+  register: pip_result
+  until: "pip_result is not failed"
+  retries: 3
+  delay: 5
+
+- name: openwrt-docker.init|install pip package
+  loop: "{{ _docker.pip }}"
+  ansible.builtin.pip:
+    name: "{{ item }}"
+    state: latest
+  register: pip_result
+  until: "pip_result is not failed"
+  retries: 3
+  delay: 5
