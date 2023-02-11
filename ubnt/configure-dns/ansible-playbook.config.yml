@@ -1,16 +1,6 @@
 ---
 
 
-- name: dep
-  hosts: localhost
-  connection: local
-  tasks:
-
-    - name: install ansible-pylibssh
-      ansible.builtin.pip:
-        name: ansible-pylibssh
-
-
 - name: config
   vars:
     run_wsl: |
