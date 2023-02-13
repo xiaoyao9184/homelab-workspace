@@ -1,6 +1,7 @@
 ---
 
-
+# NOTE
+# some driver of net work must delegate_to to run on docker-manager
 - name: docker-network.add|not loop
   when: network.key is undefined
   block:
@@ -35,10 +36,6 @@
         "com.github.xiaoyao9184.docker-seed.type": "docker-network.add"
         "com.github.xiaoyao9184.docker-seed.creator": "{{ lookup('ansible.builtin.env', 'SEED_NAME') | default('docker-network.add',true) }}"
 
-- name: docker-network.add|print network
-  ansible.builtin.debug:
-    var: _net
-
 - name: docker-network.add|reset ipam
   when: _net.ipam is defined
   block:
@@ -51,7 +48,7 @@
           old: ip_range
           new: iprange
           list: "{{ _net.ipam.config }}"
-          result_var: rename_result
+          result_var: _rename_result
 
     - name: docker-network.add|reset ipam_*
       ansible.builtin.set_fact:
@@ -60,9 +57,36 @@
         _net_update:
           ipam_driver: "{{ _net.ipam.driver | default('default') }}"
           ipam_driver_options: "{{ _net.ipam.options | default({}) }}"
-          ipam_config: "{{ rename_result | default([]) }}"
+          ipam_config: "{{ _rename_result | default([]) }}"
+
+- name: docker-network.add|need delegate when swarm network
+  block:
+
+    - name: docker-network.add|set _delegate_swarm by overlay driver
+      when: 
+        - _net.driver is defined 
+        - _net.driver == 'overlay'
+      ansible.builtin.set_fact:
+        _delegate_to: "{{ groups['docker-manager'] | first }}"
+        _run_once: true
+
+    - name: docker-network.add|set _delegate_swarm by swarm scope
+      when:
+        - _net.scope is defined 
+        - _net.scope == 'swarm'
+      ansible.builtin.set_fact:
+        _delegate_to: "{{ groups['docker-manager'] | first }}"
+        _run_once: true
+
+- name: docker-network.add|print network
+  delegate_to: "{{ _delegate_to | default(omit) }}"
+  run_once: "{{ _run_once | default(false,true) | bool }}"
+  ansible.builtin.debug:
+    var: _net
 
 - name: docker-network.add|create network
+  delegate_to: "{{ _delegate_to | default(omit) }}"
+  run_once: "{{ _run_once | default(false,true) | bool }}"
   community.docker.docker_network:
     name: "{{ _net.name }}"
     driver: "{{ _net.driver | default('bridge')  }}"
@@ -78,4 +102,6 @@
 - name: docker-network.add|reset _net
   ansible.builtin.set_fact:
     _net: !!null
-    rename_result: !!null
+    _rename_result: !!null
+    _delegate_to: !!null
+    _run_once: !!null
