@@ -32,6 +32,7 @@
             remote_src: true
             src: "{{ dir.remote }}/../data/"
             dest: "./"
+            directory_mode: '0777'
         volumes: "{{ nfs_node.exports.vol_cp | default(_default) }}"
 
     # https://medium.com/@jonsbun/why-need-to-be-careful-when-mounting-single-files-into-a-docker-container-4f929340834
