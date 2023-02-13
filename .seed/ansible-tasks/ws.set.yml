@@ -1,6 +1,12 @@
 ---
 
 
+# NOTE
+# For clusters usually run once to generate available to all nodes.
+# see https://medium.com/opsops/the-magic-of-run-once-e31d583eca62
+# 
+# When _realpath_remote_ws uses relative paths ~, 
+# folders are created on all nodes for get absolute paths, these tasks are not.
 - block:
 
   - when: _current_local_ws | default(None) == None
@@ -49,21 +55,25 @@
       _realpath_local_ws: "{{ local_realpath }}"
       _realpath_remote_ws: "{{ remote_workspace }}"
   
-  # https://github.com/ansible/ansible/issues/29003
+  # realpath filter not on managed node
+  # see https://github.com/ansible/ansible/issues/29003
   - when: _realpath_remote_ws.find("~") != -1
     block:
 
       - name: ws.set|mkdir _realpath_remote_ws
+        run_once: false
         ansible.builtin.file:
           path: "{{ _realpath_remote_ws }}"
           state: directory
 
       - name: ws.set|stat of _realpath_remote_ws
+        run_once: false
         ansible.builtin.stat:
           path: "{{ _realpath_remote_ws }}"
         register: _stat_remote_ws
 
       - name: ws.set|replace _realpath_remote_ws with stat path
+        run_once: false
         ansible.builtin.set_fact:
           _realpath_remote_ws: "{{ _stat_remote_ws.stat.path }}"
 
@@ -85,6 +95,7 @@
       _stat_remote_ws: !!null
 
   - name: ws.set|print worksapce
+    run_once: false
     ansible.builtin.debug:
       var: ws
 

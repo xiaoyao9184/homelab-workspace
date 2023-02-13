@@ -1,6 +1,12 @@
 ---
 
 
+# NOTE
+# For clusters usually run once to generate available to all nodes.
+# see https://medium.com/opsops/the-magic-of-run-once-e31d583eca62
+# 
+# When _realpath_remote_dir uses relative paths ~, 
+# folders are created on all nodes for get absolute paths, these tasks are not.
 - block:
 
   - when: _current_local_dir | default(None) == None
@@ -47,21 +53,25 @@
       _realpath_local_dir: "{{ local_realpath }}"
       _realpath_remote_dir: "{{ remote_dir }}"
 
-  # https://github.com/ansible/ansible/issues/29003
+  # realpath filter not on managed node
+  # see https://github.com/ansible/ansible/issues/29003
   - when: _realpath_remote_dir.find("~") != -1
     block:
 
       - name: ws.set|mkdir _realpath_remote_dir
+        run_once: false
         ansible.builtin.file:
           path: "{{ _realpath_remote_dir }}"
           state: directory
 
       - name: ws.set|stat of _realpath_remote_dir
+        run_once: false
         ansible.builtin.stat:
           path: "{{ _realpath_remote_dir }}"
         register: _stat_remote_dir
 
       - name: ws.set|replace _realpath_remote_dir with stat path
+        run_once: false
         ansible.builtin.set_fact:
           _realpath_remote_dir: "{{ _stat_remote_dir.stat.path }}"
 
@@ -85,6 +95,7 @@
       _stat_remote_dir: !!null
 
   - name: dir.set|print dir
+    run_once: false
     ansible.builtin.debug:
       var: dir
 
