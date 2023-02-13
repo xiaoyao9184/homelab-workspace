@@ -13,9 +13,9 @@
 
       - name: dir.set|set _current_local_dir default by playbook_dir
         ansible.builtin.set_fact:
-          _current_local_name: []
-          _current_local_length: "{{ length | default(1) | int }}"
           _current_local_dir: "{{ _current_local_dir | default(playbook_dir) }}"
+          _current_local_length: "{{ length | default(1) | int }}"
+          _current_local_name: []
 
   - name: dir.set|set _current_local_basename
     ansible.builtin.set_fact:
@@ -65,10 +65,6 @@
         ansible.builtin.set_fact:
           _realpath_remote_dir: "{{ _stat_remote_dir.stat.path }}"
 
-      - name: ws.set|reset _stat_dir
-        ansible.builtin.set_fact:
-          _stat_remote_dir: !!null
-
   - name: dir.set|set dir
     ansible.builtin.set_fact:
       dir: 
@@ -79,11 +75,14 @@
 
   - name: dir.set|reset _current_*
     ansible.builtin.set_fact:
-      _current_local_basename: !!null
-      _current_local_name: !!null
       _current_local_dir: !!null
       _current_local_length: !!null
+      _current_local_name: !!null
+      _current_local_basename: !!null
       _synchronized: !!null
+      _realpath_local_dir: !!null
+      _realpath_remote_dir: !!null
+      _stat_remote_dir: !!null
 
   - name: dir.set|print dir
     ansible.builtin.debug:

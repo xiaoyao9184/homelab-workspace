@@ -77,10 +77,12 @@
   # https://medium.com/opsops/how-to-undefine-fact-in-ansible-5fff46432360
   - name: ws.set|reset _current_*
     ansible.builtin.set_fact:
-      _stat_remote_ws: !!null
-      _stat_local_ws_seed: !!null
       _current_local_ws: !!null
+      _stat_local_ws_seed: !!null
       _synchronized: !!null
+      _realpath_local_ws: !!null
+      _realpath_remote_ws: !!null
+      _stat_remote_ws: !!null
 
   - name: ws.set|print worksapce
     ansible.builtin.debug:
