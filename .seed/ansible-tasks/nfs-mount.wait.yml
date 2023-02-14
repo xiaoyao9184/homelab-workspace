@@ -9,16 +9,27 @@
     _wait: "{{ wait_nfs }}"
 
 - name: nfs-mount.wait|dict
-  loop: "{{ wait_nfs | dict2items }}"
-  loop_control:
-    loop_var: kv
   when: wait_nfs | type_debug == "dict"
-  vars:
-    _item_update:
-      name: "{{ kv.key }}"
-    item: "{{ kv.value | combine(_item_update, recursive=True) }}"
-  ansible.builtin.set_fact:
-    _wait: "{{ _wait | default([]) + [item] }}"
+  block:
+
+    - name: nfs-mount.wait|dict to kv list
+      ansible.builtin.set_fact:
+        _kv_list: "{{ wait_nfs | dict2items }}"
+
+    - name: nfs-mount.wait|kv list to list
+      loop: "{{ _kv_list | default([]) }}"
+      loop_control:
+        loop_var: kv
+      vars:
+        _item_update:
+          name: "{{ kv.key }}"
+        item: "{{ kv.value | combine(_item_update, recursive=True) }}"
+      ansible.builtin.set_fact:
+        _wait: "{{ _wait | default([]) + [item] }}"
+
+    - name: nfs-mount.wait|reset _kv_list
+      ansible.builtin.set_fact:
+        _kv_list: !!null
 
 - name: nfs-mount.wait|print wait
   ansible.builtin.debug:
