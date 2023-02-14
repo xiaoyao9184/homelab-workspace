@@ -1,34 +1,56 @@
 ---
 
 
-- name: loop mount
+- name: nfs-mount.loop|loop mount
   block:
 
-    - name: mount loop_nfs.point
+    - name: nfs-mount.loop|mount loop_nfs.point
+      become: true
       ansible.posix.mount:
         src: "{{ loop_nfs.point }}"
         path: "{{ loop_nfs.mount }}"
         fstype: nfs
-        opts: "vers=4,loud,rw,sync"
+        opts: "{{ loop_nfs.option }}"
         state: mounted
       register: loop_nfs_result
     
-    - name: print loop_nfs_result
+    - name: nfs-mount.loop|print loop_nfs_result
       debug:
         var: loop_nfs_result
 
-    - name: remove loop_nfs.mount
+    - name: nfs-mount.loop|unmount loop_nfs.mount
+      become: true
       when:
-        - loop_nfs.remove is defined
-        - loop_nfs.remove
+        - loop_nfs.unmount is defined
+        - loop_nfs.unmount
       ansible.posix.mount:
         path: "{{ loop_nfs.mount }}"
         state: unmounted
 
+    - name: nfs-mount.loop|reset loop_retry
+      ansible.builtin.set_fact:
+        loop_retry: !!null
+
   rescue:
+
+    - name: nfs-mount.loop|set loop_retry
+      when: loop_retry | default('NONE') == 'NONE'
+      ansible.builtin.set_fact:
+        loop_retry: "{{ loop_nfs.retry | int }}"
+
+    - name: nfs-mount.loop|fail loop mount error
+      when: 
+        - loop_retry | int <= 0
+      ansible.builtin.fail:
+        msg: "fail loop mount {{ loop_nfs.point }} to {{ loop_nfs.mount }}"
     
-    - name: sleep 15 seconds loop mount
-      pause:
+    - name: nfs-mount.loop|sleep 15 seconds loop mount
+      ansible.builtin.pause:
         seconds: 15
+        prompt: "retries {{ loop_retry }}"
+
+    - name: nfs-mount.loop|reduce loop_retry
+      ansible.builtin.set_fact:
+        loop_retry: "{{ loop_retry | int - 1 }}"
 
     - include_tasks: nfs-mount.loop.yml
