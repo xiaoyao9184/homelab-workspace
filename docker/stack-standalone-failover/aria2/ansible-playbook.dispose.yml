@@ -5,11 +5,12 @@
     run_wsl: |
       ansible-playbook \
         --inventory $PWD/ansible \
-        $PWD/../../../docker/stack-standalone/aria2/ansible-playbook.dispose.yml
+        $PWD/../../../docker/stack-standalone-failover/aria2/ansible-playbook.dispose.yml
   environment:
     PATH: "{{ ansible_env.PATH }}:{{ env_path | default('',true) }}"
   hosts: docker-manager
-  tasks: 
+  run_once: true
+  tasks:
 
     - name: set ws
       include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/ws.set.yml"
@@ -24,7 +25,7 @@
           type: stack
           name: "{{ dir.names[0] }}"
           path: "{{ dir.remote }}"
-          # files: 
+          # files:
           #   - "docker-compose-swarm.yml"
           template:
             name: docker-compose-swarm
@@ -32,5 +33,5 @@
               src: "{{ dir.local }}/docker-compose-swarm.yml.j2"
               dest: "{{ dir.remote }}/docker-compose-swarm.yml"
             vars:
-              BIND_DOWNLOAD: "{{ aria2.bind_map.downloads }}"
-              PROPAGATION_DOWNLOAD: "{{ aria2.propagation_map.downloads | default(true) }}"
+              PROPAGATION_DOWNLOAD: "{{ aria2.tmp.bind_download_share_propagation | default(false) }}"
+              BIND_DOWNLOAD: "{{ aria2.tmp.bind_download_volume | default('downloads') }}"
