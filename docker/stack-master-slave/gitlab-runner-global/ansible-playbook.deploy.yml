@@ -9,6 +9,7 @@
   environment:
     PATH: "{{ ansible_env.PATH }}:{{ env_path | default('',true) }}"
   hosts: docker-manager
+  run_once: true
   tasks: 
 
     - name: set ws
@@ -33,7 +34,7 @@
       vars:
         env: 
           dest: "{{ dir.remote }}/external_env-all.env"
-          data: "{{ gitlab-runner.env }}"
+          data: "{{ gitlab.runner.env }}"
 
     - name: add stack service
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-compose.add.yml"
@@ -45,6 +46,13 @@
           files: 
             - "docker-compose-swarm.yml"
 
+- name: deploy
+  environment:
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('',true) }}"
+  hosts: "{{ 'docker:&docker-gitlab-node' if (groups['docker-gitlab-node'] is defined) else 'docker' }}"
+  tasks: 
+
+    # TODO gitlab node maybe multiple but service maybe just one
     - name: wait host port
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/host-port.wait.yml"
       vars:
@@ -66,14 +74,9 @@
           result: "runner_token"
 
 - name: deploy
-  vars:
-    run_wsl: |
-      ansible-playbook \
-        --inventory $PWD/ansible \
-        $PWD/../../../docker/stack-standalone/gitlab/gitlab-runner/ansible-playbook.deploy.yml
   environment:
     PATH: "{{ ansible_env.PATH }}:{{ env_path | default('',true) }}"
-  hosts: docker
+  hosts: "{{ 'docker:&docker-gitlab-runner-node' if (groups['docker-gitlab-runner-node'] is defined) else 'docker' }}"
   tasks: 
 
     - name: exec register runner
