@@ -9,7 +9,7 @@
         $PWD/../../../docker/container/portainer-agent/ansible-playbook.run.yml
   environment:
     PATH: "{{ ansible_env.PATH }}:{{ env_path | default('',true) }}"
-  hosts: docker
+  hosts: "{{ 'docker:&docker-portainer-node' if (groups['docker-portainer-node'] is defined) else 'docker' }}"
   tasks: 
 
     - name: run container
