@@ -5,8 +5,9 @@
     run_wsl: |
       ansible-playbook \
         --inventory $PWD/ansible \
-        $PWD/../../../docker/stack-standalone/nfs-server/erichough/exports/ansible-playbook.update.yml
-  hosts: docker-nfs-node
+        $PWD/../../../docker/stack-standalone-fixed/nfs-server/erichough/exports/ansible-playbook.update.yml
+  hosts: docker:&docker-nfs-node
+  run_once: true
   tasks: 
   
     - name: fail for not support env
@@ -15,7 +16,6 @@
         - ansible_env.WSL_DISTRO_NAME | default('NONE') == 'NONE'
       ansible.builtin.fail:
         msg: "Only support window wsl2 docker-desktop see {{ dir.local }}/docker-compose-swarm.yml.j2"
-
 
     - name: set ws
       include_tasks: "{{ playbook_dir }}/../../../../../.seed/ansible-tasks/ws.set.yml"
@@ -28,7 +28,7 @@
     - name: copy dir
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.copy.yml"
       vars:
-        copys: "{{ nfs_node.exports.dir_copy }}"
+        copys: "{{ nfs.exports.dir_copy }}"
 
     - name: copy to volume
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-volumes.copy.yml"
@@ -39,7 +39,7 @@
             src: "{{ dir.remote }}/../data/"
             dest: "./"
             directory_mode: '0777'
-        volumes: "{{ nfs_node.exports.vol_cp | default(_default) }}"
+        volumes: "{{ nfs.exports.vol_cp | default(_default) }}"
 
     # https://medium.com/@jonsbun/why-need-to-be-careful-when-mounting-single-files-into-a-docker-container-4f929340834
     - name: overwrite bind exports

@@ -8,7 +8,7 @@
         $PWD/../../../docker/compose-standalone/nfs-server/erichough/exports/ansible-playbook.update.yml
   environment:
     PATH: "{{ ansible_env.PATH }}:{{ env_path | default('',true) }}"
-  hosts: "{{ 'docker:&docker-nfs-node' if (groups['docker-nfs-node'] is defined) else 'docker' }}"
+  hosts: docker:&docker-nfs-node
   tasks: 
 
     - name: set ws
@@ -22,7 +22,7 @@
     - name: copy dir
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.copy.yml"
       vars:
-        copys: "{{ nfs_node.exports.dir_copy }}"
+        copys: "{{ nfs.exports.dir_copy }}"
 
     - name: copy to volume
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-volumes.copy.yml"
@@ -33,7 +33,7 @@
             src: "{{ dir.remote }}/../data/"
             dest: "./"
             directory_mode: '0777'
-        volumes: "{{ nfs_node.exports.vol_cp | default(_default) }}"
+        volumes: "{{ nfs.exports.vol_cp | default(_default) }}"
 
     # https://medium.com/@jonsbun/why-need-to-be-careful-when-mounting-single-files-into-a-docker-container-4f929340834
     - name: overwrite bind exports

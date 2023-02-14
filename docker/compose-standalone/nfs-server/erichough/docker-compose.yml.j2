@@ -12,12 +12,12 @@ services:
       - external_vol-erichough-nfs-server:/data
       - /lib/modules:/lib/modules:ro
       - {{ VARS.BIND_EXPORTS }}:/etc/exports
-    network_mode: host
-    restart: always
-    container_name: nfs-server
-    user: root
-    privileged: true
     cap_add:
       - SYS_ADMIN
       - SYS_MODULE
       - CAP_SYS_ADMIN
+    network_mode: host
+    container_name: nfs-server
+    restart: always
+    user: root
+    privileged: true
