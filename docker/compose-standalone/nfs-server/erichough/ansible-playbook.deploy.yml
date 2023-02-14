@@ -8,7 +8,7 @@
         $PWD/../../../docker/compose-standalone/nfs-server/erichough/ansible-playbook.deploy.yml
   environment:
     PATH: "{{ ansible_env.PATH }}:{{ env_path | default('',true) }}"
-  hosts: docker-nfs-node
+  hosts: "{{ 'docker:&docker-nfs-node' if (groups['docker-nfs-node'] is defined) else 'docker' }}"
   tasks: 
 
     - name: set ws
