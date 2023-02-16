@@ -1,0 +1,36 @@
+---
+
+
+- name: add
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --ask-pass \
+        --inventory $PWD/ansible \
+        $PWD/../../../windows/netsh/portproxy/ansible-playbook.add.yml
+  hosts: windows
+  tasks: 
+
+    - name: add v4tov4 port proxy
+      loop: "{{ netsh.portproxy.v4tov4 | default([]) }}"
+      ansible.windows.win_command: |
+        netsh int portproxy add v4tov4 listenport={{ item.listenport }} listenaddress={{ item.listenaddress }} connectport={{ item.connectport }} connectaddress={{ item.connectaddress }}
+      ignore_errors: true
+
+    - name: add v4tov6 port proxy
+      loop: "{{ netsh.portproxy.v4tov6 | default([]) }}"
+      ansible.windows.win_command: |
+        netsh int portproxy add v4tov6 listenport={{ item.listenport }} listenaddress={{ item.listenaddress }} connectport={{ item.connectport }} connectaddress={{ item.connectaddress }}
+      ignore_errors: true
+
+    - name: add v6tov4 port proxy
+      loop: "{{ netsh.portproxy.v6tov4 | default([]) }}"
+      ansible.windows.win_command: |
+        netsh int portproxy add v6tov4 listenport={{ item.listenport }} listenaddress={{ item.listenaddress }} connectport={{ item.connectport }} connectaddress={{ item.connectaddress }}
+      ignore_errors: true
+
+    - name: add v6tov6 port proxy
+      loop: "{{ netsh.portproxy.v6tov6 | default([]) }}"
+      ansible.windows.win_command: |
+        netsh int portproxy add v6tov6 listenport={{ item.listenport }} listenaddress={{ item.listenaddress }} connectport={{ item.connectport }} connectaddress={{ item.connectaddress }}
+      ignore_errors: true
