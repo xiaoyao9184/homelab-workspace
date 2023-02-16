@@ -1,0 +1,33 @@
+---
+
+- name: run
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --ask-become-pass \
+        --inventory $PWD/ansible \
+        $PWD/../../../docker/container/qinglong/ansible-playbook.run.yml
+  environment:
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('',true) }}"
+  hosts: "{{ 'docker:&docker-qinglong-node' if (groups['docker-qinglong-node'] is defined) else 'docker' }}"
+  tasks: 
+
+    - name: mkdir bind dir
+      loop: 
+        - "{{ qinglong.bind_data }}"
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+
+    - name: run container
+      become: true
+      community.docker.docker_container:
+        detach: true
+        ports:
+          - "5700:5700"
+        hostname: qinglong
+        name: qinglong
+        restart_policy: unless-stopped
+        volumes:
+          - "{{ qinglong.bind.data }}:/ql/data:rw"
+        image: whyour/qinglong:latest
