@@ -1,0 +1,34 @@
+---
+
+
+- name: run
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --ask-become-pass \
+        --inventory $PWD/ansible \
+        $PWD/../../../dsm/repeat_file_remove/ansible-playbook.run.yml
+  hosts: dsm
+  tasks: 
+
+    - name: set ws
+      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/ws.set.yml"
+
+    - name: set dir
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.set.yml"
+
+    - name: copy dir
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.copy.yml"
+
+    - name: run python3
+      become: true
+      ansible.builtin.shell: 
+        cmd: echo y | python3 repeat_file_remove.py
+        chdir: "{{ dir.remote }}"
+      register: run_result
+
+    - name: print result
+      ansible.builtin.pause:
+        seconds: 1
+        prompt: |
+          {{ run_result.stdout }}
