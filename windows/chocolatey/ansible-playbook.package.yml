@@ -28,7 +28,7 @@
       vars:
         _default:
           state: present
-        _win_chocolatey: "{{ item | combine(_default, recursive=True)  }}"
+        _win_chocolatey: "{{ item | combine(_default, recursive=True) }}"
       chocolatey.chocolatey.win_chocolatey: "{{ _win_chocolatey }}"
       register: package_result
       until: "package_result is not failed"

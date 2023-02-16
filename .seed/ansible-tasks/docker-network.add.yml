@@ -89,7 +89,7 @@
   run_once: "{{ _run_once | default(false,true) | bool }}"
   community.docker.docker_network:
     name: "{{ _net.name }}"
-    driver: "{{ _net.driver | default('bridge')  }}"
+    driver: "{{ _net.driver | default('bridge') }}"
     driver_options: "{{ _net.driver_opts | default({}) }}"
     attachable: "{{ _net.attachable | default(true) }}"
     labels: "{{ _net.labels }}"

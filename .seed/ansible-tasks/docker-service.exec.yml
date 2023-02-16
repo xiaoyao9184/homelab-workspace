@@ -7,8 +7,8 @@
     _service: 
       type: "{{ service.type | default('stack') }}"
       name: "{{ service.name }}"
-      project: "{{ service.project | default('NONE')  }}"
-      namespace: "{{ service.namespace | default('NONE')  }}"
+      project: "{{ service.project | default('NONE') }}"
+      namespace: "{{ service.namespace | default('NONE') }}"
       command: "{{ service.command | regex_replace('\\\\\\\n') }}"
       result: "{{ service.result }}"
 

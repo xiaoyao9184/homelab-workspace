@@ -28,7 +28,7 @@
       vars:
         _default:
           state: present
-        _win_optional_feature: "{{ item | combine(_default, recursive=True)  }}"
+        _win_optional_feature: "{{ item | combine(_default, recursive=True) }}"
       ansible.windows.win_optional_feature: "{{ _win_optional_feature }}"
       register: config_result
       until: "config_result is not failed"

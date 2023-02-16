@@ -28,7 +28,7 @@
       vars:
         _default:
           state: present
-        _win_chocolatey_config: "{{ item | combine(_default, recursive=True)  }}"
+        _win_chocolatey_config: "{{ item | combine(_default, recursive=True) }}"
       chocolatey.chocolatey.win_chocolatey_config: "{{ _win_chocolatey_config }}"
       register: config_result
       until: "config_result is not failed"
