@@ -1,0 +1,41 @@
+---
+
+- name: run
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --ask-become-pass \
+        --inventory $PWD/ansible \
+        $PWD/../../../docker/container/dupeguru/ansible-playbook.run.yml
+  environment:
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('',true) }}"
+  hosts: "{{ 'docker:&docker-dupeguru-node' if (groups['docker-dupeguru-node'] is defined) else 'docker' }}"
+  tasks: 
+
+    - name: mkdir bind dir
+      loop: 
+        - "{{ dupeguru.bind_config }}"
+        - "{{ dupeguru.bind_storage }}"
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+
+    - name: run container
+      become: true
+      community.docker.docker_container:
+        detach: true
+        ports:
+          - "5800:5800"
+        hostname: dupeguru
+        name: dupeguru
+        restart_policy: always
+        privileged: true
+        user: root:root
+        volumes:
+          - "{{ dupeguru.bind_config  }}:/config:rw"
+          - "{{ dupeguru.bind_storage }}:/storage:rw"
+        env:
+          USER_ID: "0"
+          GROUP_ID: "0"
+          ENABLE_CJK_FONT: 1
+        image: jlesage/dupeguru:latest
