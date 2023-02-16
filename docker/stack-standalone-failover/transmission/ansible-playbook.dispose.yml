@@ -1,0 +1,37 @@
+---
+
+- name: dispose
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --inventory $PWD/ansible \
+        $PWD/../../../docker/stack-standalone-failover/transmission/ansible-playbook.dispose.yml
+  environment:
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('',true) }}"
+  hosts: docker-manager
+  run_once: true
+  tasks: 
+
+    - name: set ws
+      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/ws.set.yml"
+
+    - name: set dir
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.set.yml"
+
+    - name: remove stack service
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-compose.rm.yml"
+      vars:
+        compose:
+          type: stack
+          name: "{{ dir.names[0] }}"
+          path: "{{ dir.remote }}"
+          # files: 
+          #   - "docker-compose-swarm.yml"
+          template:
+            name: docker-compose-swarm
+            opt:
+              src: "{{ dir.local }}/docker-compose-swarm.yml.j2"
+              dest: "{{ dir.remote }}/docker-compose-swarm.yml"
+            vars:
+              PROPAGATION_DOWNLOAD: "{{ transmission.tmp.bind_download_share_propagation | default(false) }}"
+              BIND_DOWNLOAD: "{{ transmission.tmp.bind_download_volume | default('downloads') }}"

@@ -5,10 +5,11 @@
     run_wsl: |
       ansible-playbook \
         --inventory $PWD/ansible \
-        $PWD/../../../docker/stack-standalone/transmission/ansible-playbook.dispose.yml
+        $PWD/../../../docker/compose-standalone/transmission/ansible-playbook.dispose.yml
   environment:
     PATH: "{{ ansible_env.PATH }}:{{ env_path | default('',true) }}"
-  hosts: docker-manager
+  hosts: "{{ 'docker:&docker-transmission-node' if (groups['docker-transmission-node'] is defined) else 'docker' }}"
+  run_once: true
   tasks: 
 
     - name: set ws
@@ -21,15 +22,16 @@
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-compose.rm.yml"
       vars:
         compose:
-          type: stack
+          type: compose
           name: "{{ dir.names[0] }}"
           path: "{{ dir.remote }}"
           # files: 
-          #   - "docker-compose-swarm.yml"
+          #   - "docker-compose.yml"
           template:
-            name: docker-compose-swarm
+            name: docker-compose
             opt:
-              src: "{{ dir.local }}/docker-compose-swarm.yml.j2"
-              dest: "{{ dir.remote }}/docker-compose-swarm.yml"
+              src: "{{ dir.local }}/docker-compose.yml.j2"
+              dest: "{{ dir.remote }}/docker-compose.yml"
             vars:
-              BIND_DOWNLOAD: "{{ transmission.bind_map.downloads }}"
+              PROPAGATION_DOWNLOAD: "{{ transmission.tmp.bind_download_share_propagation | default(false) }}"
+              BIND_DOWNLOAD: "{{ transmission.tmp.bind_download_volume | default('downloads') }}"
