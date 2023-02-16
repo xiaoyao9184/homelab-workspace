@@ -4,7 +4,7 @@ services:
   omniedge:
     image: omniedge/omniedge:latest
     env_file: external_env-all.env
-    privileged: true
-    container_name: omniedge
     network_mode: "host"
+    container_name: omniedge
     restart: always
+    privileged: true

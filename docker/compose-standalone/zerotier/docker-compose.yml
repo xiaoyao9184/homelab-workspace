@@ -12,7 +12,7 @@ services:
       - SYS_ADMIN
     devices:
       - /dev/net/tun
-    privileged: true
-    container_name: zerotier
     network_mode: "host"
+    container_name: zerotier
     restart: always
+    privileged: true

@@ -8,10 +8,10 @@ services:
     volumes:
       - /dev/net/tun:/dev/net/tun
       - /var/lib:/var/lib
+    network_mode: "host"
+    container_name: tailscale
+    restart: always
+    privileged: true
     cap_add:
       - net_admin
       - sys_module
-    privileged: true
-    container_name: tailscale
-    network_mode: "host"
-    restart: always
