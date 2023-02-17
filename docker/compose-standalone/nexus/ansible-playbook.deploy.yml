@@ -23,14 +23,14 @@
     - name: add external_vol
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-volumes.add.yml"
       vars:
-        volumes: "{{ nexus.vol }}"
+        volumes: "{{ nexus.vol | default([]) }}"
 
     - name: build env_file
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-env.create.yml"
       vars:
         env: 
           dest: "{{ dir.remote }}/external_env-all.env"
-          data: "{{ nexus.env }}"
+          data: "{{ nexus.env | default([]) }}"
 
     - name: add stack service
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-compose.add.yml"
@@ -43,7 +43,7 @@
             - "docker-compose.yml"
 
     - name: print admin password
-      include_tasks: "{{ dir.local }}/ansible-tasks/admin.password.yml"
+      include_tasks: "{{ dir.local }}/admin-password/ansible-task.print.yml"
       vars:
         nexus: 
           workspace: "{{ ws.local }}"
@@ -53,4 +53,3 @@
             project: "{{ dir.names | join('_') }}"
             command: "bash -c '[ -f /nexus-data/admin.password ] && cat /nexus-data/admin.password || echo passwork already change'"
             result: nexus_passwd
-

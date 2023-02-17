@@ -1,16 +1,16 @@
 ---
 
 
-- name: admin.password
+- name: admin-password.print
   block:
 
-    - name: admin.password|set _nexus
+    - name: admin-password.print|set _nexus
       ansible.builtin.set_fact:
         _nexus:
           service: "{{ nexus.service }}"
           workspace: "{{ nexus.workspace }}"
 
-    - name: admin.password|set _nexus.service.result
+    - name: admin-password.print|set _nexus.service.result
       ansible.builtin.set_fact:
         _nexus: "{{ _nexus | combine(update, recursive=True) }}"
       vars:
@@ -18,30 +18,30 @@
           service:
             result: nexus_passwd
 
-    - name: admin.password|exec cat admin password
+    - name: admin-password.print|exec cat admin password
       include_tasks: "{{ _nexus.workspace }}/.seed/ansible-tasks/docker-service.exec.yml"
       vars:
         service: "{{ _nexus.service }}"
 
-    - name: admin.password|set _nexus.result
+    - name: admin-password.print|set _nexus.result
       ansible.builtin.set_fact:
         _nexus: "{{ _nexus | combine(update, recursive=True) }}"
       vars:
         update:
           result: "{{ nexus_passwd }}"
 
-    - name: admin.password|print _nexus
+    - name: admin-password.print|print _nexus
       debug:
         var: _nexus
 
-    - name: admin.password|reset _nexus
+    - name: admin-password.print|reset _nexus
       ansible.builtin.set_fact:
         _nexus: !!null
   
   rescue:
 
-    - name: admin.password|retry 15 seconds
+    - name: admin-password.print|retry 15 seconds
       pause:
         seconds: 15
 
-    - include_tasks: "admin.password.yml"
+    - include_tasks: "admin-password.print.yml"

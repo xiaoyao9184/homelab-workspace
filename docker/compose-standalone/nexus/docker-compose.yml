@@ -17,7 +17,7 @@ services:
     ports:
       - 8081:8081
       - 8082:8082
-    network_mode: "bridge"
+    # network_mode: "bridge"
     container_name: nexus3
     restart: always
     healthcheck:

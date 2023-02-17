@@ -7,6 +7,8 @@ volumes:
 
 networks:
   nexus:
+    name: external_net-nexus
+    external: true
 
 services:
   nexus3:
@@ -15,11 +17,11 @@ services:
     # environment:
     #   PUID: 200
     #   INSTALL4J_ADD_VM_PARAMS: "-Xms2703m -Xmx2703m -XX:MaxDirectMemorySize=2703m"
+    volumes:
+      - data:/nexus-data
     ports:
       - 8081:8081
       - 8082:8082
-    volumes:
-      - data:/nexus-data
     networks:
       - nexus
     healthcheck:
@@ -32,9 +34,11 @@ services:
       endpoint_mode: vip
       mode: replicated
       replicas: 1
+      # max_replicas_per_node: 1
       placement:
         constraints:
           - node.platform.os == linux
+          - node.labels.nexus-node == true
         preferences:
           - spread: node.platform.os
       labels:
