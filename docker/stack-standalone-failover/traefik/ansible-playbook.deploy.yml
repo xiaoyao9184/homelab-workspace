@@ -5,10 +5,11 @@
     run_wsl: |
       ansible-playbook \
         --inventory $PWD/ansible \
-        $PWD/../../../docker/stack-standalone/traefik/ansible-playbook.deploy.yml
+        $PWD/../../../docker/stack-standalone-failover/traefik/ansible-playbook.deploy.yml
   environment:
     PATH: "{{ ansible_env.PATH }}:{{ env_path | default('',true) }}"
   hosts: docker-manager
+  run_once: true
   tasks: 
 
     - name: set ws
@@ -23,17 +24,19 @@
     - name: add external_net
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-networks.add.yml"
       vars:
-        networks:
+        default:
           external_net-traefik:
             driver: overlay
             attachable: true
-              
+        networks: "{{ traefik.net | default(default) }}"
+
     - name: build compose_file
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-compose.create.yml"
       vars:
-        compose: 
+        compose:
+          version: "3.8"
           dest: "{{ dir.remote }}/docker-compose-swarm.networks.yml"
-          data: "{{ traefik.compose }}"
+          data: "{{ traefik.compose | default({}) }}"
 
     - name: add stack service
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-compose.add.yml"
@@ -52,4 +55,4 @@
               dest: "{{ dir.remote }}/docker-compose-swarm.yml"
             vars:
               TOKEN: "{{ traefik.token }}"
-              NETWORKS: "{{ traefik.compose.networks }}"
+              NETWORKS: "{{ traefik.compose.networks | default({},true) }}"

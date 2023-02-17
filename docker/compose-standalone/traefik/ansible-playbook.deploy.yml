@@ -9,6 +9,7 @@
   environment:
     PATH: "{{ ansible_env.PATH }}:{{ env_path | default('',true) }}"
   hosts: "{{ 'docker:&docker-traefik-node' if (groups['docker-traefik-node'] is defined) else 'docker' }}"
+  run_once: true
   tasks: 
 
     - name: set ws
@@ -23,10 +24,15 @@
     - name: add external_net
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-networks.add.yml"
       vars:
-        networks:
-          external_net-traefik:
-            driver: bridge
-            attachable: true
+        networks: "{{ traefik.net | default([],true) }}"
+
+    - name: build compose_file
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-compose.create.yml"
+      vars:
+        compose:
+          version: "3.8"
+          dest: "{{ dir.remote }}/docker-compose.networks.yml"
+          data: "{{ traefik.compose | default({}) }}"
 
     - name: add stack service
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-compose.add.yml"
@@ -35,6 +41,8 @@
           type: compose
           name: "{{ dir.names[0] }}"
           path: "{{ dir.remote }}"
+          files: 
+            - "docker-compose.networks.yml"
           # files: 
           #   - "docker-compose.yml"
           template:
@@ -44,4 +52,4 @@
               dest: "{{ dir.remote }}/docker-compose.yml"
             vars:
               TOKEN: "{{ traefik.token }}"
-              NETWORKS: "{{ traefik.compose.networks }}"
+              NETWORKS: "{{ traefik.compose.networks | default({},true) }}"

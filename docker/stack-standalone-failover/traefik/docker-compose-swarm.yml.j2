@@ -4,9 +4,16 @@ networks:
   traefik:
     name: external_net-traefik
     external: true
+{# {% for key, value in VARS.NETWORKS.items() %}
+  {{ key }}:
+    name: {{ value.name }}
+{% if value.external is defined %}
+    external: {{ value.external | lower }}
+{% endif %}
+{% endfor %} #}
 
 services:
-  traefik:
+  traefik-proxy:
     hostname: traefik
     image: traefik:v2.8
     command:
@@ -19,6 +26,12 @@ services:
 {% for name in VARS.NETWORKS.keys() %}
       - {{ name }}
 {% endfor %}
+    healthcheck:
+      test: nc -z localhost 9901 && nc -z localhost 9901 || exit 1
+      interval: 60s
+      timeout: 5s
+      retries: 10
+      start_period: 10m
     deploy:
       endpoint_mode: vip
       mode: replicated
@@ -60,14 +73,14 @@ services:
 
   hub-agent:
     hostname: hub-agent
-    image: ghcr.io/traefik/hub-agent-traefik:v0.8.0
+    image: ghcr.io/traefik/hub-agent-traefik:v1.0.0
     command:
       - run
       - --hub.token={{ VARS.TOKEN }}
       - --auth-server.advertise-url=http://hub-agent
       - --traefik.host=traefik
-      - --traefik.docker.swarm-mode
       - --traefik.tls.insecure=true
+      - --traefik.docker.swarm-mode
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     networks:
