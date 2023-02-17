@@ -1,0 +1,24 @@
+---
+
+
+- name: set
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --ask-pass \
+        --inventory $PWD/ansible \
+        $PWD/../../../windows/netsh/port-range/dynamic/ansible-playbook.set.yml
+  hosts: windows
+  tasks: 
+
+    - name: set ipv4
+      loop: "{{ netsh.port_range.dynamic.ipv4 | default([]) }}"
+      ansible.windows.win_command: |
+        netsh int ipv4 set dynamicportrange protocol={{ item.protocol }} startport={{ item.startport }} numberofports={{ item.numberofports }} store={{ item.store }}
+      ignore_errors: true
+
+    - name: set ipv6
+      loop: "{{ netsh.port_range.dynamic.ipv6 | default([]) }}"
+      ansible.windows.win_command: |
+        netsh int ipv6 set dynamicportrange protocol={{ item.protocol }} startport={{ item.startport }} numberofports={{ item.numberofports }} store={{ item.store }}
+      ignore_errors: true
