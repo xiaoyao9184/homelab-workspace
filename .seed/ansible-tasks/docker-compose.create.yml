@@ -6,6 +6,17 @@
     _compose: "{{ compose }}"
 
 - name: docker-compose.create|print _compose
+  when: 
+    - _compose.data is defined 
+    - _compose.data.keys() | length == 0
+  vars:
+    _update:
+      data:
+        version: "{{ _compose.version }}"
+  ansible.builtin.set_fact:
+    _compose: "{{ _compose | combine(_update, recursive=True) }}"
+
+- name: docker-compose.create|print _compose
   ansible.builtin.debug:
     var: _compose
 
