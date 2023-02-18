@@ -4,6 +4,12 @@ volumes:
   data:
     name: external_vol-qinglong-data
     external: true
+  db:
+  repo:
+  raw:
+  scripts:
+  jbot:
+  ninja:
 
 services:
   qinglong:
@@ -11,8 +17,15 @@ services:
     env_file: external_env-all.env
     volumes:
       - data:/ql/data
+      - db:/ql/db
+      - repo:/ql/repo
+      - raw:/ql/raw
+      - scripts:/ql/scripts
+      - jbot:/ql/jbot
+      - ninja:/ql/ninja
     ports:
       - 5700:5700
+      - 5701:5701
     # network_mode: "bridge"
     container_name: qinglong
     restart: unless-stopped

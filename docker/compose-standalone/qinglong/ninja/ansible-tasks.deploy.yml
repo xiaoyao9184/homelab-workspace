@@ -1,0 +1,47 @@
+---
+
+
+- name: ninja.deploy
+  block:
+
+    - name: ninja.deploy|set _ninja
+      ansible.builtin.set_fact:
+        _ninja:
+          service: "{{ ninja.service }}"
+          workspace: "{{ ninja.workspace }}"
+
+    - name: ninja.deploy|set _ninja.service.result
+      ansible.builtin.set_fact:
+        _ninja: "{{ _ninja | combine(update, recursive=True) }}"
+      vars:
+        update:
+          service:
+            result: ninja_install
+
+    - name: ninja.deploy|exec
+      include_tasks: "{{ _ninja.workspace }}/.seed/ansible-tasks/docker-service.exec.yml"
+      vars:
+        service: "{{ _ninja.service }}"
+
+    - name: ninja.deploy|append _ninja.result
+      ansible.builtin.set_fact:
+        _ninja: "{{ _ninja | combine(update, recursive=True) }}"
+      vars:
+        update:
+          result: "{{ ninja_install }}"
+
+    - name: ninja.deploy|print _ninja
+      debug:
+        var: _ninja
+
+    - name: ninja.deploy|reset _ninja
+      ansible.builtin.set_fact:
+        _ninja: !!null
+  
+  rescue:
+
+    - name: ninja.deploy|retry 15 seconds
+      pause:
+        seconds: 15
+
+    - include_tasks: "ninja.deploy.yml"

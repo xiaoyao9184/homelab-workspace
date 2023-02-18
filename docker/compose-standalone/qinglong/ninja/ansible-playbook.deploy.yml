@@ -1,0 +1,37 @@
+---
+
+- name: deploy
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --inventory $PWD/ansible \
+        $PWD/../../../docker/compose-standalone/qinglong/ninja/ansible-playbook.deploy.yml
+  environment:
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('',true) }}"
+  hosts: "{{ 'docker:&docker-qinglong-node' if (groups['docker-qinglong-node'] is defined) else 'docker' }}"
+  run_once: true
+  tasks: 
+
+    - name: set ws
+      include_tasks: "{{ playbook_dir }}/../../../../.seed/ansible-tasks/ws.set.yml"
+
+    - name: set dir
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.set.yml"
+      vars:
+        length: 2
+
+    - name: install ninja
+      loop:
+        - "bash -c 'git -C /ql/ninja pull || git clone https://github.com/MoonBegonia/ninja.git /ql/ninja'"
+        - "bash -c 'cd /ql/ninja/backend && pnpm install'"
+        - "bash -c 'cd /ql/ninja/backend && pm2 start'"
+        - "bash -c 'echo \"\ncd /ql/ninja/backend\npm2 start\" >> /ql/data/config/extra.sh'"
+      include_tasks: "{{ dir.local }}/{{ dir.names[1] }}/ansible-tasks.deploy.yml"
+      vars:
+        ninja: 
+          workspace: "{{ ws.local }}"
+          service:
+            type: compose
+            name: "qinglong"
+            project: "{{ dir.names[0] }}"
+            command: "{{ item }}"
