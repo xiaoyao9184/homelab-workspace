@@ -48,7 +48,7 @@
           old: ip_range
           new: iprange
           list: "{{ _net.ipam.config }}"
-          result_var: _rename_result
+          result_var: _ipam_config
 
     - name: docker-network.add|reset ipam_*
       ansible.builtin.set_fact:
@@ -57,7 +57,7 @@
         _net_update:
           ipam_driver: "{{ _net.ipam.driver | default('default') }}"
           ipam_driver_options: "{{ _net.ipam.options | default({}) }}"
-          ipam_config: "{{ _rename_result | default([]) }}"
+          ipam_config: "{{ _ipam_config | default([]) }}"
 
 - name: docker-network.add|need delegate when swarm network
   block:
@@ -102,6 +102,6 @@
 - name: docker-network.add|reset _net
   ansible.builtin.set_fact:
     _net: !!null
-    _rename_result: !!null
+    _ipam_config: !!null
     _delegate_to: !!null
     _run_once: !!null
