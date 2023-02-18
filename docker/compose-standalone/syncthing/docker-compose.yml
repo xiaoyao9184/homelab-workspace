@@ -22,7 +22,7 @@ services:
       - 8384:8384
       - 21027:21027
       - 22000:22000
-    privileged: true
+    # network_mode: "bridge"
     container_name: syncthing
-    network_mode: "bridge"
     restart: always
+    privileged: true

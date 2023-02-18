@@ -10,6 +10,8 @@ volumes:
 
 networks:
   syncthing:
+    name: external_net-syncthing
+    external: true
 
 services:
   syncthing:
@@ -40,6 +42,7 @@ services:
       placement:
         constraints:
           - node.platform.os == linux
+          - node.labels.syncthing-node == true
         preferences:
           - spread: node.platform.os
       labels:

@@ -1,0 +1,125 @@
+---
+
+- name: deploy
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --ask-become-pass \
+        --inventory $PWD/ansible \
+        $PWD/../../../docker/stack-standalone-failover/syncthing/ansible-playbook.deploy.yml
+  environment:
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('',true) }}"
+  hosts: "{{ 'nfs-client:&docker-syncthing-node' if (groups['docker-syncthing-node'] is defined) else 'nfs-client' }}"
+  # run_once: true
+  tasks:
+
+    - name: wait nfs mount
+      when: syncthing.nfs_wait is defined
+      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/nfs-mount.wait.yml"
+      vars:
+        _default:
+          on_manager:
+            point: "/syncthing-data"
+            mount: "/mnt/nfs/syncthing-data"
+            option: "vers=4,loud,rw,sync"
+            unmount: true
+            retry: 5
+        wait_nfs: "{{ syncthing.nfs_wait | default(_default) }}"
+
+
+- name: deploy
+  environment:
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('',true) }}"
+  hosts: "{{ 'docker:&docker-syncthing-node' if (groups['docker-syncthing-node'] is defined) else 'docker' }}"
+  tasks:
+
+    - name: set inotify limit
+      become: true
+      ansible.posix.sysctl:
+        name: fs.inotify.max_user_watches
+        value: '204800'
+        state: present
+      ignore_errors: true
+
+    - name: set ws
+      include_tasks:
+        file: "{{ playbook_dir }}/../../../.seed/ansible-tasks/ws.set.yml"
+        # https://github.com/ansible/ansible/issues/72099
+        apply:
+          run_once: true
+
+    - name: set dir
+      include_tasks:
+        file: "{{ ws.local }}/.seed/ansible-tasks/dir.set.yml"
+        apply:
+          run_once: true
+
+    - name: copy dir
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.copy.yml"
+      vars:
+        copys: "{{ syncthing.dir_copy | default([],true) }}"
+
+    - name: add external_vol
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-volumes.add.yml"
+      vars:
+        volumes: "{{ syncthing.vol | default([],true) }}"
+
+    - name: add external_net
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-networks.add.yml"
+      vars:
+        networks: "{{ syncthing.net | default([],true) }}"
+
+
+- name: deploy
+  environment:
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('',true) }}"
+  hosts: docker-manager
+  run_once: true
+  tasks:
+  
+    - name: set ws
+      when: ws is undefined
+      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/ws.set.yml"
+
+    - name: set dir
+      when: dir is undefined
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.set.yml"
+
+    - name: copy dir
+      when: not (dir.synchronized | default(false) | bool)
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.copy.yml"
+      vars:
+        copys: "{{ syncthing.dir_copy | default([],true) }}"
+
+    # TODO stack-standalone-fixed and stack-standalone-failover use same time will make fixed not fixed
+    - name: add swarm label
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-label.add.yml"
+      vars:
+        labels: "{{ syncthing.lab | default([],true) }}"
+
+    - name: add swarm secret
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-secrets.add.yml"
+      vars:
+        secrets: "{{ syncthing.sec | default([],true) }}"
+
+    - name: add swarm config
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-configs.add.yml"
+      vars:
+        configs: "{{ syncthing.cfg | default([],true) }}"
+
+    - name: build env_file
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-env.create.yml"
+      vars:
+        env:
+          dest: "{{ dir.remote }}/external_env-all.env"
+          data: "{{ syncthing.env | default([],true) }}"
+
+    - name: add stack service
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-compose.add.yml"
+      vars:
+        compose:
+          type: stack
+          name: "{{ dir.names[0] }}"
+          path: "{{ dir.remote }}"
+          files:
+            - "docker-compose-swarm.yml"

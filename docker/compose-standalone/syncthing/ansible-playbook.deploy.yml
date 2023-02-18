@@ -12,6 +12,14 @@
   hosts: "{{ 'docker:&docker-syncthing-node' if (groups['docker-syncthing-node'] is defined) else 'docker' }}"
   tasks: 
 
+    - name: set inotify limit
+      become: true
+      ansible.posix.sysctl:
+        name: fs.inotify.max_user_watches
+        value: '204800'
+        state: present
+      ignore_errors: true
+
     - name: set ws
       include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/ws.set.yml"
 
@@ -20,18 +28,20 @@
 
     - name: copy dir
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.copy.yml"
+      vars:
+        copys: "{{ syncthing.dir_copy | default([]) }}"
 
     - name: add external_vol
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-volumes.add.yml"
       vars:
-        volumes: "{{ syncthing.vol }}"
+        volumes: "{{ syncthing.vol | default([]) }}"
 
     - name: build env_file
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-env.create.yml"
       vars:
         env: 
           dest: "{{ dir.remote }}/external_env-all.env"
-          data: "{{ syncthing.env }}"
+          data: "{{ syncthing.env | default([]) }}"
 
     - name: add stack service
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-compose.add.yml"
@@ -42,10 +52,3 @@
           path: "{{ dir.remote }}"
           files: 
             - "docker-compose.yml"
-
-    - name: set inotify limit
-      become: true
-      ansible.posix.sysctl:
-        name: fs.inotify.max_user_watches
-        value: '204800'
-        state: present
