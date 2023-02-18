@@ -1,0 +1,114 @@
+---
+
+
+- name: deploy
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --inventory $PWD/ansible \
+        $PWD/../../../docker/stack-standalone-failover/transmission/transmissionic/ansible-playbook.deploy.yml
+  environment:
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('',true) }}"
+  hosts: "{{ 'nfs-client:&docker-transmission-node' if (groups['docker-transmission-node'] is defined) else 'nfs-client' }}"
+  run_once: true
+  tasks: 
+
+    - name: set ws
+      include_tasks: "{{ playbook_dir }}/../../../../.seed/ansible-tasks/ws.set.yml"
+
+    - when: transmission.transmissionic.version is defined
+      block:
+
+        - name: set install url by inventory
+          vars:
+            _ver: "{{ transmission.transmissionic.version }}"
+          ansible.builtin.set_fact:
+            transmissionic:
+              version: "{{ _ver }}"
+              url: "{{ github.url_prefix | default('') }}https://github.com/6c65726f79/Transmissionic/releases/download/{{ _ver }}/Transmissionic-webui-{{ _ver }}.zip"
+              archive: "~/.transmission/Transmissionic-webui-{{ _ver }}.zip"
+              webui: "~/.transmission/Transmissionic-webui-{{ _ver }}"
+
+    - when: transmission.transmissionic.version is undefined
+      block:
+
+        - name: get github latest release
+          delegate_to: localhost
+          ansible.builtin.uri:
+            url: "https://api.github.com/repos/6c65726f79/Transmissionic/releases/latest"
+            return_content: true
+          register: json_reponse
+
+        - name: set install url by github
+          vars:
+            _ver: "{{ json_reponse.json.name }}"
+            _webui_assets: "{{ json_reponse.json.assets | selectattr('name', 'match', 'Transmissionic-webui') }}"
+          ansible.builtin.set_fact:
+            transmissionic:
+              version: "{{ _ver }}"
+              url: "{{ github.url_prefix | default('') }}{{ _webui_assets[0].browser_download_url }}"
+              archive: "~/.transmission/Transmissionic-webui-{{ _ver }}.zip"
+              webui: "~/.transmission/Transmissionic-webui-{{ _ver }}"
+              delegate: "{{ transmission.transmissionic.delegate | default(None) }}"
+
+    - name: mkdir archive
+      delegate_to: localhost
+      ansible.builtin.file:
+        path: "~/.transmission"
+        state: directory
+
+    - name: stat archive
+      delegate_to: localhost
+      ansible.builtin.stat:
+        path: "{{ transmissionic.archive }}"
+      register: stat_archive
+
+    - name: download archive
+      delegate_to: localhost
+      when: not stat_archive.stat.exists
+      ansible.builtin.get_url:
+        url: "{{ transmissionic.url }}"
+        dest: "{{ transmissionic.archive }}"
+
+    - when: transmission.transmissionic.delegate | default(None) == None
+      block:
+
+        - name: mkdir archive on remote
+          ansible.builtin.file:
+            path: "~/.transmission"
+            state: directory
+
+        - name: copy archive to remote
+          ansible.builtin.copy:
+            src: "{{ transmissionic.archive }}"
+            dest: "{{ transmissionic.archive }}"
+
+    - name: mkdir webui
+      delegate_to: "{{ transmission.transmissionic.delegate | default(omit) }}"
+      ansible.builtin.file:
+        path: "{{ transmissionic.webui }}"
+        state: directory
+
+    - name: unzip archive
+      delegate_to: "{{ transmission.transmissionic.delegate | default(omit) }}"
+      ansible.builtin.unarchive:
+        src: "{{ transmissionic.archive }}"
+        dest: "{{ transmissionic.webui }}"
+
+    - name: copy webui to volume
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-volumes.copy.yml"
+      vars:
+        volumes: 
+          external_vol-transmission-config:
+            remote_src: "{{ true if (transmission.transmissionic.delegate | default(None) == None) else false }}"
+            src: "{{ transmissionic.webui }}/web/"
+            dest: "./webui/transmissionic/"
+            directory_mode: '0744'
+
+    - name: remove webui archive
+      loop: 
+        - "{{ transmissionic.archive }}"
+        - "{{ transmissionic.webui }}"
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
