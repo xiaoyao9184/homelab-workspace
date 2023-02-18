@@ -27,7 +27,7 @@ mkdir -p ${config_mount}
 script=$(cat << EOF
 #!/bin/sh -e
 rclone \
- mount ${config_name}: /var/services/homes/xy/${config_name} \
+ mount ${config_name}: /var/services/homes/$USER/${config_name} \
  --config=$config_path \
  --allow-other \
  --allow-non-empty \

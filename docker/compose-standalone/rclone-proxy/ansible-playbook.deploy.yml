@@ -14,7 +14,21 @@
   environment:
     PATH: "{{ ansible_env.PATH }}:{{ env_path | default('',true) }}"
   hosts: "{{ 'docker:&docker-rclone-node' if (groups['docker-rclone-node'] is defined) else 'docker' }}"
+  run_once: true
   tasks: 
+
+    - name: check shared
+      loop: "{{ rclone_proxy.shared_check | default([]) }}"
+      ansible.builtin.shell: "cat /proc/1/mountinfo | grep '{{ item }} ' | grep 'shared' "
+      register: check_result
+
+    - name: fail not shared
+      when:
+        - rclone_proxy.shared_check | default([]) | length >0
+        - check_result.rc is defined 
+        - check_result.rc == 0
+      ansible.builtin.fail:
+        msg: "shared check fail"
 
     - name: set ws
       include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/ws.set.yml"
@@ -41,11 +55,12 @@
     - name: set service_name_list
       ansible.builtin.set_fact:
         service_name_list: "{{ service_names.split(',') }}"
-        dir_copy_list: "[] + {{ rclone.dir_copy }}" 
+        dir_copy_list: "{{ [] + (rclone_proxy.dir_copy | default([])) }}" 
         vol_list: []
-        net_list: "{{ rclone.net }}"
         env_list: []
         template_list: []
+        mkdir_list: 
+          - "{{ dir.remote }}/docker-compose"
 
     - name: add service_name_list
       ansible.builtin.set_fact:
@@ -53,9 +68,10 @@
         vol_list: "{{ vol_list + [vol] }}"
         env_list: "{{ env_list + [env] }}"
         template_list: "{{ template_list + [template] }}"
+        mkdir_list: "{{ mkdir_list + [service.bind_map.data] }}"
       vars:
         service: "{{ rclone_proxy.service[name] }}"
-        dir_copy: "{{ service.dir_copy }}"
+        dir_copy: "{{ service.dir_copy | default([]) }}"
         vol: 
           - name: "external_vol-rclone-config-{{ name }}"
             driver: local
@@ -63,9 +79,10 @@
               type: none
               device: "{{ service.vol_map.config }}"
               o: bind
+        env_default: "{{ rclone_proxy.env | default([]) }}"
         env:
           - dest: "{{ dir.remote }}/docker-compose/external_env-{{ name }}.env"
-            data: "{{ service.env | default(rclone.env) }}"
+            data: "{{ service.env | default(env_default) }}"
         template:
           name: "{{ name }}"
           opt:
@@ -78,7 +95,6 @@
       loop_control:
         loop_var: name
 
-        
     - name: copy dir
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.copy.yml"
       vars:
@@ -89,22 +105,17 @@
       vars:
         volumes: "{{ vol_list | flatten }}"
 
-    - name: add external_net
-      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-networks.add.yml"
-      vars:
-        networks: "{{ net_list | flatten }}"
+    - name: mkdir for serivce
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+      loop: "{{ mkdir_list }}"
+      ignore_errors: true
 
     - name: build env_file
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-envs.create.yml"
       vars:
         envs: "{{ env_list | flatten }}"
-
-    - name: mkdir for serivce
-      ansible.builtin.file:
-        path: "{{ item }}"
-        state: directory
-      loop:
-        - "{{ dir.remote }}/docker-compose"
 
     - name: add compose service
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-compose.add.yml"
