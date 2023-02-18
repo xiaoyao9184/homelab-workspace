@@ -20,13 +20,9 @@ volumes:
     name: external_vol-shinobi-tensorflow
     external: true
 
-networks:
-  shinobi:
-
 services:
   shinobi:
     image: shinobisystems/shinobi:dev
-    container_name: shinobi
     env_file: external_env-shinobi.env
     volumes:
       - config:/config
@@ -38,29 +34,25 @@ services:
       - /etc/localtime:/etc/localtime:ro
     ports:
       - 8180:8080
+    container_name: shinobi
     restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          cpus: '2'
-          memory: 2048M
-        reservations:
-          cpus: '0.5'
-          memory: 1024M
-
+    healthcheck:
+      test: curl -f http://localhost:8080 || exit 1
+      interval: 60s
+      timeout: 10s
+      retries: 10
+      start_period: 10m
 
   shinobi-tensorflow:
     image: shinobisystems/shinobi-tensorflow:latest
-    container_name: shinobi-tensorflow
     env_file: external_env-tf.env
     volumes:
       - tensorflow:/config
+    container_name: shinobi-tensorflow
     restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          cpus: '2'
-          memory: 2048M
-        reservations:
-          cpus: '0.5'
-          memory: 1024M
+    healthcheck:
+      test: netstat -ltn | grep -c 8082 || exit 1
+      interval: 60s
+      timeout: 5s
+      retries: 10
+      start_period: 10m
