@@ -9,6 +9,7 @@
   environment:
     PATH: "{{ ansible_env.PATH }}:{{ env_path | default('',true) }}"
   hosts: "{{ 'docker:&docker-domoticz-node' if (groups['docker-domoticz-node'] is defined) else 'docker' }}"
+  run_once: true
   tasks: 
 
     - name: set ws
@@ -23,19 +24,19 @@
     - name: add external_vol
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-volumes.add.yml"
       vars:
-        volumes: "{{ domoticz.vol }}"
+        volumes: "{{ domoticz.vol | default([]) }}"
 
     - name: add external_net
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-networks.add.yml"
       vars:
-        networks: "{{ domoticz.net }}"
+        networks: "{{ domoticz.net | default([]) }}"
 
     - name: build env_file
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-env.create.yml"
       vars:
         env: 
           dest: "{{ dir.remote }}/external_env-all.env"
-          data: "{{ domoticz.env }}"
+          data: "{{ domoticz.env | default([]) }}"
 
     - name: add compose service
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-compose.add.yml"
@@ -52,14 +53,7 @@
               src: "{{ dir.local }}/docker-compose.yml.j2"
               dest: "{{ dir.remote }}/docker-compose.yml"
             vars:
-              IP: "{{ domoticz.ip }}"
-    
-    - name: wait host port
-      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/host-port.wait.yml"
-      vars:
-        wait_name: "{{ dir.names | join('_') }}"
-        wait_network: []
-        wait_port: "{{ domoticz.wait_port }}"
+              IP: "{{ domoticz.tmp.ip }}"
 
     - name: exec service
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-service.exec.yml"
@@ -70,11 +64,12 @@
           project: "{{ dir.names[0] }}"
           command: "{{ command }}"
           result: exe_result
-      loop: "{{ domoticz.exec }}"
+      loop: "{{ domoticz.exec | default([]) }}"
       loop_control:
         loop_var: command
 
     - name: restart container
+      when: domoticz.exec is defined
       community.docker.docker_container:
         name: domoticz
         state: started
