@@ -9,6 +9,7 @@
   environment:
     PATH: "{{ ansible_env.PATH }}:{{ env_path | default('',true) }}"
   hosts: "{{ 'docker:&docker-omniedge-node' if (groups['docker-omniedge-node'] is defined) else 'docker' }}"
+  run_once: true
   tasks: 
 
     - name: set ws
@@ -25,7 +26,7 @@
       vars:
         env: 
           dest: "{{ dir.remote }}/external_env-all.env"
-          data: "{{ omniedge.env }}"
+          data: "{{ omniedge.env | default([],true) }}"
 
     - name: add compose service
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-compose.add.yml"
