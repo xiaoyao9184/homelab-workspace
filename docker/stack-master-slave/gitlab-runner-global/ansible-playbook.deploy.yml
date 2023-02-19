@@ -49,6 +49,7 @@
 - name: deploy
   environment:
     PATH: "{{ ansible_env.PATH }}:{{ env_path | default('',true) }}"
+  # TODO Unable to know which node it is running on
   hosts: "{{ 'docker:&docker-gitlab-node' if (groups['docker-gitlab-node'] is defined) else 'docker' }}"
   tasks: 
 
