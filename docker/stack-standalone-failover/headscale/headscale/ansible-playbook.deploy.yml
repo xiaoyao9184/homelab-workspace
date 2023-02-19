@@ -1,0 +1,160 @@
+---
+
+- name: deploy
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --inventory $PWD/ansible \
+        $PWD/../../../docker/stack-standalone-failover/headscale/headscale/ansible-playbook.deploy.yml
+  environment:
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('',true) }}"
+  hosts: "{{ 'nfs-client:&docker-headscale-node' if (groups['docker-headscale-node'] is defined) else 'nfs-client' }}"
+  # run_once: true
+  tasks:
+
+    - name: wait nfs mount
+      when: headscale.nfs_wait is defined
+      include_tasks: "{{ playbook_dir }}/../../../../.seed/ansible-tasks/nfs-mount.wait.yml"
+      vars:
+        _default:
+          on_manager:
+            point: "/headscale-config"
+            mount: "/mnt/nfs/headscale-config"
+            option: "vers=4,loud,rw,sync"
+            unmount: true
+            retry: 5
+        wait_nfs: "{{ headscale.nfs_wait | default(_default) }}"
+
+
+- name: deploy
+  environment:
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('',true) }}"
+  hosts: "{{ 'docker:&docker-headscale-node' if (groups['docker-headscale-node'] is defined) else 'docker' }}"
+  tasks:
+
+    - name: set ws
+      include_tasks:
+        file: "{{ playbook_dir }}/../../../../.seed/ansible-tasks/ws.set.yml"
+        # https://github.com/ansible/ansible/issues/72099
+        apply:
+          run_once: true
+
+    - name: set dir
+      include_tasks:
+        file: "{{ ws.local }}/.seed/ansible-tasks/dir.set.yml"
+        apply:
+          run_once: true
+      vars:
+        length: 2
+
+    - name: copy dir
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.copy.yml"
+      vars:
+        copys: "{{ headscale.dir_copy | default([],true) }}"
+
+    - name: add external_vol
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-volumes.add.yml"
+      vars:
+        volumes: "{{ headscale.vol | default([],true) }}"
+
+    - name: add external_net
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-networks.add.yml"
+      vars:
+        networks: "{{ headscale.net | default([],true) }}"
+
+
+- name: deploy
+  hosts: docker-manager
+  run_once: true
+  tasks:
+
+    - name: set ws
+      when: ws is undefined
+      include_tasks: "{{ playbook_dir }}/../../../../.seed/ansible-tasks/ws.set.yml"
+
+    - name: set dir
+      when: dir is undefined
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.set.yml"
+      vars:
+        length: 2
+
+    - name: copy dir
+      when: not (dir.synchronized | default(false) | bool)
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.copy.yml"
+      vars:
+        copys: "{{ headscale.dir_copy | default([],true) }}"
+
+    # TODO stack-standalone-fixed and stack-standalone-failover use same time will make fixed not fixed
+    - name: add swarm label
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-label.add.yml"
+      vars:
+        labels: "{{ headscale.lab | default([],true) }}"
+
+    - name: add swarm secret
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-secrets.add.yml"
+      vars:
+        secrets: "{{ headscale.sec | default([],true) }}"
+
+    - name: add swarm config
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-configs.add.yml"
+      vars:
+        configs: "{{ headscale.cfg | default([],true) }}"
+
+    - name: build env_file
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-env.create.yml"
+      vars:
+        env:
+          dest: "{{ dir.remote }}/external_env-all.env"
+          data: "{{ headscale.env | default([],true) }}"
+
+    - name: add stack service
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-compose.add.yml"
+      vars:
+        compose:
+          type: stack
+          name: "{{ dir.names[0] }}"
+          path: "{{ dir.remote }}/{{ dir.names[-1] }}"
+          files:
+            - "docker-compose-swarm.yml"
+
+
+- name: deploy
+  environment:
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('',true) }}"
+  hosts: "{{ 'docker:&docker-headscale-node' if (groups['docker-headscale-node'] is defined) else 'docker' }}"
+  # TODO Unable to know which node it is running on
+  # run_once: true
+  tasks:
+
+    - name: wait host port
+      include_tasks: 
+        file: "{{ ws.local }}/.seed/ansible-tasks/host-port.wait.yml"
+        apply:
+          run_once: true
+      vars:
+        wait_name: "{{ dir.names | join('_') }}"
+        wait_network:
+          - external_net-headscale
+        wait_port: 
+          headscale: 8080
+
+    - name: create headscale apikey
+      include_tasks: "{{ dir.local }}/ansible-tasks/apikey.create.yml"
+      vars:
+        apikey:
+          ws: "{{ ws }}"
+          result: apikey_create
+
+    - name: create headscale user
+      include_tasks: "{{ dir.local }}/ansible-tasks/user.create.yml"
+      vars:
+        user:
+          ws: "{{ ws }}"
+          result: user_create
+
+    - name: create headscale preauthkey
+      include_tasks: "{{ dir.local }}/ansible-tasks/preauthkey.create.yml"
+      vars:
+        preauthkey:
+          ws: "{{ ws }}"
+          result: preauthkey_create

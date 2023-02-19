@@ -5,10 +5,11 @@
     run_wsl: |
       ansible-playbook \
         --inventory $PWD/ansible \
-        $PWD/../../../docker/stack-standalone/tailscale/headscale-ui/ansible-playbook.dispose.yml
+        $PWD/../../../docker/stack-standalone-failover/headscale/headscale-ui/ansible-playbook.dispose.yml
   environment:
     PATH: "{{ ansible_env.PATH }}:{{ env_path | default('',true) }}"
   hosts: docker-manager
+  run_once: true
   tasks: 
 
     - name: set ws
@@ -25,6 +26,6 @@
         compose:
           type: stack
           name: "{{ dir.names[0] }}"
-          path: "{{ dir.remote }}"
+          path: "{{ dir.remote }}/{{ dir.names[-1] }}"
           files: 
             - "docker-compose-swarm.yml"

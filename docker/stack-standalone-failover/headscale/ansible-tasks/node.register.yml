@@ -1,0 +1,50 @@
+---
+
+
+- name: node.register|set _node
+  vars:
+    lookup_default:
+      name: "headscale"
+      namespace: "headscale"
+      retries: 1
+      delay: 0
+      result: "lookup_result"
+    lookup_update: "{{ node.service.lookup | default({}) }}"
+  ansible.builtin.set_fact:
+    _node:
+      key_user: "{{ node.key_user }}"
+      result: "{{ node.result | default('register_result') }}"
+      ws: "{{ node.ws }}"
+      lookup: "{{ lookup_default | combine(lookup_update, recursive=True) }}"
+
+- name: node.register|lookup service
+  include_tasks: "{{ _node.ws.local }}/.seed/ansible-tasks/docker-service.lookup.yml"
+  vars:
+    service: "{{ _node.lookup }}"
+
+- name: node.register|print _node
+  debug:
+    var: _node
+
+- name: node.register|register node
+  loop: "{{ _node.key_user }}"
+  when: item.key | default(None,true) != None
+  community.docker.docker_container_exec:
+    container: "{{ lookup_result.container_id }}"
+    command: "headscale node register --key {{ item.key }} -u {{ item.user }}"
+  register: exec_result
+
+- name: node.register|set _node.result
+  when:
+    - exec_result is defined
+    - exec_result.results is defined
+  ansible.builtin.set_fact:
+    "{{ _node.result }}": "{{ exec_result | json_query('results[].{key: item.key,user: item.user,result: stdout_lines[-1]}') }}"
+
+- name: node.register|print _node.result
+  debug:
+    var: "{{ _node.result }}"
+
+- name: node.register|reset _node
+  ansible.builtin.set_fact:
+    _node: !!null

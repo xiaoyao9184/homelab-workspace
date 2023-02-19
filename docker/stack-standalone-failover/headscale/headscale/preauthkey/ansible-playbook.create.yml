@@ -1,0 +1,69 @@
+---
+
+- name: create
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --inventory $PWD/ansible \
+        $PWD/../../../docker/stack-standalone-failover/headscale/headscale/preauthkey/ansible-playbook.create.yml
+  vars_prompt:
+    - name: preauthkey_expire
+      prompt: What expire preauthkey for create(split ',' format {expire}[@{user}])?
+      private: no
+      default: 240h@default
+  environment:
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('',true) }}"
+  hosts: "{{ 'docker:&docker-headscale-node' if (groups['docker-headscale-node'] is defined) else 'docker' }}"
+  # TODO Unable to know which node it is running on
+  # run_once: true
+  tasks:
+
+    - name: set expire
+      ansible.builtin.set_fact:
+        _preauthkey_create_list: "{{ preauthkey_expire | split(',') }}"
+        _preauthkey_expire_user_list: []
+
+    - name: format expire
+      loop: "{{ _preauthkey_create_list }}"
+      vars:
+        _item_split: "{{ item | split('@') }}"
+        _item:
+          expire: "{{ _item_split[0] }}"
+          user: "{{ _item_split[1] if (_item_split | length == 2) else 'default' }}"
+      ansible.builtin.set_fact:
+        _preauthkey_expire_user_list: "{{ _preauthkey_expire_user_list + [_item] }}"
+
+    - name: set ws
+      include_tasks:
+        file: "{{ playbook_dir }}/../../../../../.seed/ansible-tasks/ws.set.yml"
+        # https://github.com/ansible/ansible/issues/72099
+        apply:
+          run_once: true
+
+    - name: set dir
+      include_tasks:
+        file: "{{ ws.local }}/.seed/ansible-tasks/dir.set.yml"
+        apply:
+          run_once: true
+      vars:
+        length: 3
+
+    # - name: wait host port
+    #   include_tasks: 
+    #     file: "{{ ws.local }}/.seed/ansible-tasks/host-port.wait.yml"
+    #     apply:
+    #       run_once: true
+    #   vars:
+    #     wait_name: "{{ dir.names | join('_') }}"
+    #     wait_network:
+    #       - external_net-headscale
+    #     wait_port: 
+    #       headscale: 8080
+
+    - name: create headscale preauthkey
+      include_tasks: "{{ dir.local }}/ansible-tasks/preauthkey.create.yml"
+      vars:
+        preauthkey:
+          ws: "{{ ws }}"
+          expire_user: "{{ _preauthkey_expire_user_list }}"
+          result: preauthkey_result

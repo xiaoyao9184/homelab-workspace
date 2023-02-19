@@ -1,0 +1,89 @@
+---
+
+
+- name: node.delete|set _node
+  vars:
+    lookup_default:
+      name: "headscale"
+      namespace: "headscale"
+      retries: 1
+      delay: 0
+      result: "lookup_result"
+    lookup_update: "{{ node.service.lookup | default({}) }}"
+  ansible.builtin.set_fact:
+    _node:
+      id: "{{ node.id | default([]) }}"
+      user: "{{ node.user | default([]) }}"
+      result: "{{ node.result | default('expire_result') }}"
+      ws: "{{ node.ws }}"
+      lookup: "{{ lookup_default | combine(lookup_update, recursive=True) }}"
+
+- name: node.delete|lookup service
+  include_tasks: "{{ _node.ws.local }}/.seed/ansible-tasks/docker-service.lookup.yml"
+  vars:
+    service: "{{ _node.lookup }}"
+
+- when: 
+    - _node.id | length == 0
+    - _node.user | length == 0
+  block:
+
+    - name: node.delete|list user
+      community.docker.docker_container_exec:
+        container: "{{ lookup_result.container_id }}"
+        command: "headscale user list -o json"
+      register: list_result
+
+    - name: node.delete|set _node.user
+      vars:
+        user: "{{ list_result.stdout | from_json | json_query('[].name') | default([],true) }}"
+        update:
+          user: "{{ user }}"
+      ansible.builtin.set_fact:
+        _node: "{{ _node | combine(update, recursive=True) }}"
+
+- when: _node.user | length > 0
+  block:
+
+    - name: _node.delete|list node
+      loop: "{{ _node.user }}"
+      community.docker.docker_container_exec:
+        container: "{{ lookup_result.container_id }}"
+        command: "headscale node list -u {{ item }} -o json"
+      register: list_result
+
+    - name: _node.delete|add _node.id
+      loop: "{{ list_result.results }}"
+      when: item.stdout != 'null'
+      vars:
+        key: "{{ item.stdout | from_json | json_query('[].id') | default([],true) }}"
+        update:
+          id: "{{ _node.id + id }}"
+      ansible.builtin.set_fact:
+        _node: "{{ _node | combine(update, recursive=True) }}"
+
+- name: node.delete|print _node
+  debug:
+    var: _node
+
+- name: node.delete|delete node
+  loop: "{{ _node.id }}"
+  community.docker.docker_container_exec:
+    container: "{{ lookup_result.container_id }}"
+    command: "headscale node delete --identifier {{ item }} --force"
+  register: exec_result
+
+- name: node.delete|set _node.result
+  when:
+    - exec_result is defined
+    - exec_result.results is defined
+  ansible.builtin.set_fact:
+    "{{ _node.result }}": "{{ exec_result | json_query('results[].{key: item,value: stdout_lines[-1]}') | items2dict }}"
+
+- name: node.delete|print _node.result
+  debug:
+    var: "{{ _node.result }}"
+
+- name: node.delete|reset _node
+  ansible.builtin.set_fact:
+    _node: !!null

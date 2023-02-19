@@ -1,0 +1,65 @@
+---
+
+
+- name: apikey.expire|set _apikey
+  vars:
+    lookup_default:
+      name: "headscale"
+      namespace: "headscale"
+      retries: 1
+      delay: 0
+      result: "lookup_result"
+    lookup_update: "{{ apikey.service.lookup | default({}) }}"
+  ansible.builtin.set_fact:
+    _apikey:
+      prefix: "{{ apikey.prefix | default([]) }}"
+      result: "{{ apikey.result | default('expire_result') }}"
+      ws: "{{ apikey.ws }}"
+      lookup: "{{ lookup_default | combine(lookup_update, recursive=True) }}"
+
+- name: apikey.create|lookup service
+  include_tasks: "{{ _apikey.ws.local }}/.seed/ansible-tasks/docker-service.lookup.yml"
+  vars:
+    service: "{{ _apikey.lookup }}"
+
+- when: _apikey.prefix | length == 0
+  block:
+
+    - name: apikey.expire|list apikey
+      community.docker.docker_container_exec:
+        container: "{{ lookup_result.container_id }}"
+        command: "headscale apikey list -o json"
+      register: list_result
+
+    - name: apikey.expire|set _apikey.prefix
+      vars:
+        update_apikey:
+          prefix: "{{ list_result.stdout | from_json | json_query('[].prefix') | default([],true) }}"
+      ansible.builtin.set_fact:
+        _apikey: "{{ _apikey | combine(update, recursive=True) }}"
+      
+- name: apikey.expire|print _apikey
+  debug:
+    var: _apikey
+
+- name: apikey.expire|expire apikey
+  loop: "{{ _apikey.prefix }}"
+  community.docker.docker_container_exec:
+    container: "{{ lookup_result.container_id }}"
+    command: "headscale apikey expire --prefix {{ item }}"
+  register: exec_result
+
+- name: apikey.expire|set _apikey.result
+  when:
+    - exec_result is defined
+    - exec_result.results is defined
+  ansible.builtin.set_fact:
+    "{{ _apikey.result }}": "{{ exec_result | json_query('results[].{key: item,value: stdout_lines[-1]}') | items2dict }}"
+
+- name: apikey.expire|print _apikey.result
+  debug:
+    var: "{{ _apikey.result }}"
+
+- name: apikey.expire|reset apikey_result
+  ansible.builtin.set_fact:
+    _apikey: !!null

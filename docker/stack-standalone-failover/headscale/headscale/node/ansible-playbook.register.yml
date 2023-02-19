@@ -1,0 +1,69 @@
+---
+
+- name: register
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --inventory $PWD/ansible \
+        $PWD/../../../docker/stack-standalone-failover/headscale/headscale/node/ansible-playbook.register.yml
+  vars_prompt:
+    - name: node_key
+      prompt: What is node key(split ',' format {key}[@{user}])?
+      private: no
+      default: nodekey:358f7e1a792e56f8ee9cd771bde6b9d48f2a703a02eb11c06c118da2ac61a91b@default
+  environment:
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('',true) }}"
+  hosts: "{{ 'docker:&docker-headscale-node' if (groups['docker-headscale-node'] is defined) else 'docker' }}"
+  # TODO Unable to know which node it is running on
+  # run_once: true
+  tasks:
+
+    - name: set key
+      ansible.builtin.set_fact:
+        _node_register_list: "{{ node_key | split(',') }}"
+        _node_key_user_list: []
+
+    - name: format key
+      loop: "{{ _node_register_list }}"
+      vars:
+        _item_split: "{{ item | split('@') }}"
+        _item:
+          key: "{{ _item_split[0] }}"
+          user: "{{ _item_split[1] if (_item_split | length == 2) else 'default' }}"
+      ansible.builtin.set_fact:
+        _node_key_user_list: "{{ _node_key_user_list + [_item] }}"
+
+    - name: set ws
+      include_tasks:
+        file: "{{ playbook_dir }}/../../../../../.seed/ansible-tasks/ws.set.yml"
+        # https://github.com/ansible/ansible/issues/72099
+        apply:
+          run_once: true
+
+    - name: set dir
+      include_tasks:
+        file: "{{ ws.local }}/.seed/ansible-tasks/dir.set.yml"
+        apply:
+          run_once: true
+      vars:
+        length: 3
+
+    # - name: wait host port
+    #   include_tasks: 
+    #     file: "{{ ws.local }}/.seed/ansible-tasks/host-port.wait.yml"
+    #     apply:
+    #       run_once: true
+    #   vars:
+    #     wait_name: "{{ dir.names | join('_') }}"
+    #     wait_network:
+    #       - external_net-headscale
+    #     wait_port: 
+    #       headscale: 8080
+    
+    - name: register headscale node
+      include_tasks: "{{ dir.local }}/ansible-tasks/node.register.yml"
+      vars:
+        node:
+          ws: "{{ ws }}"
+          key_user: "{{ _node_key_user_list }}"
+          result: node_result
