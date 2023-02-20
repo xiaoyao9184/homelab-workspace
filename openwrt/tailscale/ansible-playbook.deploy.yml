@@ -15,8 +15,7 @@
       ansible.builtin.shell: command -v fw4
       register: opkg_fw4
 
-    - when: 
-        - opkg_fw4.stdout != ''
+    - when: opkg_fw4.stdout != ''
       block:
 
         - name: opkg iptables-nft
@@ -24,13 +23,61 @@
             name: iptables-nft
           ignore_errors: yes
 
-    - name: opkg tailscale
-      when: 
-        - tailscale.install | default('opkg') == 'opkg'
-      opkg:
-        update_cache: true
-        name: tailscale
-      ignore_errors: yes
+    - when: tailscale.install | default('opkg') == 'opkg'
+      block:
+
+        - name: opkg tailscale
+          opkg:
+            update_cache: true
+            name: tailscale
+          ignore_errors: yes
+
+    - when: tailscale.install | default('opkg') == 'enabler'
+      block:
+
+        - name: get arch
+          ansible.builtin.shell: uname -m
+          register: arch_result
+
+        - name: get endianness
+          when: arch_result.stdout == 'mips'
+          ansible.builtin.shell: |
+              echo -n I | hexdump -o | awk '{ print (substr($2,6,1)=="1") ? "le" : ""; exit }'
+          register: endianness_result
+
+        - name: set pkg_arch mips
+          delegate_to: localhost
+          delegate_facts: true
+          when: arch_result.stdout == 'mips'
+          ansible.builtin.set_fact:
+            pkg_arch: "mips{{ endianness_result.stdout }}"
+
+        - name: set pkg_arch arm
+          delegate_to: localhost
+          delegate_facts: true
+          when: arch_result.stdout == 'armv7l'
+          ansible.builtin.set_fact:
+            pkg_arch: arm
+
+        - name: set pkg_arch arm64
+          delegate_to: localhost
+          delegate_facts: true
+          when: arch_result.stdout == 'aarch64'
+          ansible.builtin.set_fact:
+            pkg_arch: arm64
+
+        - name: set pkg_arch amd64
+          delegate_to: localhost
+          delegate_facts: true
+          when: arch_result.stdout == 'x86_64'
+          ansible.builtin.set_fact:
+            pkg_arch: amd64
+
+        - name: set tailscale
+          delegate_to: localhost
+          delegate_facts: true
+          ansible.builtin.set_fact:
+            tailscale: "{{ tailscale }}"
 
 
 - name: download
@@ -38,41 +85,87 @@
   connection: local
   tasks: 
 
-    - when: 
-        # - hostvars[groups['openwrt'][0]]['opkg_tailscale'] is failed
-        - hostvars[groups['openwrt'][0]]['tailscale']['install'] | default('opkg') != 'opkg'
+    - when: tailscale.install | default('opkg') == 'enabler'
       block:
 
-        - name: clear dir
-          ansible.builtin.file:
-            path: "{{ playbook_dir }}/openwrt-tailscale-enabler"
-            state: absent
-
-        - name: mkdir dir
-          ansible.builtin.file:
-            path: "{{ playbook_dir }}/openwrt-tailscale-enabler"
-            state: directory
-
-        - name: get latest release
+        - name: get enabler latest release
           ansible.builtin.uri:
             url: "https://api.github.com/repos/adyanth/openwrt-tailscale-enabler/releases/latest"
             return_content: true
           register: json_reponse
 
-        - name: download latest release
+        - name: set enabler_version pkg_version
+          vars:
+            regex_hash_suffix: '-\w{7}-.*'
+            regex_version_prefix: '^v'
+            version: "{{ json_reponse.json.name | regex_replace(regex_hash_suffix,'') | regex_replace(regex_version_prefix,'') }}"
+          ansible.builtin.set_fact:
+            enabler_version: "{{ json_reponse.json.name }}"
+            pkg_version: "{{ version }}_{{ pkg_arch }}"
+
+        - name: set extract_dir
+          ansible.builtin.set_fact:
+            enabler_download_assets: "~/.openwrt/openwrt-tailscale-enabler-{{ enabler_version }}.tgz"
+            enabler_extract_dir: "~/.openwrt/openwrt-tailscale-enabler-{{ enabler_version }}"
+            pkg_download_assets: "~/.openwrt/tailscale_{{ pkg_version }}.tgz"
+            pkg_extract_dir: "~/.openwrt/tailscale_{{ pkg_version }}"
+
+        - name: mkdir extract_dir
+          loop:
+            - "{{ enabler_extract_dir }}"
+            - "{{ pkg_extract_dir }}"
+          ansible.builtin.file:
+            path: "{{ item }}"
+            state: directory
+
+        - name: stat enabler assets
+          ansible.builtin.stat:
+            path: "{{ enabler_download_assets }}"
+          register: stat_enabler
+
+        - name: download enabler assets
+          when: not stat_enabler.stat.exists
           ansible.builtin.get_url:
             url: "{{ github.url_prefix | default('') }}{{ json_reponse.json.assets[0].browser_download_url }}"
-            dest: "{{ playbook_dir }}/openwrt-tailscale-enabler/openwrt-tailscale-enabler.tar.gz"
+            dest: "{{ enabler_download_assets }}"
 
-        - name: extract latest release
+        - name: extract enabler assets
           ansible.builtin.unarchive:
-            src: "{{ playbook_dir }}/openwrt-tailscale-enabler/openwrt-tailscale-enabler.tar.gz"
-            dest: "{{ playbook_dir }}/openwrt-tailscale-enabler"
+            src: "{{ enabler_download_assets }}"
+            dest: "{{ enabler_extract_dir }}"
 
-        - name: clear latest release
+        - name: stat pkg assets
+          ansible.builtin.stat:
+            path: "{{ pkg_download_assets }}"
+          register: stat_pkg
+
+        - name: download pkg assets
+          when: not stat_pkg.stat.exists
+          ansible.builtin.get_url:
+            url: "https://pkgs.tailscale.com/stable/tailscale_{{ pkg_version }}.tgz"
+            dest: "{{ pkg_download_assets }}"
+
+        - name: extract pkg assets
+          ansible.builtin.unarchive:
+            src: "{{ pkg_download_assets }}"
+            dest: "{{ pkg_extract_dir }}"
+
+        - name: set copy_dir
+          ansible.builtin.set_fact:
+            copy_dir: "{{ enabler_extract_dir }}"
+
+        - name: mkdir pkg in copy_dir
           ansible.builtin.file:
-            path: "{{ playbook_dir }}/openwrt-tailscale-enabler/openwrt-tailscale-enabler.tar.gz"
-            state: absent
+            path: "{{ copy_dir }}/tmp"
+            state: directory
+
+        - name: copy pkg to copy_dir
+          loop:
+            - "tailscale"
+            - "tailscaled"
+          ansible.builtin.copy:
+            src: "{{ pkg_extract_dir }}/tailscale_{{ pkg_version }}/{{ item }}"
+            dest: "{{ copy_dir }}/tmp/{{ item }}"
 
 
 - name: deploy
@@ -81,9 +174,9 @@
     - gekmihesg.openwrt
   tasks: 
 
-    - when: 
+    - when: tailscale.install | default('opkg') == 'enabler'
         # - opkg_tailscale is failed
-        - hostvars[groups['openwrt'][0]]['tailscale']['install'] | default('opkg') != 'opkg'
+        # - hostvars[groups['openwrt'][0]]['tailscale']['install'] | default('opkg') != 'opkg'
       block: 
 
         - name: opkg install
@@ -99,7 +192,7 @@
 
         - name: copy file
           ansible.builtin.copy:
-            src: "{{ playbook_dir }}/openwrt-tailscale-enabler/" 
+            src: "{{ hostvars['localhost']['copy_dir'] }}" 
             dest: /
             mode: '0755'
 

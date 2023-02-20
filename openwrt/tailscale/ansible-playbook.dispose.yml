@@ -11,9 +11,20 @@
   connection: local
   tasks: 
 
-    - name: clear dir
+    - name: find extract_dir
+      vars:
+        regex_extract_dir: 'tailscale_.*|openwrt-tailscale-enabler-.*'
+      ansible.builtin.find:
+        paths: "~/.openwrt/"
+        file_type: directory
+        use_regex: yes
+        patterns: "{{ regex_extract_dir }}"
+      register: found_dirs
+
+    - name: delete dir
+      loop: "{{ found_dirs.files }}"
       ansible.builtin.file:
-        path: "{{ playbook_dir }}/openwrt-tailscale-enabler"
+        path: '{{ item.path }}'
         state: absent
 
 
