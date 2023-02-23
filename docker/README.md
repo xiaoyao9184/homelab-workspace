@@ -20,13 +20,12 @@ You can find the division of each directory according to the following table.
 | dir | name | features |
 |:----- |:----- |:----- |
 | [compose-standalone](./compose-standalone/) | compose-standalone | |
-| [stack-standalone-fixed](./stack-standalone-failover/) | stack-standalone | only run on fixed node |
-| [stack-standalone-failover](./stack-standalone-failover/) | stack-standalone | support disaster recovery |
-| [stack-master-slave](./stack-master-slave/) | stack-scale | services have roles |
-| [stack-high-availability](./stack-high-availability/) | stack-scale | services between equality |
+| [stack-standalone](./stack-standalone/) | stack-standalone | isolated service |
+| [stack-scale](./stack-scale/) | stack-scale | cluster services |
 
+The subfolder is usually the project name for compose, for stack name for stack.
 
-> Use `compose-*` if special permissions are required, or use those in docker-compose-swarm
+> Use `compose-standalone` if special permissions are required, or use those in docker-compose-swarm.
 > - build
 > - cap_add 
 > - cap_drop
@@ -42,11 +41,37 @@ You can find the division of each directory according to the following table.
 > - tmpfs
 > - userns_mode
 
-> Use `stack-master-slave` when service enable scaling and master-slave dependent
-> - like [gitlab-runner-global](./stack-master-slave/gitlab-runner-global/) as slave dependent [gitlab-ce](./stack-standalone/gitlab/)
-> - other like [portainer-ce-global](./stack-master-slave/portainer-ce-global/) although the `portainer` service is standalone, but it cant miss `agent` service that enables scaling, `portainer` and `agent` need to be considered as a whole.
+> Use `stack-standalone` if only isolated service, but it needs to be managed by swarm.
 
-> Use `stack-high-availability` when service enable scaling equality between services
+> Use `stack-scale` if cluster services.
+
+In `stack-` subfolder According to the folder prefix, you can know its cluster mode. 
+
+| **prefix**/`regex` | dir | features |
+|:----- |:----- |:----- |
+| **fixed-** | [stack-standalone](./stack-standalone/) | one service only run on fixed node |
+| **anyone-** | [stack-standalone](./stack-standalone/) | one service support disaster recovery on any node |
+| `^node\d+-` | [stack-scale](./stack-scale/) | fixed number of multiple services |
+| `^max\d+-` | [stack-scale](./stack-scale/) | fixed number of multiple services and allows with fewer services |
+| **global-** | [stack-scale](./stack-scale/) | not fixed number of multiple services, each node run one service |
+| `^roles\d+-` | [stack-scale](./stack-scale/) | fixed number of multiple services have roles |
+| `^min\d+-` | [stack-scale](./stack-scale/) | fixed number of multiple services have roles and allows with fewer services |
+| **roles-** | [stack-scale](./stack-scale/) | Not fixed number of multiple services have roles |
+
+There is a single point of failure on a [stack-standalone](./stack-standalone/), 
+when it crashes, service will be restarted by default one the original node.
+Usually [stack-global](./stack-scale/) services without roles are suitable for high availability.
+
+> Use `^node\d+-` `^max\d+-` or **global-** when service enable scaling without roles 
+> - like [node3-itsaur-zookeeper](./stack-scale/node3-itsaur-zookeeper/)
+> - like [max3-alibaba-canal](./stack-scale/max3-alibaba-canal/)
+> - like [global-docker-telegraf](./stack-scale/global-gitlab-runner/)
+
+> Use `^roles\d+-` `^min\d+-` or **roles-** when service enable scaling and has roles like master-slave, and only in the case of interdependence
+> - like [roles3-tonimoreno-influxdb](./stack-scale/roles3-tonimoreno-influxdb/) using _srelay_ requires at least 2 backend services, total of 3 services.
+> - like [min1-crunchydata-postgres](./stack-scale/min1-crunchydata-postgres/) using _srelay_ requires at least 2 backend services, total of 3 services.
+> - like [roles-portainer-ce](./stack-scale/roles-portainer-ce/) although the `portainer` service is standalone, but it cant miss `agent` service that enables scaling, `portainer` and `agent` need to be considered as a whole.
+> - not like [global-gitlab-runner](./stack-scale/global-gitlab-runner/) as slave dependent [anyone-gitlab-ce](./stack-standalone/anyone-gitlab-ce/), because `gitlab-ce` can run alone, or run with [anyone-gitlab-runner](./stack-scale/anyone-gitlab-runner/)
 
 
 # stack mode
@@ -74,17 +99,17 @@ When `replicated` the number of services is independent of the number of nodes.
 |  |  | yes: one node [max_replicas_per_node*](#max-replicas-per-node) |
 
 
-## replicated mode standalone
+## replicated mode for standalone
 
 > Always use `replicated` mode with `replicas: 1` for standalone.
 
-[stack-standalone-failover](./stack-standalone-failover/) and 
-[stack-standalone-fixed](./stack-standalone-fixed/) always run one just one service.
+[stack-standalone](./stack-standalone/)/**fixed-** and
+[stack-standalone](./stack-standalone/)/**anyone-** always run one just one service.
 
 failover of fixed it is decided based on whether shared volumes are supported.
 
 
-## global mode scale publishing
+## global mode for port publishing or scale growth
 
 On the other hand, service can publish the port to docker host
 
@@ -105,29 +130,36 @@ Problems arise when the two are combined
 
 > So always use `global` mode for publishing
 
-[stack-master-slave](./stack-master-slave/) and 
-[stack-high-availability](./stack-high-availability/) use `global` first,
+> When the service supports arbitrary growth or reduction, the `global` mode should be used.
+
+[stack-scale](./stack-scale/)/**global-** use `global` mode,
+
+[stack-scale](./stack-scale/)/**roles-** use `global` mode,
 use constraint control scale number
 
 
-## replicated mode scale publishing
+## replicated mode for port publishing or scale sensitive
 
-So if use replicated mode with publishing must set [max_replicas_per_node](#max-replicas-per-node) to `1`
+> Use replicated mode if publishing post with set [max_replicas_per_node](#max-replicas-per-node) to `1`
+
+> Use replicated mode for some services are sensitive for number of scale
+> - like clickhouse, cannot add nodes growth service.
+
+[stack-scale](./stack-scale/)/`^node\d+-` use `replicated` mode,
+
+[stack-scale](./stack-scale/)/`^max\d+-` use `replicated` first, 
+or use a different service name with `replicas: 1`.
+
+[stack-scale](./stack-scale/)/`^roles\d+-` use `replicated` first, 
+or use a different service name with `replicas: 1`.
+
+[stack-scale](./stack-scale/)/`^min\d+-` use `replicated` first, 
+or use a different service name with `replicas: 1`.
 
 ### max replicas per node
 
 [max_replicas_per_node](https://docs.docker.com/compose/compose-file/compose-file-v3/#max_replicas_per_node) constraint
 limit the number of replicas that can run on one node.
-
-
-## global mode scale growth
-
-When the service supports arbitrary growth or reduction, the `globa` mode should be used.
-
-
-## replicated mode scale sensitive
-
-Some services are sensitive for number of scale, like clickhouse, cannot add nodes growth service.
 
 
 # file classification
