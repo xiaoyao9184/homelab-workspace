@@ -6,7 +6,7 @@
     run_wsl: |
       ansible-playbook \
         --inventory $PWD/ansible \
-        $PWD/../../../docker/stack-standalone-failover/transmission/transmissionic/ansible-playbook.deploy.yml
+        $PWD/../../../docker/stack-standalone/anyone-linuxserver-transmission/transmissionic/ansible-playbook.deploy.yml
   environment:
     PATH: "{{ ansible_env.PATH }}:{{ env_path | default('',true) }}"
   hosts: "{{ 'nfs-client:&docker-transmission-node' if (groups['docker-transmission-node'] is defined) else 'nfs-client' }}"
