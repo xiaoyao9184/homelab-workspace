@@ -6,7 +6,7 @@
       ansible-playbook \
         --ask-become-pass \
         --inventory $PWD/ansible \
-        $PWD/../../../docker/stack-standalone-failover/syncthing/ansible-playbook.deploy.yml
+        $PWD/../../../docker/stack-standalone/anyone-syncthing-syncthing/ansible-playbook.deploy.yml
   environment:
     PATH: "{{ ansible_env.PATH }}:{{ env_path | default('',true) }}"
   hosts: "{{ 'nfs-client:&docker-syncthing-node' if (groups['docker-syncthing-node'] is defined) else 'nfs-client' }}"
@@ -18,9 +18,15 @@
       include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/nfs-mount.wait.yml"
       vars:
         _default:
-          on_manager:
+          - name: on_manager
             point: "/syncthing-data"
             mount: "/mnt/nfs/syncthing-data"
+            option: "vers=4,loud,rw,sync"
+            unmount: true
+            retry: 5
+          - name: on_manager
+            point: "/syncthing-home"
+            mount: "/mnt/nfs/syncthing-home"
             option: "vers=4,loud,rw,sync"
             unmount: true
             retry: 5
@@ -62,12 +68,21 @@
     - name: add external_vol
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-volumes.add.yml"
       vars:
-        volumes: "{{ syncthing.vol | default([],true) }}"
+        _default:
+          external_vol-syncthing-data:
+            driver: local
+          external_vol-syncthing-home:
+            driver: local
+        volumes: "{{ syncthing.vol | default(_default,true) }}"
 
     - name: add external_net
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-networks.add.yml"
       vars:
-        networks: "{{ syncthing.net | default([],true) }}"
+        _default:
+          external_net-syncthing:
+            driver: overlay
+            attachable: true
+        networks: "{{ syncthing.net | default(_default,true) }}"
 
 
 - name: deploy
@@ -91,21 +106,20 @@
       vars:
         copys: "{{ syncthing.dir_copy | default([],true) }}"
 
-    # TODO stack-standalone-fixed and stack-standalone-failover use same time will make fixed not fixed
     - name: add swarm label
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-label.add.yml"
       vars:
         labels: "{{ syncthing.lab | default([],true) }}"
 
-    - name: add swarm secret
-      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-secrets.add.yml"
-      vars:
-        secrets: "{{ syncthing.sec | default([],true) }}"
+    # - name: add swarm secret
+    #   include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-secrets.add.yml"
+    #   vars:
+    #     secrets: "{{ syncthing.sec | default([],true) }}"
 
-    - name: add swarm config
-      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-configs.add.yml"
-      vars:
-        configs: "{{ syncthing.cfg | default([],true) }}"
+    # - name: add swarm config
+    #   include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-configs.add.yml"
+    #   vars:
+    #     configs: "{{ syncthing.cfg | default([],true) }}"
 
     - name: build env_file
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-env.create.yml"
