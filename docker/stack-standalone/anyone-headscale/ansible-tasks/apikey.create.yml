@@ -28,6 +28,8 @@
 
 - name: apikey.create|create apikey
   loop: "{{ range(0, (_apikey.count | int), 1) | list }}"
+  when:
+    - lookup_result.exists
   community.docker.docker_container_exec:
     container: "{{ lookup_result.container_id }}"
     command: "headscale apikey create"

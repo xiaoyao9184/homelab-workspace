@@ -44,6 +44,8 @@
 
 - name: user.destroy|destroy user
   loop: "{{ _user.name }}"
+  when:
+    - lookup_result.exists
   community.docker.docker_container_exec:
     container: "{{ lookup_result.container_id }}"
     command: "headscale user destroy {{ item }} --force"

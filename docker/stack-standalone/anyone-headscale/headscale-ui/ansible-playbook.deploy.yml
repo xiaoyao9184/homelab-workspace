@@ -5,7 +5,7 @@
     run_wsl: |
       ansible-playbook \
         --inventory $PWD/ansible \
-        $PWD/../../../docker/stack-standalone-failover/headscale/headscale-ui/ansible-playbook.update.yml
+        $PWD/../../../docker/stack-standalone/anyone-headscale/headscale-ui/ansible-playbook.deploy.yml
   environment:
     PATH: "{{ ansible_env.PATH }}:{{ env_path | default('',true) }}"
   hosts: docker-manager
@@ -22,16 +22,6 @@
 
     - name: copy dir
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.copy.yml"
-
-    - name: remove stack service
-      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-compose.rm.yml"
-      vars:
-        compose:
-          type: stack
-          name: "{{ dir.names[0] }}"
-          path: "{{ dir.remote }}/{{ dir.names[-1] }}"
-          files: 
-            - "docker-compose-swarm.yml"
 
     - name: add external_net
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-networks.add.yml"

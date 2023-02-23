@@ -68,6 +68,8 @@
 
 - name: preauthkey.expire|expire preauthkey
   loop: "{{ _preauthkey.key }}"
+  when:
+    - lookup_result.exists
   community.docker.docker_container_exec:
     container: "{{ lookup_result.container_id }}"
     command: "headscale preauthkey destroy {{ item }} --force"

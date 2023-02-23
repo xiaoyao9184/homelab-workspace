@@ -28,7 +28,9 @@
 
 - name: preauthkey.create|create preauthkey
   loop: "{{ _preauthkey.expire_user }}"
-  when: item.expire | default(None,true) != None
+  when:
+    - lookup_result.exists
+    - item.expire | default(None,true) != None
   community.docker.docker_container_exec:
     container: "{{ lookup_result.container_id }}"
     command: "headscale preauthkey create -e {{ item.expire }} -u {{ item.user }} --reusable"

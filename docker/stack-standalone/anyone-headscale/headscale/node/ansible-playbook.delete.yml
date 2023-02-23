@@ -5,7 +5,7 @@
     run_wsl: |
       ansible-playbook \
         --inventory $PWD/ansible \
-        $PWD/../../../docker/stack-standalone-failover/headscale/headscale/node/ansible-playbook.delete.yml
+        $PWD/../../../docker/stack-standalone/anyone-headscale/headscale/node/ansible-playbook.delete.yml
   vars_prompt:
     - name: node_id
       prompt: What is node id(split ',' format {id} | @{user})?
@@ -14,8 +14,6 @@
   environment:
     PATH: "{{ ansible_env.PATH }}:{{ env_path | default('',true) }}"
   hosts: "{{ 'docker:&docker-headscale-node' if (groups['docker-headscale-node'] is defined) else 'docker' }}"
-  # TODO Unable to know which node it is running on
-  # run_once: true
   tasks:
 
     - name: set id user
@@ -49,17 +47,17 @@
       vars:
         length: 3
 
-    # - name: wait host port
-    #   include_tasks: 
-    #     file: "{{ ws.local }}/.seed/ansible-tasks/host-port.wait.yml"
-    #     apply:
-    #       run_once: true
-    #   vars:
-    #     wait_name: "{{ dir.names | join('_') }}"
-    #     wait_network:
-    #       - external_net-headscale
-    #     wait_port: 
-    #       headscale: 8080
+    - name: wait host port
+      include_tasks: 
+        file: "{{ ws.local }}/.seed/ansible-tasks/host-port.wait.yml"
+        apply:
+          run_once: true
+      vars:
+        wait_name: "{{ dir.names | join('_') }}"
+        wait_network:
+          - external_net-headscale
+        wait_port: 
+          headscale: 8080
 
     - name: delete headscale node
       include_tasks: "{{ dir.local }}/ansible-tasks/node.delete.yml"

@@ -21,6 +21,7 @@ services:
   headscale:
     image: headscale/headscale:0.20.0-debug
     command: headscale serve
+    env_file: external_env-all.env
     configs:
       - source: stack_cfg-config.yaml
         target: /etc/headscale/config.yaml

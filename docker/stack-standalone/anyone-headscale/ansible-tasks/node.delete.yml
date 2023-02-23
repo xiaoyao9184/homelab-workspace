@@ -68,6 +68,8 @@
 
 - name: node.delete|delete node
   loop: "{{ _node.id }}"
+  when:
+    - lookup_result.exists
   community.docker.docker_container_exec:
     container: "{{ lookup_result.container_id }}"
     command: "headscale node delete --identifier {{ item }} --force"

@@ -28,7 +28,9 @@
 
 - name: node.register|register node
   loop: "{{ _node.key_user }}"
-  when: item.key | default(None,true) != None
+  when:
+    - lookup_result.exists
+    - item.key | default(None,true) != None
   community.docker.docker_container_exec:
     container: "{{ lookup_result.container_id }}"
     command: "headscale node register --key {{ item.key }} -u {{ item.user }}"
