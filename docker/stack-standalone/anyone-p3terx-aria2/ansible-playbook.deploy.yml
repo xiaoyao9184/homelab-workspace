@@ -5,7 +5,7 @@
     run_wsl: |
       ansible-playbook \
         --inventory $PWD/ansible \
-        $PWD/../../../docker/stack-standalone-failover/aria2/ansible-playbook.deploy.yml
+        $PWD/../../../docker/stack-standalone/anyone-p3terx-aria2/ansible-playbook.deploy.yml
   environment:
     PATH: "{{ ansible_env.PATH }}:{{ env_path | default('',true) }}"
   hosts: "{{ 'nfs-client:&docker-aria2-node' if (groups['docker-aria2-node'] is defined) else 'nfs-client' }}"
@@ -17,9 +17,21 @@
       include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/nfs-mount.wait.yml"
       vars:
         _default:
-          on_manager:
+          - name: on_manager
             point: "/aria2-config"
             mount: "/mnt/nfs/aria2-config"
+            option: "vers=4,loud,rw,sync"
+            unmount: true
+            retry: 5
+          - name: on_manager
+            point: "/aria2-downloads"
+            mount: "/mnt/nfs/aria2-downloads"
+            option: "vers=4,loud,rw,sync"
+            unmount: true
+            retry: 5
+          - name: on_manager
+            point: "/aria2-completed"
+            mount: "/mnt/nfs/aria2-completed"
             option: "vers=4,loud,rw,sync"
             unmount: true
             retry: 5
@@ -67,12 +79,23 @@
     - name: add external_vol
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-volumes.add.yml"
       vars:
-        volumes: "{{ aria2.vol | default([],true) }}"
+        _default:
+          external_vol-aria2-config:
+            driver: local
+          external_vol-aria2-downloads:
+            driver: local
+          external_vol-aria2-completed:
+            driver: local
+        volumes: "{{ aria2.vol | default(_default,true) }}"
 
     - name: add external_net
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-networks.add.yml"
       vars:
-        networks: "{{ aria2.net | default([],true) }}"
+        _default:
+          external_net-aria2:
+            driver: overlay
+            attachable: true
+        networks: "{{ aria2.net | default(_default,true) }}"
 
 
 - name: deploy
@@ -94,21 +117,20 @@
       vars:
         copys: "{{ aria2.dir_copy | default([],true) }}"
 
-    # TODO stack-standalone-fixed and stack-standalone-failover use same time will make fixed not fixed
     - name: add swarm label
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-label.add.yml"
       vars:
         labels: "{{ aria2.lab | default([],true) }}"
 
-    - name: add swarm secret
-      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-secrets.add.yml"
-      vars:
-        secrets: "{{ aria2.sec | default([],true) }}"
+    # - name: add swarm secret
+    #   include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-secrets.add.yml"
+    #   vars:
+    #     secrets: "{{ aria2.sec | default([],true) }}"
 
-    - name: add swarm config
-      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-configs.add.yml"
-      vars:
-        configs: "{{ aria2.cfg | default([],true) }}"
+    # - name: add swarm config
+    #   include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-configs.add.yml"
+    #   vars:
+    #     configs: "{{ aria2.cfg | default([],true) }}"
 
     - name: build env_file
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-env.create.yml"
