@@ -5,7 +5,7 @@
     run_wsl: |
       ansible-playbook \
         --inventory $PWD/ansible \
-        $PWD/../../../docker/stack-standalone/telegraf/ansible-playbook.deploy.yml
+        $PWD/../../../docker/stack-standalone/anyone-docker-telegraf/ansible-playbook.deploy.yml
   vars_prompt:
     - name: service_names
       prompt: "What is service name(same as config file name WITHOUT extension in inventory_dir/telegraf)?"
@@ -14,6 +14,7 @@
   environment:
     PATH: "{{ ansible_env.PATH }}:{{ env_path | default('',true) }}"
   hosts: docker-manager
+  run_once: true
   tasks: 
 
     - name: set ws
@@ -21,6 +22,11 @@
 
     - name: set dir
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.set.yml"
+
+    - name: add swarm label
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-label.add.yml"
+      vars:
+        labels: "{{ telegraf.lab | default([],true) }}"
 
     - name: stat docker group
       ansible.builtin.stat:
@@ -35,7 +41,7 @@
           include_tasks: "{{ ws.local }}/.seed/ansible-tasks/file-name.list.yml"
           vars:
             name: 
-              option_find: "{{ inventory_dir }}/../telegraf"
+              option_find: "{{ inventory_dir }}/../telegraf/service"
               result_var: config_files
               location: local
 
@@ -46,9 +52,9 @@
     - name: set service_name_list
       ansible.builtin.set_fact:
         service_name_list: "{{ service_names.split(',') }}"
-        dir_copy_list: "[] + {{ telegraf.dir_copy }}" 
+        dir_copy_list: "[] + {{ telegraf.dir_copy | default([],true) }}" 
         cfg_list: []
-        net_list: "{{ telegraf.net }}"
+        net_list: "{{ telegraf.net | default([],true) }}"
         env_list: []
         template_list: []
 
@@ -59,14 +65,14 @@
         template_list: "{{ template_list + [template] }}"
       vars:
         dir_copy:
-          - src: "{{ inventory_dir }}/../telegraf/{{ name }}.conf"
-            dest: "{{ dir.remote }}/telegraf/{{ name }}.conf"
+          - src: "{{ inventory_dir }}/../telegraf/service/{{ name }}.conf"
+            dest: "{{ dir.remote }}/config/{{ name }}.conf"
         cfg:
           - name: "external_cfg-telegraf-conf-{{ name }}"
-            file: "{{ dir.remote }}/telegraf/{{ name }}.conf"
+            file: "{{ dir.remote }}/config/{{ name }}.conf"
         env:
           - dest: "{{ dir.remote }}/docker-compose/external_env-{{ name }}.env"
-            data: "{{ telegraf.env }}"
+            data: "{{ telegraf.env | default([],true) }}"
         template:
           name: "{{ name }}"
           opt:
@@ -88,12 +94,16 @@
     - name: add external_cfg
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-configs.add.yml"
       vars:
-        configs: "{{ cfg_list | flatten }}"
+        configs: "{{ cfg_list | default(_default,true) | flatten }}"
     
     - name: add external_net
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-networks.add.yml"
       vars:
-        networks: "{{ net_list | flatten }}"
+        _default:
+          external_net-influxdb:
+            driver: overlay
+            attachable: true
+        networks: "{{ net_list | default(_default,true) | flatten }}"
 
     - name: build env_file
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-envs.create.yml"

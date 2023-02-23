@@ -28,10 +28,10 @@ services:
     deploy:
       endpoint_mode: vip
       mode: global
-      # max_replicas_per_node: 1
       placement:
         constraints:
           - node.platform.os == linux
+          - node.labels.telegraf-{{ VARS.SERIVCE_NAME }} == true
         preferences:
           - spread: node.platform.os
       labels:

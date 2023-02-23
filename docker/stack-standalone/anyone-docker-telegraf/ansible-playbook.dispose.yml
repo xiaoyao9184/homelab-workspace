@@ -5,7 +5,7 @@
     run_wsl: |
       ansible-playbook \
         --inventory $PWD/ansible \
-        $PWD/../../../docker/stack-standalone/telegraf/ansible-playbook.dispose.yml
+        $PWD/../../../docker/stack-standalone/anyone-docker-telegraf/ansible-playbook.dispose.yml
   vars_prompt:
     - name: service_names
       prompt: "What is service name(same as config file name in inventory_dir/telegraf)?"
@@ -35,7 +35,7 @@
           include_tasks: "{{ ws.local }}/.seed/ansible-tasks/file-name.list.yml"
           vars:
             name: 
-              option_find: "{{ inventory_dir }}/../telegraf"
+              option_find: "{{ inventory_dir }}/../telegraf/service"
               result_var: config_files
               location: local
 
