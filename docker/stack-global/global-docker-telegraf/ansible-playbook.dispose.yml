@@ -5,7 +5,7 @@
     run_wsl: |
       ansible-playbook \
         --inventory $PWD/ansible \
-        $PWD/../../../docker/stack-master-slave/influxdb-telegraf-global/ansible-playbook.dispose.yml
+        $PWD/../../../docker/stack-global/global-docker-telegraf/ansible-playbook.dispose.yml
   environment:
     PATH: "{{ ansible_env.PATH }}:{{ env_path | default('',true) }}"
   hosts: docker-manager

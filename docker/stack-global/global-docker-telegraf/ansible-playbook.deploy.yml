@@ -5,7 +5,7 @@
     run_wsl: |
       ansible-playbook \
         --inventory $PWD/ansible \
-        $PWD/../../../docker/stack-master-slave/influxdb-telegraf-global/ansible-playbook.deploy.yml
+        $PWD/../../../docker/stack-global/global-docker-telegraf/ansible-playbook.deploy.yml
   environment:
     PATH: "{{ ansible_env.PATH }}:{{ env_path | default('',true) }}"
   hosts: docker-manager
@@ -23,10 +23,18 @@
       vars:
         copys: "{{ telegraf.dir_copy }}"
 
+    - name: add swarm label
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-label.add.yml"
+      vars:
+        labels: "{{ telegraf.lab | default([],true) }}"
+
     - name: add external_cfg
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-configs.add.yml"
       vars:
-        configs: "{{ telegraf.cfg }}"
+        _default:
+          external_cfg-telegraf-conf:
+            file: "{{ dir.remote }}/config/telegraf.conf"
+        configs: "{{ telegraf.cfg | default(_default,true) }}"
 
     - name: add external_net
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-networks.add.yml"
@@ -41,7 +49,7 @@
       vars:
         env: 
           dest: "{{ dir.remote }}/external_env-all.env"
-          data: "{{ telegraf.env }}"
+          data: "{{ telegraf.env | default([],true) }}"
 
     - name: add stack service
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-compose.add.yml"

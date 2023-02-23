@@ -13,6 +13,8 @@ networks:
 services:
   telegraf:
     image: telegraf:1.19
+    hostname: "{{.Node.Hostname}}"
+    user: telegraf:999
     env_file: external_env-all.env
     configs:
       - source: conf
@@ -23,12 +25,11 @@ services:
       - influxdb
     deploy:
       endpoint_mode: vip
-      mode: replicated
-      replicas: 1
-      # max_replicas_per_node: 1
+      mode: global
       placement:
         constraints:
           - node.platform.os == linux
+          - node.labels.telegraf-node == true
         preferences:
           - spread: node.platform.os
       labels:
