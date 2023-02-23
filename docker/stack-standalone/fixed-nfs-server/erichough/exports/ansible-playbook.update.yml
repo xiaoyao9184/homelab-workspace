@@ -5,7 +5,7 @@
     run_wsl: |
       ansible-playbook \
         --inventory $PWD/ansible \
-        $PWD/../../../docker/stack-standalone-fixed/nfs-server/erichough/exports/ansible-playbook.update.yml
+        $PWD/../../../docker/stack-standalone/fixed-nfs-server/erichough/exports/ansible-playbook.update.yml
   hosts: docker:&docker-nfs-node
   run_once: true
   tasks: 
