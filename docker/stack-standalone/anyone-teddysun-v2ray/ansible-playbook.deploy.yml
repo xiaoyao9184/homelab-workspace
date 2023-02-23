@@ -5,10 +5,11 @@
     run_wsl: |
       ansible-playbook \
         --inventory $PWD/ansible \
-        $PWD/../../../docker/stack-standalone/v2ray/ansible-playbook.deploy.yml
+        $PWD/../../../docker/stack-standalone/anyone-teddysun-v2ray/ansible-playbook.deploy.yml
   environment:
     PATH: "{{ ansible_env.PATH }}:{{ env_path | default('',true) }}"
   hosts: docker-manager
+  run_once: true
   tasks: 
 
     - name: set ws
@@ -22,17 +23,12 @@
       vars:
         copys: "{{ v2ray.dir_copy }}"
 
-    - name: add external_cfg
-      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-configs.add.yml"
-      vars:
-        configs: "{{ v2ray.cfg }}"
-
     - name: build env_file
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-env.create.yml"
       vars:
         env: 
           dest: "{{ dir.remote }}/external_env-all.env"
-          data: "{{ v2ray.env }}"
+          data: "{{ v2ray.env | default([],true) }}"
 
     - name: add stack service
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-compose.add.yml"

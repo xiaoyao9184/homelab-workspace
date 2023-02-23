@@ -2,8 +2,8 @@ version: "3.8"
 
 configs:
   config:
-    name: external_cfg-v2ray
-    external: true
+    name: stack_cfg-v2ray-config.json
+    file: ./config/config.json
 
 networks:
   v2ray:
