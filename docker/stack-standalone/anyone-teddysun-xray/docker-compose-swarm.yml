@@ -1,12 +1,13 @@
 version: "3.8"
 
 configs:
-  stack_cfg-config.json:
+  config:
+    name: stack_cfg-xray-config.json
     file: ./config/config.json
 
 networks:
   xray:
-    name: external_net-xray
+    name: "host"
     external: true
 
 services:
@@ -14,11 +15,11 @@ services:
     image: teddysun/xray:latest
     env_file: external_env-all.env
     configs:
-      - source: stack_cfg-config.json
+      - source: config
         target: /etc/xray/config.json
-    ports:
-      - 9000:9000
-      - 9000:9000/udp
+    # ports:
+    #   - 9000:9000
+    #   - 9000:9000/udp
     networks:
       - xray
     healthcheck:
