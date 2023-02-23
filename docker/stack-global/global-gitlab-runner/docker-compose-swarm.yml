@@ -2,6 +2,7 @@ version: "3.8"
 
 volumes:
   runner:
+    name: stack_vol-gitlab-runner
 
 networks:
   gitlab:
@@ -20,10 +21,10 @@ services:
     deploy:
       endpoint_mode: vip
       mode: global
-      # max_replicas_per_node: 1
       placement:
         constraints:
           - node.platform.os == linux
+          - node.labels.gitlab-runner == true
         preferences:
           - spread: node.platform.os
       labels:

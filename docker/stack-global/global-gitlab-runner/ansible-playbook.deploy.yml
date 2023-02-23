@@ -5,7 +5,67 @@
     run_wsl: |
       ansible-playbook \
         --inventory $PWD/ansible \
-        $PWD/../../../docker/stack-standalone/anyone-gitlab-runner/ansible-playbook.deploy.yml
+        $PWD/../../../docker/stack-global/global-gitlab-runner/ansible-playbook.deploy.yml
+  environment:
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('',true) }}"
+  hosts: "{{ 'nfs-client:&docker-gitlab-runner' if (groups['docker-gitlab-runner'] is defined) else 'nfs-client' }}"
+  # run_once: true
+  tasks:
+
+    # - name: wait nfs mount
+    #   when: gitlab.runner.nfs_wait is defined
+    #   include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/nfs-mount.wait.yml"
+    #   vars:
+    #     _default:
+    #       on_manager:
+    #         point: "/gitlab-runner"
+    #         mount: "/mnt/nfs/gitlab-runner"
+    #         option: "vers=4,loud,rw,sync"
+    #         unmount: true
+    #         retry: 5
+    #     wait_nfs: "{{ gitlab.runner.nfs_wait | default(_default) }}"
+
+
+- name: deploy
+  environment:
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('',true) }}"
+  hosts: "{{ 'docker:&docker-gitlab-runner' if (groups['docker-gitlab-runner'] is defined) else 'docker' }}"
+  tasks:
+
+    - name: set ws
+      include_tasks:
+        file: "{{ playbook_dir }}/../../../.seed/ansible-tasks/ws.set.yml"
+        # https://github.com/ansible/ansible/issues/72099
+        apply:
+          run_once: true
+
+    - name: set dir
+      include_tasks:
+        file: "{{ ws.local }}/.seed/ansible-tasks/dir.set.yml"
+        apply:
+          run_once: true
+
+    - name: copy dir
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.copy.yml"
+      vars:
+        copys: "{{ domoticz.dir_copy | default([],true) }}"
+
+    # - name: add external_vol
+    #   include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-volumes.add.yml"
+    #   vars:
+    #     volumes: "{{ gitlab.runner.vol | default([],true) }}"
+
+    - name: add external_net
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-networks.add.yml"
+      vars:
+        _default:
+          external_net-gitlab:
+            driver: overlay
+            attachable: true
+        networks: "{{ gitlab.runner.net | default(_default,true) }}"
+
+
+- name: deploy
   environment:
     PATH: "{{ ansible_env.PATH }}:{{ env_path | default('',true) }}"
   hosts: docker-manager
@@ -25,14 +85,6 @@
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-label.add.yml"
       vars:
         labels: "{{ gitlab.runner.lab | default([],true) }}"
-
-    - name: add external_net
-      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-networks.add.yml"
-      vars:
-        networks:
-          external_net-gitlab:
-            driver: overlay
-            attachable: true
 
     - name: build env_file
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-env.create.yml"
@@ -56,7 +108,7 @@
   environment:
     PATH: "{{ ansible_env.PATH }}:{{ env_path | default('',true) }}"
   hosts: "{{ 'docker:&docker-gitlab-node' if (groups['docker-gitlab-node'] is defined) else 'docker' }}"
-  tasks:
+  tasks: 
 
     - name: wait host port
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/host-port.wait.yml"
@@ -78,6 +130,8 @@
           result: "lookup_result"
 
     - name: exec get runner token
+      when:
+        - lookup_result.exists
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-service.exec.yml"
       vars:
         service:
@@ -93,7 +147,7 @@
   environment:
     PATH: "{{ ansible_env.PATH }}:{{ env_path | default('',true) }}"
   hosts: "{{ 'docker:&docker-gitlab-runner' if (groups['docker-gitlab-runner'] is defined) else 'docker' }}"
-  tasks:
+  tasks: 
 
     # TODO In swarm multi-node mode, cant know which node it is running on
     - name: exec register runner

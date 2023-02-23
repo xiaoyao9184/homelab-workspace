@@ -5,7 +5,7 @@
     run_wsl: |
       ansible-playbook \
         --inventory $PWD/ansible \
-        $PWD/../../../docker/stack-master-slave/gitlab-runner-global/ansible-playbook.dispose.yml
+        $PWD/../../../docker/stack-global/global-gitlab-runner/ansible-playbook.dispose.yml
   environment:
     PATH: "{{ ansible_env.PATH }}:{{ env_path | default('',true) }}"
   hosts: "{{ 'docker:&docker-gitlab-node' if (groups['docker-gitlab-node'] is defined) else 'docker' }}"
@@ -31,14 +31,10 @@
 
 
 - name: dispose
-  vars:
-    run_wsl: |
-      ansible-playbook \
-        --inventory $PWD/ansible \
-        $PWD/../../../docker/stack-master-slave/gitlab-runner-global/ansible-playbook.dispose.yml
   environment:
     PATH: "{{ ansible_env.PATH }}:{{ env_path | default('',true) }}"
   hosts: docker-manager
+  run_once: true
   tasks: 
 
     - name: set ws
