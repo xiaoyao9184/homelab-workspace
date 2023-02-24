@@ -2,7 +2,7 @@ version: "3.8"
 
 configs:
   config:
-    name: external_cfg-shadowsocks-r
+    name: external_cfg-shadowsocks-go
     external: true
 
 networks:
@@ -11,12 +11,12 @@ networks:
     external: true
 
 services:
-  shadowsocks2:
-    image: teddysun/shadowsocks-r:latest
-    env_file: external_env-all.env
+  shadowsocks-go:
+    image: teddysun/shadowsocks-go:latest
+    env_file: external_env-go.env
     configs:
       - source: config
-        target: /etc/shadowsocks-r/config.json
+        target: /etc/shadowsocks-go/config.json
     # ports:
     #   - 9000:9000
     #   - 9000:9000/udp

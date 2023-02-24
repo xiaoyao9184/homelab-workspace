@@ -11,9 +11,9 @@ networks:
     external: true
 
 services:
-  shadowsocks2:
+  shadowsocks-rust:
     image: teddysun/shadowsocks-rust:latest
-    env_file: external_env-all.env
+    env_file: external_env-rust.env
     configs:
       - source: config
         target: /etc/shadowsocks-rust/config.json

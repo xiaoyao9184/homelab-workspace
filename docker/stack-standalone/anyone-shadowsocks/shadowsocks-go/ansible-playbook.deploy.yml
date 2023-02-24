@@ -5,7 +5,7 @@
     run_wsl: |
       ansible-playbook \
         --inventory $PWD/ansible \
-        $PWD/../../../docker/stack-standalone/shadowsocks/shadowsocks-libev/ansible-playbook.deploy.yml
+        $PWD/../../../docker/stack-standalone/anyone-shadowsocks/shadowsocks-libev/ansible-playbook.deploy.yml
   environment:
     PATH: "{{ ansible_env.PATH }}:{{ env_path | default('',true) }}"
   hosts: docker-manager
@@ -21,13 +21,23 @@
 
     - name: copy dir
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.copy.yml"
+      vars:
+        copys: "{{ shadowsocks.go.dir_copy }}"
+
+    - name: add external_cfg
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-configs.add.yml"
+      vars:
+        _default:
+          external_cfg-shadowsocks-go:
+            file: "{{ dir.remote }}/config/go.json"
+        configs: "{{ shadowsocks.go.cfg | default(_default,true) }}"
 
     - name: build env_file
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-env.create.yml"
       vars:
         env: 
-          dest: "{{ dir.remote }}/external_env-all.env"
-          data: "{{ shadowsocks2.env }}"
+          dest: "{{ dir.remote }}/external_env-go.env"
+          data: "{{ shadowsocks.go.env | default([],true) }}"
 
     - name: add stack service
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-compose.add.yml"

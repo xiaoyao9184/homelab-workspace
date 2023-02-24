@@ -2,7 +2,7 @@ version: "3.8"
 
 configs:
   config:
-    name: external_cfg-shadowsocks-libev
+    name: external_cfg-shadowsocks-r
     external: true
 
 networks:
@@ -11,12 +11,12 @@ networks:
     external: true
 
 services:
-  shadowsocks2:
-    image: teddysun/shadowsocks-libev:latest
-    env_file: external_env-all.env
+  shadowsocks-r:
+    image: teddysun/shadowsocks-r:latest
+    env_file: external_env-r.env
     configs:
       - source: config
-        target: /etc/shadowsocks-libev/config.json
+        target: /etc/shadowsocks-r/config.json
     # ports:
     #   - 9000:9000
     #   - 9000:9000/udp

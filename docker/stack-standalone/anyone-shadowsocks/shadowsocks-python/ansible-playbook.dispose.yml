@@ -5,7 +5,7 @@
     run_wsl: |
       ansible-playbook \
         --inventory $PWD/ansible \
-        $PWD/../../../docker/stack-standalone/shadowsocks/shadowsocks-libev/ansible-playbook.dispose.yml
+        $PWD/../../../docker/stack-standalone/anyone-shadowsocks/shadowsocks-libev/ansible-playbook.dispose.yml
   environment:
     PATH: "{{ ansible_env.PATH }}:{{ env_path | default('',true) }}"
   hosts: docker-manager

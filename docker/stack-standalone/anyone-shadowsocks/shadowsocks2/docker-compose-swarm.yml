@@ -6,9 +6,9 @@ networks:
     external: true
 
 services:
-  shadowsocks2:
+  shadowsocks-2:
     image: teddysun/go-shadowsocks2:latest
-    env_file: external_env-all.env
+    env_file: external_env-v2.env
     # ports:
     #   - 9000:9000
     #   - 9000:9000/udp
