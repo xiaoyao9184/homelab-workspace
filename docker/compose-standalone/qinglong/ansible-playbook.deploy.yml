@@ -21,19 +21,22 @@
     - name: copy dir
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.copy.yml"
       vars:
-        copys: "{{ qinglong.dir_copy | default([]) }}"
+        copys: "{{ qinglong.dir_copy | default([],true) }}"
 
     - name: add external_vol
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-volumes.add.yml"
       vars:
-        volumes: "{{ qinglong.vol | default([]) }}"
+        _default:
+          external_vol-qinglong-data:
+            driver: local
+        volumes: "{{ qinglong.vol | default(_default,true) }}"
               
     - name: build env_file
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-env.create.yml"
       vars:
         env: 
           dest: "{{ dir.remote }}/external_env-all.env"
-          data: "{{ qinglong.env | default([]) }}"
+          data: "{{ qinglong.env | default([],true) }}"
 
     - name: add compose service
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-compose.add.yml"
@@ -54,7 +57,7 @@
           project: "{{ dir.names[0] }}"
           command: "{{ command }}"
           result: exe_result
-      loop: "{{ qinglong.exec | default([]) }}"
+      loop: "{{ qinglong.exec | default([],true) }}"
       loop_control:
         loop_var: command
 
