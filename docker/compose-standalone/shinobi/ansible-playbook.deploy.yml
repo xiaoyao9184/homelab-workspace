@@ -24,16 +24,29 @@
     - name: add external_vol
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-volumes.add.yml"
       vars:
-        volumes: "{{ shinobi.vol | default([]) }}"
+        _default:
+          external_vol-shinobi-config:
+            driver: local
+          external_vol-shinobi-customAutoLoad:
+            driver: local
+          external_vol-shinobi-database:
+            driver: local
+          external_vol-shinobi-plugins:
+            driver: local
+          external_vol-shinobi-videos:
+            driver: local
+          external_vol-shinobi-tensorflow:
+            driver: local
+        volumes: "{{ shinobi.vol | default(_default,true) }}"
 
     - name: build env_file
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-envs.create.yml"
       vars:
         envs: 
           - dest: "{{ dir.remote }}/external_env-shinobi.env"
-            data: "{{ shinobi.env.shinobi }}"
+            data: "{{ shinobi.env.shinobi | default([],true) }}"
           - dest: "{{ dir.remote }}/external_env-tf.env"
-            data: "{{ shinobi.env.tf }}"
+            data: "{{ shinobi.env.tf | default([],true) }}"
 
     - name: add compose service
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-compose.add.yml"
