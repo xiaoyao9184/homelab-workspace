@@ -5,10 +5,11 @@
     run_wsl: |
       ansible-playbook \
         --inventory $PWD/ansible \
-        $PWD/../../../docker/stack-standalone/frp/frp-server/ansible-playbook.deploy.yml
+        $PWD/../../../docker/stack-standalone/anyone-frp/frp-server/ansible-playbook.deploy.yml
   environment:
     PATH: "{{ ansible_env.PATH }}:{{ env_path | default('',true) }}"
   hosts: docker-manager
+  run_once: true
   tasks: 
 
     - name: set ws
@@ -27,7 +28,10 @@
     - name: add external_cfg
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-configs.add.yml"
       vars:
-        configs: "{{ frp.server.cfg }}"
+        _default:
+          external_cfg-frp-server:
+            file: "{{ dir.remote }}/config/frps.ini"
+        configs: "{{ frp.server.cfg | default(_default,true)}}"
 
     - name: build env_file
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-env.create.yml"

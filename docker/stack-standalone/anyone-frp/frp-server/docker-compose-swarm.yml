@@ -1,36 +1,44 @@
 version: "3.8"
 
 configs:
-  client_config:
-    name: external_cfg-frp-client
+  server_config:
+    name: external_cfg-frp-server
     external: true
 
-# networks:
-#   frp:
-#     name: external_net-frp
-#     external: true
+networks:
+  # frp:
+  #   name: external_net-frp
+  #   external: true
+  host:
+    name: host
+    external: true
 
 services:
-  frp-client:
-    image: fatedier/frpc:v0.44.0
+  frp-server:
+    image: fatedier/frps:v0.44.0
     entrypoint: 
-      - "/usr/bin/frpc"
+      - "/usr/bin/frps"
       - "-c"
-      - "/app/frpc.ini"
+      - "/app/frps.ini"
     env_file: external_env-all.env
     configs:
-      - source: client_config
-        target: /app/frpc.ini
-    # networks:
-    #   - frp
+      - source: server_config
+        target: /app/frps.ini
+    # ports:
+    #   - "7500:7500"
+    #   - "50801-50806:50801-50806"
+    #   - "54436:54436"
+    networks:
+      # - frp
+      - host
     deploy:
       endpoint_mode: vip
       mode: replicated
       replicas: 1
-      # max_replicas_per_node: 1
       placement:
         constraints:
           - node.platform.os == linux
+          - node.labels.frp-server == true
         preferences:
           - spread: node.platform.os
       labels:
