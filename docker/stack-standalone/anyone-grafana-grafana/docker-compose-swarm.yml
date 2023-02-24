@@ -12,6 +12,9 @@ volumes:
     external: true
  
 networks:
+  grafana:
+    name: external_net-grafana
+    external: true
   influxdb:
     name: external_net-influxdb
     external: true
@@ -26,6 +29,7 @@ services:
     ports:
       - 3000:3000
     networks:
+      - grafana
       - influxdb
     # healthcheck:
     #   test: curl -f http://localhost:6800 || exit 1
@@ -40,6 +44,7 @@ services:
       placement:
         constraints:
           - node.platform.os == linux
+          - node.labels.grafana-node == true
         preferences:
           - spread: node.platform.os
       labels:
