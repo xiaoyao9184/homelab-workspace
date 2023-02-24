@@ -13,6 +13,11 @@ volumes:
     name: external_vol-mosquitto-log
     external: true
 
+networks:
+  mosquitto:
+    name: external_net-mosquitto
+    external: true
+
 services:
   mosquitto:
     image: eclipse-mosquitto:2.0
@@ -26,14 +31,16 @@ services:
     ports:
       - "1883:1883"
       # - "9001:9001"
+    networks:
+      - mosquitto
     deploy:
       endpoint_mode: vip
       mode: replicated
       replicas: 1
-      # max_replicas_per_node: 1
       placement:
         constraints:
           - node.platform.os == linux
+          - node.labels.mosquitto-node == true
         preferences:
           - spread: node.platform.os
       labels:
