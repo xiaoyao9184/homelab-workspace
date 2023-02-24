@@ -23,12 +23,15 @@
     - name: copy dir
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.copy.yml"
       vars:
-        copys: "{{ nfs.dir_copy }}"
+        copys: "{{ nfs.dir_copy | default([],true) }}"
 
     - name: add external_vol
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-volumes.add.yml"
       vars:
-        volumes: "{{ nfs.vol }}"
+        _default:
+          external_vol-erichough-nfs-server:
+            driver: local
+        volumes: "{{ nfs.vol | default(_default,true) }}"
 
     - name: copy to volume
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-volumes.copy.yml"
@@ -39,7 +42,7 @@
             src: "{{ dir.remote }}/data/"
             dest: "./"
             directory_mode: '0777'
-        volumes: "{{ nfs.vol_cp | default(_default) }}"
+        volumes: "{{ nfs.vol_cp | default(_default,true) }}"
 
     # https://medium.com/@jonsbun/why-need-to-be-careful-when-mounting-single-files-into-a-docker-container-4f929340834
     - name: overwrite bind exports
@@ -50,7 +53,7 @@
       vars:
         envs: 
           - dest: "{{ dir.remote }}/external_env-server.env"
-            data: "{{ nfs.env }}"
+            data: "{{ nfs.env | default([],true) }}"
 
     - name: add compose service
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-compose.add.yml"
