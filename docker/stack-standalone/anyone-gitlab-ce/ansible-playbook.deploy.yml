@@ -1,0 +1,137 @@
+---
+
+- name: deploy
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --inventory $PWD/ansible \
+        $PWD/../../../docker/stack-standalone/anyone-gitlab-ce/ansible-playbook.deploy.yml
+  environment:
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('',true) }}"
+  hosts: "{{ 'nfs-client:&docker-gitlab-node' if (groups['docker-gitlab-node'] is defined) else 'nfs-client' }}"
+  # run_once: true
+  tasks:
+
+    - name: wait nfs mount
+      when: gitlab.nfs_wait is defined
+      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/nfs-mount.wait.yml"
+      vars:
+        _default:
+          - name: on_manager
+            point: "/gitlab-config"
+            mount: "/mnt/nfs/gitlab-config"
+            option: "vers=4,loud,rw,sync"
+            unmount: true
+            retry: 5
+          - name: on_manager
+            point: "/gitlab-log"
+            mount: "/mnt/nfs/gitlab-log"
+            option: "vers=4,loud,rw,sync"
+            unmount: true
+            retry: 5
+          - name: on_manager
+            point: "/gitlab-data"
+            mount: "/mnt/nfs/gitlab-data"
+            option: "vers=4,loud,rw,sync"
+            unmount: true
+            retry: 5
+        wait_nfs: "{{ gitlab.nfs_wait | default(_default) }}"
+
+
+- name: deploy
+  environment:
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('',true) }}"
+  hosts: "{{ 'docker:&docker-gitlab-node' if (groups['docker-gitlab-node'] is defined) else 'docker' }}"
+  tasks:
+
+    - name: set ws
+      include_tasks:
+        file: "{{ playbook_dir }}/../../../.seed/ansible-tasks/ws.set.yml"
+        # https://github.com/ansible/ansible/issues/72099
+        apply:
+          run_once: true
+
+    - name: set dir
+      include_tasks:
+        file: "{{ ws.local }}/.seed/ansible-tasks/dir.set.yml"
+        apply:
+          run_once: true
+
+    - name: copy dir
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.copy.yml"
+      vars:
+        copys: "{{ gitlab.dir_copy | default([],true) }}"
+
+    - name: add external_vol
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-volumes.add.yml"
+      vars:
+        _default:
+          external_vol-gitlab-config:
+            driver: local
+          external_vol-gitlab-log:
+            driver: local
+          external_vol-gitlab-data:
+            driver: local
+        volumes: "{{ gitlab.vol | default(_default,true) }}"
+
+    - name: add external_net
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-networks.add.yml"
+      vars:
+        _default:
+          external_net-gitlab:
+            driver: overlay
+            attachable: true
+        networks: "{{ gitlab.net | default(_default,true) }}"
+
+
+
+- name: deploy
+  environment:
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('',true) }}"
+  hosts: docker-manager
+  run_once: true
+  tasks: 
+
+    - name: set ws
+      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/ws.set.yml"
+
+    - name: set dir
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.set.yml"
+
+    - name: copy dir
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.copy.yml"
+      vars:
+        copys: "{{ gitlab.dir_copy | default([],true) }}"
+
+    - name: add external_sec
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-secrets.add.yml"
+      vars:
+        _default:
+          external_sec-gitlab-password:
+            data: gitlab.123
+        secrets: "{{ gitlab.sec | default(_default,true) }}"
+
+    - name: add external_cfg
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-configs.add.yml"
+      vars:
+        _default:
+          external_cfg-gitlab-omnibus:
+            file: "{{ dir.remote }}/config/omnibus.rb"
+        configs: "{{ gitlab.cfg | default(_default,true) }}"
+
+    - name: build env_file
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-env.create.yml"
+      vars:
+        env: 
+          dest: "{{ dir.remote }}/external_env-all.env"
+          data: "{{ gitlab.env | default([],true) }}"
+
+    - name: add stack service
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-compose.add.yml"
+      vars:
+        compose:
+          type: stack
+          name: "{{ dir.names[0] }}"
+          path: "{{ dir.remote }}"
+          files: 
+            - "docker-compose-swarm.yml"
