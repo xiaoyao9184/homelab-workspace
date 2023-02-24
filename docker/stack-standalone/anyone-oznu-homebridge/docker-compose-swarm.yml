@@ -38,6 +38,7 @@ services:
       placement:
         constraints:
           - node.platform.os == linux
+          - node.labels.homebridge-node == true
         preferences:
           - spread: node.platform.os
       labels:

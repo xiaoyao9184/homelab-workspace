@@ -1,0 +1,122 @@
+---
+
+- name: deploy
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --inventory $PWD/ansible \
+        $PWD/../../../docker/stack-standalone/anyone-oznu-homebridge/ansible-playbook.deploy.yml
+  environment:
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('',true) }}"
+  hosts: "{{ 'nfs-client:&docker-homebridge-node' if (groups['docker-homebridge-node'] is defined) else 'nfs-client' }}"
+  # run_once: true
+  tasks:
+
+    - name: wait nfs mount
+      when: homebridge.nfs_wait is defined
+      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/nfs-mount.wait.yml"
+      vars:
+        _default:
+          - name: on_manager
+            point: "/homebridge-data"
+            mount: "/mnt/nfs/homebridge-data"
+            option: "vers=4,loud,rw,sync"
+            unmount: true
+            retry: 5
+        wait_nfs: "{{ homebridge.nfs_wait | default(_default) }}"
+
+
+- name: deploy
+  environment:
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('',true) }}"
+  hosts: "{{ 'docker:&docker-homebridge-node' if (groups['docker-homebridge-node'] is defined) else 'docker' }}"
+  tasks:
+
+    - name: set ws
+      include_tasks:
+        file: "{{ playbook_dir }}/../../../.seed/ansible-tasks/ws.set.yml"
+        # https://github.com/ansible/ansible/issues/72099
+        apply:
+          run_once: true
+
+    - name: set dir
+      include_tasks:
+        file: "{{ ws.local }}/.seed/ansible-tasks/dir.set.yml"
+        apply:
+          run_once: true
+
+    - name: copy dir
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.copy.yml"
+      vars:
+        copys: "{{ homebridge.dir_copy | default([],true) }}"
+
+    - name: add external_vol
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-volumes.add.yml"
+      vars:
+        _default:
+          external_vol-homebridge-data:
+            driver: local
+        volumes: "{{ homebridge.vol | default(_default,true) }}"
+
+    # - name: add external_net
+    #   include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-networks.add.yml"
+    #   vars:
+    #     _default:
+    #       external_net-homebridge:
+    #         driver: overlay
+    #         attachable: true
+    #     networks: "{{ homebridge.net | default(_default,true) }}"
+
+
+- name: deploy
+  environment:
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('',true) }}"
+  hosts: docker-manager
+  run_once: true
+  tasks:
+
+    - name: set ws
+      when: ws is undefined
+      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/ws.set.yml"
+
+    - name: set dir
+      when: dir is undefined
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.set.yml"
+
+    - name: copy dir
+      when: not (dir.synchronized | default(false) | bool)
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.copy.yml"
+      vars:
+        copys: "{{ homebridge.dir_copy | default([],true) }}"
+
+    - name: add swarm label
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-label.add.yml"
+      vars:
+        labels: "{{ homebridge.lab | default([],true) }}"
+
+    # - name: add swarm secret
+    #   include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-secrets.add.yml"
+    #   vars:
+    #     secrets: "{{ homebridge.sec | default([],true) }}"
+
+    # - name: add swarm config
+    #   include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-configs.add.yml"
+    #   vars:
+    #     configs: "{{ homebridge.cfg | default([],true) }}"
+
+    - name: build env_file
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-env.create.yml"
+      vars:
+        env:
+          dest: "{{ dir.remote }}/external_env-all.env"
+          data: "{{ homebridge.env | default([],true) }}"
+
+    - name: add stack service
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-compose.add.yml"
+      vars:
+        compose:
+          type: stack
+          name: "{{ dir.names[0] }}"
+          path: "{{ dir.remote }}"
+          files: 
+            - "docker-compose-swarm.yml"
