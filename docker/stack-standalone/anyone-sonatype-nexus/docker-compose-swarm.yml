@@ -34,7 +34,6 @@ services:
       endpoint_mode: vip
       mode: replicated
       replicas: 1
-      # max_replicas_per_node: 1
       placement:
         constraints:
           - node.platform.os == linux

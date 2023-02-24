@@ -1,0 +1,51 @@
+---
+
+
+- name: print
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --inventory $PWD/ansible \
+        $PWD/../../../docker/stack-standalone/anyone-sonatype-nexus/admin-password/ansible-playbook.print.yml
+  environment:
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('',true) }}"
+  hosts: "{{ 'docker:&docker-nexus-node' if (groups['docker-nexus-node'] is defined) else 'docker' }}"
+  tasks: 
+
+    - name: set ws
+      include_tasks:
+        file: "{{ playbook_dir }}/../../../../../.seed/ansible-tasks/ws.set.yml"
+        # https://github.com/ansible/ansible/issues/72099
+        apply:
+          run_once: true
+
+    - name: set dir
+      include_tasks:
+        file: "{{ ws.local }}/.seed/ansible-tasks/dir.set.yml"
+        apply:
+          run_once: true
+      vars:
+        length: 2
+
+    - name: wait host port
+      include_tasks:
+        file: "{{ ws.local }}/.seed/ansible-tasks/host-port.wait.yml"
+        apply:
+          run_once: true
+      vars:
+        wait_name: "{{ dir.names | join('_') }}"
+        wait_network:
+          - external_net-nexus
+        wait_port:
+          nexus: 8081
+
+    - name: print admin password
+      include_tasks: "{{ dir.local }}/admin-password/ansible-task.print.yml"
+      vars:
+        nexus:
+          service:
+            type: stack
+            name: "nexus3"
+            namespace: "{{ dir.names[0] }}"
+          ws: "{{ ws }}"
+          result: admin_password

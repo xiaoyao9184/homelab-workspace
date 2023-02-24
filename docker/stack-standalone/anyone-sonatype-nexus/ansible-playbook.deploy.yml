@@ -5,7 +5,7 @@
     run_wsl: |
       ansible-playbook \
         --inventory $PWD/ansible \
-        $PWD/../../../docker/stack-standalone-failover/nexus/ansible-playbook.deploy.yml
+        $PWD/../../../docker/stack-standalone/anyone-sonatype-nexus/ansible-playbook.deploy.yml
   environment:
     PATH: "{{ ansible_env.PATH }}:{{ env_path | default('',true) }}"
   hosts: "{{ 'nfs-client:&docker-nexus-node' if (groups['docker-nexus-node'] is defined) else 'nfs-client' }}"
@@ -53,12 +53,19 @@
     - name: add external_vol
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-volumes.add.yml"
       vars:
-        volumes: "{{ nexus.vol | default([],true) }}"
+        _default:
+          external_vol-nexus-data:
+            driver: local
+        volumes: "{{ nexus.vol | default(_default,true) }}"
 
     - name: add external_net
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-networks.add.yml"
       vars:
-        networks: "{{ nexus.net | default([],true) }}"
+        _default:
+          external_net-nexus:
+            driver: overlay
+            attachable: true
+        networks: "{{ nexus.net | default(_default,true) }}"
 
 
 - name: deploy
@@ -81,21 +88,20 @@
       vars:
         copys: "{{ nexus.dir_copy | default([],true) }}"
 
-    # TODO stack-standalone-fixed and stack-standalone-failover use same time will make fixed not fixed
     - name: add swarm label
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-label.add.yml"
       vars:
         labels: "{{ nexus.lab | default([],true) }}"
 
-    - name: add swarm secret
-      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-secrets.add.yml"
-      vars:
-        secrets: "{{ nexus.sec | default([],true) }}"
+    # - name: add swarm secret
+    #   include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-secrets.add.yml"
+    #   vars:
+    #     secrets: "{{ nexus.sec | default([],true) }}"
 
-    - name: add swarm config
-      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-configs.add.yml"
-      vars:
-        configs: "{{ nexus.cfg | default([],true) }}"
+    # - name: add swarm config
+    #   include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-configs.add.yml"
+    #   vars:
+    #     configs: "{{ nexus.cfg | default([],true) }}"
 
     - name: build env_file
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-env.create.yml"
@@ -114,15 +120,33 @@
           files:
             - "docker-compose-swarm.yml"
 
-    # TODO exec
+
+- name: deploy
+  environment:
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('',true) }}"
+  hosts: "{{ 'docker:&docker-nexus-node' if (groups['docker-nexus-node'] is defined) else 'docker' }}"
+  tasks:
+
+    - name: wait host port
+      include_tasks:
+        file: "{{ ws.local }}/.seed/ansible-tasks/host-port.wait.yml"
+        apply:
+          run_once: true
+      vars:
+        wait_name: "{{ dir.names | join('_') }}"
+        wait_network:
+          - external_net-nexus
+        wait_port: 
+          nexus: 8081
+
     - name: print admin password
+      when: 
       include_tasks: "{{ dir.local }}/admin-password/ansible-task.print.yml"
       vars:
-        nexus: 
-          workspace: "{{ ws.local }}"
+        nexus:
           service:
             type: stack
             name: "nexus3"
             namespace: "{{ dir.names | join('_') }}"
-            command: "bash -c '[ -f /nexus-data/admin.password ] && cat /nexus-data/admin.password || echo passwork already change'"
-            result: nexus_passwd
+          ws: "{{ ws }}"
+          result: admin_password
