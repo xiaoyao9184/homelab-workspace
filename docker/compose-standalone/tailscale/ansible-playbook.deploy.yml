@@ -26,7 +26,7 @@
       vars:
         env: 
           dest: "{{ dir.remote }}/external_env-all.env"
-          data: "{{ tailscale.env }}"
+          data: "{{ tailscale.env | default([],true) }}"
 
     - name: add compose service
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-compose.add.yml"
