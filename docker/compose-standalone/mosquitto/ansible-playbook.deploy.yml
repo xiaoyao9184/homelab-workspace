@@ -5,11 +5,10 @@
     run_wsl: |
       ansible-playbook \
         --inventory $PWD/ansible \
-        $PWD/../../../docker/compose-standalone/domoticz/ansible-playbook.deploy.yml
+        $PWD/../../../docker/compose-standalone/mosquitto/ansible-playbook.deploy.yml
   environment:
     PATH: "{{ ansible_env.PATH }}:{{ env_path | default('',true) }}"
-  hosts: "{{ 'docker:&docker-domoticz-node' if (groups['docker-domoticz-node'] is defined) else 'docker' }}"
-  run_once: true
+  hosts: "{{ 'docker:&docker-mosquitto-node' if (groups['docker-mosquitto-node'] is defined) else 'docker' }}"
   tasks: 
 
     - name: set ws
@@ -20,31 +19,31 @@
 
     - name: copy dir
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.copy.yml"
+      vars:
+        copys: "{{ mosquitto.dir_copy | default([],true) }}"
 
     - name: add external_vol
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-volumes.add.yml"
       vars:
         _default:
-          external_vol-domoticz-userdata:
+          external_vol-mosquitto-data:
             driver: local
-        volumes: "{{ domoticz.vol | default(_default,true) }}"
+          external_vol-mosquitto-log:
+            driver: local
+        volumes: "{{ mosquitto.vol | default(_default,true) }}"
 
-    - name: add external_net
-      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-networks.add.yml"
-      vars:
-        _default:
-          external_net-domoticz:
-            driver: bridge
-        networks: "{{ domoticz.net | default(_default,true) }}"
+    # https://medium.com/@jonsbun/why-need-to-be-careful-when-mounting-single-files-into-a-docker-container-4f929340834
+    - name: overwrite bind conf
+      ansible.builtin.shell: "cat {{ dir.remote }}/config/mosquitto.conf > {{ dir.remote }}/bind_file-conf"
 
     - name: build env_file
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-env.create.yml"
       vars:
         env: 
           dest: "{{ dir.remote }}/external_env-all.env"
-          data: "{{ domoticz.env | default([],true) }}"
+          data: "{{ mosquitto.env | default([],true) }}"
 
-    - name: add compose service
+    - name: add stack service
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-compose.add.yml"
       vars:
         compose:
@@ -59,24 +58,4 @@
               src: "{{ dir.local }}/docker-compose.yml.j2"
               dest: "{{ dir.remote }}/docker-compose.yml"
             vars:
-              IP: "{{ domoticz.tmp.ip }}"
-
-    - name: exec service
-      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-service.exec.yml"
-      vars:
-        service:
-          type: compose
-          name: domoticz
-          project: "{{ dir.names[0] }}"
-          command: "{{ command }}"
-          result: exe_result
-      loop: "{{ domoticz.exec | default([],true) }}"
-      loop_control:
-        loop_var: command
-
-    - name: restart container
-      when: domoticz.exec is defined
-      community.docker.docker_container:
-        name: domoticz
-        state: started
-        restart: true
+              BIND_CONF: "{{ dir.remote }}/bind_file-conf"
