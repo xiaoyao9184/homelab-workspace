@@ -32,9 +32,9 @@
         compose:
           version: "3.8"
           dest: "{{ dir.remote }}/docker-compose.networks.yml"
-          data: "{{ traefik.compose | default({}) }}"
+          data: "{{ traefik.compose | default({},true) }}"
 
-    - name: add stack service
+    - name: add compose service
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-compose.add.yml"
       vars:
         compose:

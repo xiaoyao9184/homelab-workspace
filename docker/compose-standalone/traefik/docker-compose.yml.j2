@@ -24,6 +24,8 @@ services:
 {% for name in VARS.NETWORKS.keys() %}
       - {{ name }}
 {% endfor %}
+    container_name: traefik-proxy
+    restart: always
     healthcheck:
       test: nc -z localhost 9901 && nc -z localhost 9901 || exit 1
       interval: 60s
@@ -44,3 +46,5 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
     networks:
       - traefik
+    container_name: traefik-agent
+    restart: always
