@@ -10,6 +10,8 @@ volumes:
 
 networks:
   jenkins:
+    name: external_net-jenkins
+    external: true
 
 services:
   jenkins:
@@ -38,6 +40,7 @@ services:
       placement:
         constraints:
           - node.platform.os == linux
+          - node.labels.jenkins-node == true
         preferences:
           - spread: node.platform.os
       labels:
