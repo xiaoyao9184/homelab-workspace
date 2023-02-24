@@ -1,14 +1,15 @@
 ---
 
-- name: dispose
+- name: deploy
   vars:
     run_wsl: |
       ansible-playbook \
         --inventory $PWD/ansible \
-        $PWD/../../../docker/stack-standalone/clash/clash-yacd/ansible-playbook.dispose.yml
+        $PWD/../../../docker/stack-standalone/anyone-clash/clash-dashboard/ansible-playbook.deploy.yml
   environment:
     PATH: "{{ ansible_env.PATH }}:{{ env_path | default('',true) }}"
   hosts: docker-manager
+  run_once: true
   tasks: 
 
     - name: set ws
@@ -19,8 +20,19 @@
       vars:
         length: 2
 
-    - name: remove stack service
-      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-compose.rm.yml"
+    - name: copy dir
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.copy.yml"
+
+    - name: add external_net
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-networks.add.yml"
+      vars:
+        networks:
+          external_net-clash:
+            driver: overlay
+            attachable: true
+
+    - name: add stack service
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-compose.add.yml"
       vars:
         compose:
           type: stack

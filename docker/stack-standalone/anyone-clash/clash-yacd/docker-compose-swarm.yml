@@ -6,17 +6,16 @@ networks:
     external: true
 
 services:
-  clash-dashboard:
-    image: hitian/clash-dashboard:latest
+  clash-yacd:
+    image: haishanh/yacd:latest
     ports:
-      - 7880:80
+      - 7881:3000
     networks:
       - clash
     deploy:
       endpoint_mode: vip
       mode: replicated
       replicas: 1
-      # max_replicas_per_node: 1
       placement:
         constraints:
           - node.platform.os == linux
