@@ -58,19 +58,19 @@
   - when: _realpath_remote_dir.find("~") != -1
     block:
 
-      - name: ws.set|mkdir _realpath_remote_dir
+      - name: dir.set|mkdir _realpath_remote_dir
         run_once: false
         ansible.builtin.file:
           path: "{{ _realpath_remote_dir }}"
           state: directory
 
-      - name: ws.set|stat of _realpath_remote_dir
+      - name: dir.set|stat of _realpath_remote_dir
         run_once: false
         ansible.builtin.stat:
           path: "{{ _realpath_remote_dir }}"
         register: _stat_remote_dir
 
-      - name: ws.set|replace _realpath_remote_dir with stat path
+      - name: dir.set|replace _realpath_remote_dir with stat path
         run_once: false
         ansible.builtin.set_fact:
           _realpath_remote_dir: "{{ _stat_remote_dir.stat.path }}"
