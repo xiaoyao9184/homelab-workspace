@@ -1,0 +1,43 @@
+---
+
+- name: dispose
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --inventory $PWD/ansible \
+        $PWD/../../../docker/compose-standalone/telegraf/ansible-playbook.dispose.yml
+  environment:
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('',true) }}"
+  hosts: "{{ 'docker:&docker-telegraf-node' if (groups['docker-telegraf-node'] is defined) else 'docker' }}"
+  tasks: 
+
+    - name: set ws
+      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/ws.set.yml"
+
+    - name: set dir
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.set.yml"
+
+    - name: stat docker group
+      ansible.builtin.stat:
+        path: /var/run/docker.sock
+      register: docker_stat
+
+    - name: remove compose service
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-compose.rm.yml"
+      vars:
+        compose:
+          type: compose
+          name: "{{ dir.names[0] }}"
+          path: "{{ dir.remote }}"
+          # files: 
+          #   - "docker-compose.yml"
+          template: 
+            name: "docker-compose"
+            opt:
+              src: "{{ dir.local }}/docker-compose.yml.j2"
+              dest: "{{ dir.remote }}/docker-compose.yml"
+            vars:
+              BIND_CONF: "{{ dir.remote }}/bind_file-conf"
+              NETWORKS: "{{ telegraf.compose.networks | default({},true) }}"
+              HOMENAME: "{{ ansible_hostname }}"
+              USR_GROUP: "{{ docker_stat.stat.gid }}"
