@@ -1,0 +1,35 @@
+---
+
+- name: dispose
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --inventory $PWD/ansible \
+        $PWD/../../../docker/compose-standalone/grafana/ansible-playbook.dispose.yml
+  environment:
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('',true) }}"
+  hosts: "{{ 'docker:&docker-grafana-node' if (groups['docker-grafana-node'] is defined) else 'docker' }}"
+  tasks: 
+
+    - name: set ws
+      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/ws.set.yml"
+
+    - name: set dir
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.set.yml"
+
+    - name: remove compose service
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-compose.rm.yml"
+      vars:
+        compose:
+          type: compose
+          name: "{{ dir.names[0] }}"
+          path: "{{ dir.remote }}"
+          # files: 
+          #   - "docker-compose.yml"
+          template: 
+            name: "docker-compose"
+            opt:
+              src: "{{ dir.local }}/docker-compose.yml.j2"
+              dest: "{{ dir.remote }}/docker-compose.yml"
+            vars:
+              NETWORKS: "{{ grafana.compose.networks | default({},true) }}"
