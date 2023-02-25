@@ -41,6 +41,6 @@
     # group: root
     mode: '0777'
 
-- name: docker-compose.add|reset _compose
+- name: docker-compose.create|reset _compose
   ansible.builtin.set_fact:
     _compose: !!null
