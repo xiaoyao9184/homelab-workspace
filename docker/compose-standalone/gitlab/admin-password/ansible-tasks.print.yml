@@ -1,0 +1,48 @@
+---
+
+- name: admin-password.print|set _password
+  vars:
+    lookup_default:
+      name: "gitlab"
+      project: "gitlab"
+      retries: 1
+      delay: 0
+      result: "lookup_result"
+    lookup_update: "{{ gitlab.service | default({}) }}"
+  ansible.builtin.set_fact:
+    _password:
+      result: "{{ gitlab.result | default('create_result') }}"
+      ws: "{{ gitlab.ws }}"
+      lookup: "{{ lookup_default | combine(lookup_update, recursive=True) }}"
+
+- name: admin-password.print|lookup service
+  include_tasks: "{{ _password.ws.local }}/.seed/ansible-tasks/docker-service.lookup.yml"
+  vars:
+    service: "{{ _password.lookup }}"
+
+- name: admin-password.print|print _password
+  debug:
+    var: _password
+
+- name: admin-password.print|exe print
+  when:
+    - lookup_result.exists
+  community.docker.docker_container_exec:
+    container: "{{ lookup_result.container_id }}"
+    command: "bash -c \"[ -f /etc/gitlab/initial_root_password ] && cat /etc/gitlab/initial_root_password | grep 'Password:' || echo passwork already change\""
+  register: exec_result
+
+- name: admin-password.print|set _password.result
+  when:
+    - exec_result is defined
+    - exec_result.stdout is defined
+  ansible.builtin.set_fact:
+    "{{ _password.result }}": "{{ exec_result.stdout_lines[-1] }}"
+  
+- name: admin-password.print|print _password.result
+  debug:
+    var: "{{ _password.result }}"
+
+- name: admin-password.print|reset _password
+  ansible.builtin.set_fact:
+    _password: !!null

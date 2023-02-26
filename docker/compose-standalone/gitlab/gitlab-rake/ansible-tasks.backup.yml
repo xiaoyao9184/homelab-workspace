@@ -1,0 +1,48 @@
+---
+
+- name: gitlab-rake.backup|set _rake
+  vars:
+    lookup_default:
+      name: "gitlab"
+      project: "gitlab"
+      retries: 1
+      delay: 0
+      result: "lookup_result"
+    lookup_update: "{{ gitlab.service | default({}) }}"
+  ansible.builtin.set_fact:
+    _rake:
+      result: "{{ gitlab.result | default('create_result') }}"
+      ws: "{{ gitlab.ws }}"
+      lookup: "{{ lookup_default | combine(lookup_update, recursive=True) }}"
+
+- name: gitlab-rake.backup|lookup service
+  include_tasks: "{{ _rake.ws.local }}/.seed/ansible-tasks/docker-service.lookup.yml"
+  vars:
+    service: "{{ _rake.lookup }}"
+
+- name: gitlab-rake.backup|print _rake
+  debug:
+    var: _rake
+
+- name: gitlab-rake.backup|exec backup
+  when:
+    - lookup_result.exists
+  community.docker.docker_container_exec:
+    container: "{{ lookup_result.container_id }}"
+    command: "gitlab-rake gitlab:backup:create"
+  register: exec_result
+
+- name: gitlab-rake.backup|set _rake.result
+  when:
+    - exec_result is defined
+    - exec_result.stdout is defined
+  ansible.builtin.set_fact:
+    "{{ _rake.result }}": "{{ exec_result.stdout_lines[-1] }}"
+  
+- name: gitlab-rake.backup|print _rake.result
+  debug:
+    var: "{{ _rake.result }}"
+
+- name: gitlab-rake.backup|reset _rake
+  ansible.builtin.set_fact:
+    _rake: !!null
