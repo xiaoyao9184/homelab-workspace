@@ -24,7 +24,7 @@
   debug:
     var: _password
 
-- name: admin-password.print|print password
+- name: admin-password.print|exec print
   when:
     - lookup_result.exists
   community.docker.docker_container_exec:
@@ -35,9 +35,9 @@
 - name: admin-password.print|set _password.result
   when:
     - exec_result is defined
-    - exec_result.results is defined
+    - exec_result.stdout is defined
   ansible.builtin.set_fact:
-    "{{ _password.result }}": "{{ exec_result | json_query('results[].stdout_lines[-1]') }}"
+    "{{ _password.result }}": "{{ exec_result.stdout_lines[-1] }}"
 
 - name: admin-password.print|print _password.result
   debug:
