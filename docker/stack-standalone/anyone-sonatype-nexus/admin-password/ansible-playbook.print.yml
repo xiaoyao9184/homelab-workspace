@@ -40,7 +40,7 @@
           nexus: 8081
 
     - name: print admin password
-      include_tasks: "{{ dir.local }}/admin-password/ansible-task.print.yml"
+      include_tasks: "{{ dir.local }}/ansible-tasks.print.yml"
       vars:
         nexus:
           service:
