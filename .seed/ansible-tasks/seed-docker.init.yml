@@ -33,6 +33,7 @@
   delay: 5
 
 - name: seed-docker.init|set pip sources
+  become: true
   when: pip.mirror is defined
   ansible.builtin.shell: pip3 config set global.index-url {{ pip.mirror }}
 
@@ -53,6 +54,15 @@
     name: "{{ ansible_user_id }}"
     groups: docker
     append: true
+
+- name: seed-docker.init|mkdir docker home
+  become: true
+  ansible.builtin.file:
+    path: /home/docker
+    state: directory
+    owner: "{{ ansible_user_id }}"
+    group: docker
+    mode: 0774
 
 - name: seed-docker.init|reset _docker
   ansible.builtin.set_fact:
