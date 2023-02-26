@@ -1,47 +1,53 @@
 ---
 
+- name: ninja.deploy|set _ninja
+  vars:
+    lookup_default:
+      name: "qinglong"
+      project: "qinglong"
+      retries: 1
+      delay: 0
+      result: "lookup_result"
+    lookup_update: "{{ qinglong.service | default({}) }}"
+  ansible.builtin.set_fact:
+    _ninja:
+      result: "{{ qinglong.result | default('create_result') }}"
+      ws: "{{ qinglong.ws }}"
+      lookup: "{{ lookup_default | combine(lookup_update, recursive=True) }}"
 
-- name: ninja.deploy
-  block:
+- name: ninja.deploy|lookup service
+  include_tasks: "{{ _ninja.ws.local }}/.seed/ansible-tasks/docker-service.lookup.yml"
+  vars:
+    service: "{{ _ninja.lookup }}"
 
-    - name: ninja.deploy|set _ninja
-      ansible.builtin.set_fact:
-        _ninja:
-          service: "{{ ninja.service }}"
-          workspace: "{{ ninja.workspace }}"
+- name: ninja.deploy|print _ninja
+  debug:
+    var: _ninja
 
-    - name: ninja.deploy|set _ninja.service.result
-      ansible.builtin.set_fact:
-        _ninja: "{{ _ninja | combine(update, recursive=True) }}"
-      vars:
-        update:
-          service:
-            result: ninja_install
+- name: ninja.deploy|exec deploy
+  loop:
+    - "bash -c 'git -C /ql/ninja pull || git clone https://github.com/MoonBegonia/ninja.git /ql/ninja'"
+    - "bash -c 'cd /ql/ninja/backend && pnpm install'"
+    - "bash -c 'cd /ql/ninja/backend && pm2 start'"
+    - "bash -c 'echo \"\ncd /ql/ninja/backend\npm2 start\" >> /ql/data/config/extra.sh'" 
+  when:
+    - lookup_result.exists
+  community.docker.docker_container_exec:
+    container: "{{ lookup_result.container_id }}"
+    command: "{{ item }}"
+  register: exec_result
 
-    - name: ninja.deploy|exec
-      include_tasks: "{{ _ninja.workspace }}/.seed/ansible-tasks/docker-service.exec.yml"
-      vars:
-        service: "{{ _ninja.service }}"
-
-    - name: ninja.deploy|append _ninja.result
-      ansible.builtin.set_fact:
-        _ninja: "{{ _ninja | combine(update, recursive=True) }}"
-      vars:
-        update:
-          result: "{{ ninja_install }}"
-
-    - name: ninja.deploy|print _ninja
-      debug:
-        var: _ninja
-
-    - name: ninja.deploy|reset _ninja
-      ansible.builtin.set_fact:
-        _ninja: !!null
+- name: ninja.deploy|set _ninja.result
+  when:
+    - exec_result is defined
+    - exec_result.results is defined
+  ansible.builtin.set_fact:
+    "{{ _ninja.result }}": "{{ exec_result | json_query('results[].stdout_lines[-1]') }}"
   
-  rescue:
+- name: ninja.deploy|print _ninja.result
+  debug:
+    var: "{{ _ninja.result }}"
 
-    - name: ninja.deploy|retry 15 seconds
-      pause:
-        seconds: 15
-
-    - include_tasks: "ninja.deploy.yml"
+- name: ninja.deploy|reset _ninja
+  ansible.builtin.set_fact:
+    _ninja: !!null

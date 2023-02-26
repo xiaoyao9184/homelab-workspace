@@ -48,22 +48,13 @@
           files: 
             - "docker-compose.yml"
 
-    - name: exec service
-      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-service.exec.yml"
+    - name: deploy ninja
+      include_tasks: "{{ dir.local }}/ninja/ansible-tasks.deploy.yml"
       vars:
-        service:
-          type: compose
-          name: qinglong
-          project: "{{ dir.names[0] }}"
-          command: "{{ command }}"
-          result: exe_result
-      loop: "{{ qinglong.exec | default([],true) }}"
-      loop_control:
-        loop_var: command
-
-    - name: restart container
-      when: domoticz.exec is defined
-      community.docker.docker_container:
-        name: qinglong
-        state: started
-        restart: true
+        qinglong:
+          service:
+            type: compose
+            name: "qinglong"
+            project: "{{ dir.names[0] }}"
+          ws: "{{ ws }}"
+          result: ninja_deploy

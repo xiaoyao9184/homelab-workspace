@@ -13,25 +13,27 @@
   tasks: 
 
     - name: set ws
-      include_tasks: "{{ playbook_dir }}/../../../../.seed/ansible-tasks/ws.set.yml"
+      include_tasks:
+        file: "{{ playbook_dir }}/../../../../.seed/ansible-tasks/ws.set.yml"
+        # https://github.com/ansible/ansible/issues/72099
+        apply:
+          run_once: true
 
     - name: set dir
-      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.set.yml"
+      include_tasks:
+        file: "{{ ws.local }}/.seed/ansible-tasks/dir.set.yml"
+        apply:
+          run_once: true
       vars:
         length: 2
 
-    - name: install ninja
-      loop:
-        - "bash -c 'git -C /ql/ninja pull || git clone https://github.com/MoonBegonia/ninja.git /ql/ninja'"
-        - "bash -c 'cd /ql/ninja/backend && pnpm install'"
-        - "bash -c 'cd /ql/ninja/backend && pm2 start'"
-        - "bash -c 'echo \"\ncd /ql/ninja/backend\npm2 start\" >> /ql/data/config/extra.sh'"
-      include_tasks: "{{ dir.local }}/{{ dir.names[1] }}/ansible-tasks.deploy.yml"
+    - name: ninja deploy
+      include_tasks: "{{ dir.local }}/ansible-tasks.deploy.yml"
       vars:
-        ninja: 
-          workspace: "{{ ws.local }}"
+        qinglong:
           service:
             type: compose
             name: "qinglong"
             project: "{{ dir.names[0] }}"
-            command: "{{ item }}"
+          ws: "{{ ws }}"
+          result: ninja_deploy
