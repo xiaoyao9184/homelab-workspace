@@ -44,9 +44,9 @@
       vars:
         envs: 
           - dest: "{{ dir.remote }}/external_env-shinobi.env"
-            data: "{{ shinobi.env.shinobi | default([],true) }}"
+            data: "{{ shinobi.env | default([],true) }}"
           - dest: "{{ dir.remote }}/external_env-tf.env"
-            data: "{{ shinobi.env.tf | default([],true) }}"
+            data: "{{ shinobi.tf.env | default([],true) }}"
 
     - name: add compose service
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-compose.add.yml"
