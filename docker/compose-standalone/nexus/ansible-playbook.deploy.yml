@@ -46,13 +46,12 @@
             - "docker-compose.yml"
 
     - name: print admin password
-      include_tasks: "{{ dir.local }}/admin-password/ansible-task.print.yml"
+      include_tasks: "{{ dir.local }}/admin-password/ansible-tasks.print.yml"
       vars:
         nexus: 
-          workspace: "{{ ws.local }}"
           service:
             type: compose
             name: "nexus3"
             project: "{{ dir.names | join('_') }}"
-            command: "bash -c '[ -f /nexus-data/admin.password ] && cat /nexus-data/admin.password || echo passwork already change'"
-            result: nexus_passwd
+          ws: "{{ ws }}"
+          result: nexus_passwd
