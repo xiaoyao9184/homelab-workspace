@@ -46,7 +46,7 @@
         - vm_item.guest is defined
       vars:
         vm_controller_combine: 
-          controller: "{{ esxi.guest_controller[vm_item.guest] }}"
+          controller: "{{ esxi.controller[vm_item.guest] }}"
         vm_controller_item: "{{ vm_item | combine(vm_controller_combine, recursive=True) }}"
       ansible.builtin.set_fact:
         vm_controller_list: "{{ vm_controller_list + [vm_controller_item] }}"

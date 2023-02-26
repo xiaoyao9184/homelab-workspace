@@ -24,36 +24,26 @@
   hosts: localhost
   tasks: 
 
-    - include_tasks: "{{ playbook_dir }}/../../ansible-tasks/vm-group.set.yml"
+    - name: set ws
+      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/ws.set.yml"
+
+    - include_tasks: "{{ ws.local }}/.seed/ansible-tasks/config-group.set.yml"
       vars:
         group:
           name: "{{ vm_name }}"
           all: "{{ esxi.group }}"
+          register: vm_group
 
-    - include_tasks: "{{ playbook_dir }}/../../ansible-tasks/vm-list.set.yml"
+    - include_tasks: "{{ ws.local }}/.seed/ansible-tasks/config-list.set.yml"
       vars:
         list:
           select: "{{ vm_group }}"
           all: "{{ esxi.vm }}"
+          register: vm_list
 
     - name: set vm_guest_list
       ansible.builtin.set_fact:
         vm_guest_list: []
-
-    - name: expand guest
-      loop: "{{ vm_list }}"
-      loop_control:
-        loop_var: vm_item
-      when: 
-        - vm_item.guest is defined
-        - vm_item.autoinstall is undefined
-      vars:
-        vm_guest_combine: 
-          _guest: "{{ vm_item.guest }}"
-          guest: "{{ esxi.guest[vm_item.guest] }}"
-        vm_guest_item: "{{ vm_item | combine(vm_guest_combine, recursive=True) }}"
-      ansible.builtin.set_fact:
-        vm_guest_list: "{{ vm_guest_list + [vm_guest_item] }}"
 
     - name: expand guest use iso autoinstall
       loop: "{{ vm_list }}"
@@ -63,11 +53,9 @@
         - vm_item.guest is defined
         - vm_item.autoinstall is defined
       vars:
-        iso_item: "{{ esxi.iso[vm_item.iso] }}"
-        iso_path: "[{{ iso_item.vsphere_file.datastore }}] {{ iso_item.vsphere_file.path }}"
-        autoinstall_item: "{{ esxi.autoinstall[vm_item.autoinstall] }}"
-        autoinstall_iso_path: "[{{ autoinstall_item.vsphere_copy.datastore }}] {{ autoinstall_item.vsphere_copy.path }}"
-        guest_item: "{{ esxi.guest[vm_item.guest] }}"
+        iso_config: "{{ esxi.vm_iso[vm_item.iso] }}"
+        autoinstall_config: "{{ esxi.file[vm_item.autoinstall] }}"
+        guest_config: "{{ esxi.vm_guest[vm_item.guest] }}"
         guest_combine: 
           state: powered-on
           cdrom:
@@ -76,44 +64,35 @@
               unit_number: 0
               state: present
               type: iso
-              iso_path: "{{ iso_path }}"
+              iso_path: "[{{ iso_config.vsphere_file.datastore }}] {{ iso_config.vsphere_file.path }}"
             - controller_type: ide
               controller_number: 0
               unit_number: 1
               state: present
               type: iso
-              iso_path: "{{ autoinstall_iso_path }}"
-        guest: "{{ guest_item | combine(guest_combine, recursive=True) }}"
+              iso_path: "[{{ autoinstall_config.vsphere_file.datastore }}] {{ autoinstall_config.vsphere_file.path }}"
+        guest_item: "{{ guest_config | combine(guest_combine, recursive=True) }}"
         vm_guest_combine: 
-          guest: "{{ guest }}"
-          iso: "{{ iso_item }}"
-          autoinstall: "{{ autoinstall_item }}"
+          guest: "{{ guest_item }}"
+          iso: "{{ iso_config }}"
+          autoinstall: "{{ autoinstall_config }}"
         vm_guest_item: "{{ vm_item | combine(vm_guest_combine, recursive=True) }}"
       ansible.builtin.set_fact:
         vm_guest_list: "{{ vm_guest_list + [vm_guest_item] }}"
 
     - debug: msg="{{ vm_guest_list }}"
 
+    # check file exist
 
     - include_tasks: "{{ playbook_dir }}/../../ansible-tasks/file-list.set.yml"
       vars:
-        list: "{{ vm_guest_list | map(attribute='iso') }}"
+        list: "{{ (vm_guest_list | map(attribute='iso')) + (vm_guest_list | map(attribute='autoinstall')) }}"
 
     - debug: msg="{{ file_list }}"
 
     - include_tasks: "{{ playbook_dir }}/../../ansible-tasks/file-list.query.yml"
       vars:
         list: "{{ file_list }}"
-
-
-    - debug: msg="{{ vm_list | selectattr('autoinstall','defined') | map(attribute='autoinstall') }}"
-
-    - include_tasks: "{{ playbook_dir }}/../../autoinstall-iso/ansible-tasks.deploy.yml"
-      vars:
-        autoinstall:
-          select: "{{ vm_list | selectattr('autoinstall','defined') | map(attribute='autoinstall') }}"
-          all: "{{ esxi.autoinstall }}"
-
 
     - include_tasks: "{{ playbook_dir }}/../../ansible-tasks/guest-list.set.yml"
       vars:

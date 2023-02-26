@@ -22,36 +22,26 @@
   hosts: localhost
   tasks: 
 
-    - include_tasks: "{{ playbook_dir }}/../../ansible-tasks/vm-group.set.yml"
+    - name: set ws
+      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/ws.set.yml"
+
+    - include_tasks: "{{ ws.local }}/.seed/ansible-tasks/config-group.set.yml"
       vars:
         group:
           name: "{{ vm_name }}"
           all: "{{ esxi.group }}"
+          register: vm_group
 
-    - include_tasks: "{{ playbook_dir }}/../../ansible-tasks/vm-list.set.yml"
+    - include_tasks: "{{ ws.local }}/.seed/ansible-tasks/config-list.set.yml"
       vars:
         list:
           select: "{{ vm_group }}"
           all: "{{ esxi.vm }}"
+          register: vm_list
 
     - name: set vm_guest_list
       ansible.builtin.set_fact:
         vm_guest_list: []
-
-    - name: expand guest
-      loop: "{{ vm_list }}"
-      loop_control:
-        loop_var: vm_item
-      when: 
-        - vm_item.guest is defined
-        - vm_item.vmdk is undefined
-      vars:
-        vm_guest_combine: 
-          _guest: "{{ vm_item.guest }}"
-          guest: "{{ esxi.guest[vm_item.guest] }}"
-        vm_guest_item: "{{ vm_item | combine(vm_guest_combine, recursive=True) }}"
-      ansible.builtin.set_fact:
-        vm_guest_list: "{{ vm_guest_list + [vm_guest_item] }}"
 
     - name: expand guest with vmdk disk
       loop: "{{ vm_list }}"
@@ -61,28 +51,31 @@
         - vm_item.guest is defined
         - vm_item.vmdk is defined
       vars:
-        vmdk_item: "{{ esxi.vmdk[vm_item.vmdk] }}"
-        vmdk_combine:
-          vsphere_file:
-            datastore: "{{ guest_item.datastore }}"
-            path: "{{ vm_item.name }}.disk/{{ vmdk_item.filename }}"
-        vmdk: "{{ vmdk_item | combine(vmdk_combine, recursive=True) }}"
-        guest_item: "{{ esxi.guest[vm_item.guest] }}"
+        guest_config: "{{ esxi.vm_guest[vm_item.guest] }}"
+        vmdk_config: "{{ esxi.vm_vmdk[vm_item.vmdk] }}"
         guest_combine: 
           disk:
             - type: thin
-              datastore: "{{ guest_item.datastore }}"
-              filename: "[{{ guest_item.datastore }}] {{ vm_item.name }}.disk/{{ vmdk_item.filename }}"
-        guest: "{{ guest_item | combine(guest_combine, recursive=True) }}"
+              datastore: "{{ guest_config.datastore }}"
+              filename: "[{{ guest_config.datastore }}] {{ vm_item.name }}.disk/{{ vmdk_config.filename }}"
+        vmdk_combine:
+          vsphere_file:
+            datastore: "{{ guest_config.datastore }}"
+            path: "{{ vm_item.name }}.disk/{{ vmdk_config.filename }}"
+        guest_item: "{{ guest_config | combine(guest_combine, recursive=True) }}"
+        vmdk_item: "{{ vmdk_config | combine(vmdk_combine, recursive=True) }}"
         vm_guest_combine: 
-          guest: "{{ guest }}"
-          vmdk: "{{ vmdk }}"
+          guest_name: "{{ vm_item.guest }}"
+          guest: "{{ guest_item }}"
+          vmdk_name: "{{ vm_item.vmdk }}"
+          vmdk: "{{ vmdk_item }}"
         vm_guest_item: "{{ vm_item | combine(vm_guest_combine, recursive=True) }}"
       ansible.builtin.set_fact:
         vm_guest_list: "{{ vm_guest_list + [vm_guest_item] }}"
 
     - debug: msg="{{ vm_guest_list }}"
 
+    # check file exist
 
     - include_tasks: "{{ playbook_dir }}/../../ansible-tasks/file-list.set.yml"
       vars:
@@ -94,7 +87,6 @@
       vars:
         list: "{{ file_list }}"
 
-
     - include_tasks: "{{ playbook_dir }}/../../ansible-tasks/guest-list.set.yml"
       vars:
         list: "{{ vm_guest_list }}"
@@ -102,8 +94,8 @@
     - name: create a virtual machine by vmdk  
       loop: "{{ guest_list }}"
       loop_control:
-        loop_var: guest_item
-      community.vmware.vmware_guest: "{{ guest_item }}"
+        loop_var: guest_config
+      community.vmware.vmware_guest: "{{ guest_config }}"
       register: guest_result
       # 20 min
       async: 1200 

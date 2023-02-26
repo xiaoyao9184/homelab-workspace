@@ -1,0 +1,86 @@
+---
+
+- name: deploy
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --ask-become-pass \
+        --inventory $PWD/ansible \
+        $PWD/../../../esxi/file/anaconda-iso/ansible-playbook.deploy.yml
+  vars_prompt:
+    - name: vm_username
+      prompt: "What is ESXi/vCenter server username?"
+      private: no
+      default: 
+    - name: vm_password
+      prompt: "What is ESXi/vCenter server password?"
+      private: yes
+      default: 
+    - name: file_name
+      prompt: "What is file or group?"
+      private: no
+      default: all
+  hosts: localhost
+  tasks: 
+
+    - name: set ws
+      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/ws.set.yml"
+
+    - include_tasks: "{{ ws.local }}/.seed/ansible-tasks/config-group.set.yml"
+      vars:
+        group:
+          name: "{{ file_name }}"
+          all: "{{ esxi.group }}"
+          register: file_group
+
+    - include_tasks: "{{ ws.local }}/.seed/ansible-tasks/config-list.set.yml"
+      vars:
+        list:
+          select: "{{ file_group }}"
+          all: "{{ esxi.file }}"
+          register: file_list
+
+    - name: make iso
+      loop: "{{ file_list }}"
+      loop_control:
+        loop_var: iso_make_item
+      when: 
+        - iso_make_item.path is defined
+        - iso_make_item.output is defined
+      ansible.builtin.shell: 
+        cmd: genisoimage -output {{ iso_make_item.output }} -volid OEMDRV -joliet -rock ks.cfg
+        chdir: "{{ iso_make_item.path }}"
+      register: iso_make_result
+
+    - debug: msg="{{ iso_make_result.results }}"
+
+    - name: set vsphere_copy_list
+      ansible.builtin.set_fact:
+        vsphere_copy_list: []
+        
+    - name: append vsphere_copy_list
+      loop: "{{ file_list }}"
+      loop_control:
+        loop_var: iso_copy_item
+      when: 
+        - iso_copy_item.path is defined
+        - iso_copy_item.output is defined
+        - iso_copy_item.vsphere_copy is defined
+      vars:
+        override:
+          hostname: "{{ esxi.server.hostname }}"
+          username: "{{ vm_username | default(esxi.server.username,true) }}"
+          password: "{{ vm_password | default(esxi.server.password,true) }}"
+          validate_certs: false
+          src: "{{ iso_copy_item.path }}/{{ iso_copy_item.output }}"
+        vsphere_copy_item: "{{ iso_copy_item.vsphere_copy | combine(override, recursive=True) }}"
+      ansible.builtin.set_fact:
+        vsphere_copy_list: "{{ vsphere_copy_list + [vsphere_copy_item] }}"
+
+    - debug: msg="{{ vsphere_copy_list }}" verbosity=3
+
+    - name: copy file to datastore
+      loop: "{{ vsphere_copy_list }}"
+      loop_control:
+        loop_var: vsphere_copy_item
+      community.vmware.vsphere_copy: "{{ vsphere_copy_item }}"

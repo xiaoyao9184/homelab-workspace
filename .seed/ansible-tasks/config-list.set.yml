@@ -12,7 +12,9 @@
   ansible.builtin.set_fact:
     _list: "{{ _list | default([]) + [config_item] }}"
 
-- debug: msg="{{ _list }}" verbosity=3
+- ansible.builtin.debug:
+    verbosity: 3
+    msg: "{{ _list }}"
 
 - name: config-list.set|reset _list
   ansible.builtin.set_fact:

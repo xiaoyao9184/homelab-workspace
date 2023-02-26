@@ -22,36 +22,26 @@
   hosts: localhost
   tasks: 
 
-    - include_tasks: "{{ playbook_dir }}/../../ansible-tasks/vm-group.set.yml"
+    - name: set ws
+      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/ws.set.yml"
+
+    - include_tasks: "{{ ws.local }}/.seed/ansible-tasks/config-group.set.yml"
       vars:
         group:
           name: "{{ vm_name }}"
           all: "{{ esxi.group }}"
+          register: vm_group
 
-    - include_tasks: "{{ playbook_dir }}/../../ansible-tasks/vm-list.set.yml"
+    - include_tasks: "{{ ws.local }}/.seed/ansible-tasks/config-list.set.yml"
       vars:
         list:
           select: "{{ vm_group }}"
           all: "{{ esxi.vm }}"
+          register: vm_list
 
     - name: set vm_guest_list
       ansible.builtin.set_fact:
         vm_guest_list: []
-
-    - name: expand guest
-      loop: "{{ vm_list }}"
-      loop_control:
-        loop_var: vm_item
-      when: 
-        - vm_item.guest is defined
-        - vm_item.iso is undefined
-      vars:
-        vm_guest_combine: 
-          _guest: "{{ vm_item.guest }}"
-          guest: "{{ esxi.guest[vm_item.guest] }}"
-        vm_guest_item: "{{ vm_item | combine(vm_guest_combine, recursive=True) }}"
-      ansible.builtin.set_fact:
-        vm_guest_list: "{{ vm_guest_list + [vm_guest_item] }}"
 
     - name: expand guest use iso
       loop: "{{ vm_list }}"
@@ -61,9 +51,8 @@
         - vm_item.guest is defined
         - vm_item.iso is defined
       vars:
-        iso_item: "{{ esxi.iso[vm_item.iso] }}"
-        iso_path: "[{{ iso_item.vsphere_file.datastore }}] {{ iso_item.vsphere_file.path }}"
-        guest_item: "{{ esxi.guest[vm_item.guest] }}"
+        iso_config: "{{ esxi.vm_iso[vm_item.iso] }}"
+        guest_config: "{{ esxi.vm_guest[vm_item.guest] }}"
         guest_combine: 
           cdrom:
             - controller_type: ide
@@ -71,17 +60,20 @@
               unit_number: 0
               state: present
               type: iso
-              iso_path: "{{ iso_path }}"
-        guest: "{{ guest_item | combine(guest_combine, recursive=True) }}"
+              iso_path: "[{{ iso_config.vsphere_file.datastore }}] {{ iso_config.vsphere_file.path }}"
+        guest_item: "{{ guest_config | combine(guest_combine, recursive=True) }}"
         vm_guest_combine: 
-          guest: "{{ guest }}"
-          iso: "{{ iso_item }}"
+          guest_name: "{{ vm_item.guest }}"
+          guest: "{{ guest_item }}"
+          iso_name: "{{ vm_item.iso }}"
+          iso: "{{ iso_config }}"
         vm_guest_item: "{{ vm_item | combine(vm_guest_combine, recursive=True) }}"
       ansible.builtin.set_fact:
         vm_guest_list: "{{ vm_guest_list + [vm_guest_item] }}"
 
     - debug: msg="{{ vm_guest_list }}"
 
+    # check file exist
 
     - include_tasks: "{{ playbook_dir }}/../../ansible-tasks/file-list.set.yml"
       vars:
@@ -92,7 +84,6 @@
     - include_tasks: "{{ playbook_dir }}/../../ansible-tasks/file-list.query.yml"
       vars:
         list: "{{ file_list }}"
-
 
     - include_tasks: "{{ playbook_dir }}/../../ansible-tasks/guest-list.set.yml"
       vars:

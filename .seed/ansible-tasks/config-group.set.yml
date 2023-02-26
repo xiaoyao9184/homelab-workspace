@@ -5,4 +5,6 @@
   ansible.builtin.set_fact:
     "{{ group.register }}": "{{ group.all[group.name] | default([group.name]) }}"
 
-- debug: msg="{{ group.register }}" verbosity=3
+- ansible.builtin.debug:
+    verbosity: 3
+    var: "{{ group.register }}"
