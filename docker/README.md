@@ -60,7 +60,7 @@ In `stack-` subfolder According to the folder prefix, you can know its cluster m
 
 There is a single point of failure on a [stack-standalone](./stack-standalone/), 
 when it crashes, service will be restarted by default one the original node.
-Usually [stack-global](./stack-scale/) services without roles are suitable for high availability.
+Usually [stack-scale](./stack-scale/) services without roles are suitable for high availability.
 
 > Use `^node\d+-` `^max\d+-` or **global-** when service enable scaling without roles 
 > - like [node3-itsaur-zookeeper](./stack-scale/node3-itsaur-zookeeper/)

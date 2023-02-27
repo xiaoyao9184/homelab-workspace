@@ -5,7 +5,7 @@
     run_wsl: |
       ansible-playbook \
         --inventory $PWD/ansible \
-        $PWD/../../../docker/stack-global/global-gitlab-runner/ansible-playbook.deploy.yml
+        $PWD/../../../docker/stack-scale/global-gitlab-runner/ansible-playbook.deploy.yml
   environment:
     PATH: "{{ ansible_env.PATH }}:{{ env_path | default('',true) }}"
   hosts: "{{ 'nfs-client:&docker-gitlab-runner' if (groups['docker-gitlab-runner'] is defined) else 'nfs-client' }}"

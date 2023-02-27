@@ -1,11 +1,11 @@
 ---
 
-- name: dispose
+- name: deploy
   vars:
     run_wsl: |
       ansible-playbook \
         --inventory $PWD/ansible \
-        $PWD/../../../docker/stack-global/global-docker-telegraf/ansible-playbook.dispose.yml
+        $PWD/../../../docker/stack-scale/roles-portainer-ce/ansible-playbook.deploy.yml
   environment:
     PATH: "{{ ansible_env.PATH }}:{{ env_path | default('',true) }}"
   hosts: docker-manager
@@ -18,9 +18,15 @@
     - name: set dir
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.set.yml"
 
-    - name: remove stack service
-      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-compose.rm.yml"
+    - name: copy dir
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.copy.yml"
+
+    - name: add stack service
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-compose.add.yml"
       vars:
         compose:
           type: stack
           name: "{{ dir.names[0] }}"
+          path: "{{ dir.remote }}"
+          files: 
+            - "portainer-agent-stack.yml"
