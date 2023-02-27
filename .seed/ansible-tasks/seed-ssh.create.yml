@@ -50,8 +50,8 @@
 - name: seed-ssh.create|add a host in the configuration
   community.general.ssh_config:
     ssh_config_file: "~/.ssh/config"
-    host: "{{ host }}"
-    hostname: "{{ host }}"
+    host: "{{ ip }}"
+    hostname: "{{ ip }}"
     remote_user: "{{ _ssh.username }}"
     identity_file: "~/.ssh/{{ _ssh.basename }}/id_rsa"
     # user_known_hosts_file: "~/.ssh/known_hosts"
@@ -59,13 +59,18 @@
   loop: "{{ groups[_ssh.ansible_group] }}"
   loop_control:
     loop_var: host
+  vars:
+    ip: "{{ hostvars[host].ansible_host | default(host,true) }}"
 
 - name: seed-ssh.create|get ssh ecdsa fingerprint for host
-  ansible.builtin.command: ssh-keyscan -t {{ _ssh.keyscan_type }} {{ host }} | grep -v ^#
+  ansible.builtin.command: ssh-keyscan -t {{ _ssh.keyscan_type }} -p {{ port }} {{ ip }} | grep -v ^#
   register: keyscan_key_list
   loop: "{{ groups[_ssh.ansible_group] }}"
   loop_control:
     loop_var: host
+  vars:
+    port: "{{ hostvars[host].ansible_port | default(22,true) }}"
+    ip: "{{ hostvars[host].ansible_host | default(host,true) }}"
   ignore_errors: yes
 
 - name: seed-ssh.create|set ssh ecdsa fingerprint to known_hosts
@@ -77,6 +82,7 @@
   loop: "{{ keyscan_key_list.results }}"
   loop_control:
     loop_var: keyscan_key_item
+  ignore_errors: yes
 
 - name: seed-ssh.create|print info
   debug:
