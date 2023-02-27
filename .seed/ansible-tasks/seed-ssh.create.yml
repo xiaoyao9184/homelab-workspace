@@ -47,16 +47,6 @@
   retries: 3
   delay: 1
 
-- name: seed-ssh.create|install the package for ssh_config task
-  ansible.builtin.pip:
-    name: 
-      - stormssh
-    state: latest
-  register: pip_result
-  until: "pip_result is not failed"
-  retries: 3
-  delay: 5
-
 - name: seed-ssh.create|add a host in the configuration
   community.general.ssh_config:
     ssh_config_file: "~/.ssh/config"
