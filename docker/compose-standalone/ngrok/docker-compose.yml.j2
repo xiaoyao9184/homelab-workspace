@@ -1,0 +1,20 @@
+version: "3.8"
+
+services:
+  ngrok:
+    image: ngrok/ngrok:latest
+    command: start --all
+    env_file: external_env-all.env
+    environment:
+      - NGROK_CONFIG=/etc/ngrok.yml
+    #   - NGROK_AUTHTOKEN=?
+    volumes:
+      - {{ VARS.BIND_CONFIG }}:/etc/ngrok.yml
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun
+    network_mode: "host"
+    container_name: ngrok
+    restart: always
+    privileged: true
