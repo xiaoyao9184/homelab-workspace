@@ -1,0 +1,29 @@
+---
+
+- name: dispose
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --inventory $PWD/ansible \
+        $PWD/../../../docker/compose-standalone/pgyvpn/ansible-playbook.dispose.yml
+  environment:
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
+  hosts: "{{ 'docker:&docker-pgyvpn-node' if (groups['docker-pgyvpn-node'] is defined) else 'docker' }}"
+  run_once: true
+  tasks: 
+
+    - name: set ws
+      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/ws.set.yml"
+
+    - name: set dir
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.set.yml"
+
+    - name: remove compose service
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-compose.rm.yml"
+      vars:
+        compose:
+          type: compose
+          name: "{{ dir.names[0] }}"
+          path: "{{ dir.remote }}"
+          files: 
+            - "docker-compose.yml"

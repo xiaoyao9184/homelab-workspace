@@ -1,0 +1,48 @@
+---
+
+- name: pgyvisitor.logininfo|set _pgyvisitor
+  vars:
+    lookup_default:
+      name: "pgyvpn"
+      project: "pgyvpn"
+      retries: 1
+      delay: 0
+      result: "lookup_result"
+    lookup_update: "{{ pgyvpn.service | default({}) }}"
+  ansible.builtin.set_fact:
+    _pgyvisitor:
+      result: "{{ pgyvpn.result | default('create_result') }}"
+      ws: "{{ pgyvpn.ws }}"
+      lookup: "{{ lookup_default | combine(lookup_update, recursive=True) }}"
+
+- name: pgyvisitor.logininfo|lookup service
+  include_tasks: "{{ _pgyvisitor.ws.local }}/.seed/ansible-tasks/docker-service.lookup.yml"
+  vars:
+    service: "{{ _pgyvisitor.lookup }}"
+
+- name: pgyvisitor.logininfo|print _pgyvisitor
+  debug:
+    var: _pgyvisitor
+
+- name: pgyvisitor.logininfo|exec logininfo
+  when:
+    - lookup_result.exists
+  community.docker.docker_container_exec:
+    container: "{{ lookup_result.container_id }}"
+    command: "pgyvisitor logininfo"
+  register: exec_result
+
+- name: pgyvisitor.logininfo|set _pgyvisitor.result
+  when:
+    - exec_result is defined
+    - exec_result.stdout is defined
+  ansible.builtin.set_fact:
+    "{{ _pgyvisitor.result }}": "{{ exec_result.stdout_lines[-1] }}"
+  
+- name: pgyvisitor.logininfo|print _pgyvisitor.result
+  debug:
+    var: "{{ _pgyvisitor.result }}"
+
+- name: pgyvisitor.logininfo|reset _pgyvisitor
+  ansible.builtin.set_fact:
+    _pgyvisitor: !!null
