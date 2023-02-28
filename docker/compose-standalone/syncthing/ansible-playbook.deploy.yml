@@ -14,10 +14,17 @@
 
     - name: set inotify limit
       become: true
+      when: syncthing.inotify_limit is defined
       ansible.posix.sysctl:
         name: fs.inotify.max_user_watches
-        value: '204800'
+        value: "{{ syncthing.inotify_limit }}"
         state: present
+      ignore_errors: true
+
+    - name: immediately limit now
+      become: true
+      when: syncthing.inotify_limit is defined
+      ansible.builtin.shell: "echo {{ syncthing.inotify_limit }} | sudo tee /proc/sys/fs/inotify/max_user_watches"
       ignore_errors: true
 
     - name: set ws
