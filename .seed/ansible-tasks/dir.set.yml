@@ -20,8 +20,12 @@
       - name: dir.set|set _current_local_dir default by playbook_dir
         ansible.builtin.set_fact:
           _current_local_dir: "{{ _current_local_dir | default(playbook_dir) }}"
-          _current_local_length: "{{ length | default(1) | int }}"
-          _current_local_name: []
+          _current_name_list: []
+          _current_name_length: "{{ length | default(1) | int }}"
+          _synchronized: false
+          # {{ false | default(true,true) }} result true because last param 
+          # see https://github.com/pallets/jinja/blob/417f822196f66155e8c121e5229cc12a6b02ce14/src/jinja2/filters.py#L555
+          _keep_name_in_path: "{{ keep | default(true) | bool }}"
 
   - name: dir.set|set _current_local_basename
     ansible.builtin.set_fact:
@@ -29,11 +33,11 @@
 
   - name: dir.set|append name and add length
     ansible.builtin.set_fact:
-      _current_local_name: "{{ [ _current_local_basename ] + _current_local_name }}"
-      _current_local_length: "{{ _current_local_length | int - 1 }}"
+      _current_name_list: "{{ [ _current_local_basename ] + _current_name_list }}"
+      _current_name_length: "{{ _current_name_length | int - 1 }}"
 
   - name: dir.set|break dir-length not enough
-    when: _current_local_length | int > 0
+    when: (_current_name_length | int) > 0
     ansible.builtin.fail:
       msg: "not dir enough {{ _current_local_dir }}"
 
@@ -52,6 +56,15 @@
     ansible.builtin.set_fact:
       _realpath_local_dir: "{{ local_realpath }}"
       _realpath_remote_dir: "{{ remote_dir }}"
+
+  - name: dir.set|append names to dir
+    when: _keep_name_in_path | bool
+    vars:
+      local_list: "{{ [_realpath_local_dir] + _current_name_list[1:] }}"
+      remote_list: "{{ [_realpath_remote_dir] + _current_name_list[1:] }}"
+    ansible.builtin.set_fact:
+      _realpath_local_dir: "{{ local_list | join('/') }}"
+      _realpath_remote_dir: "{{ remote_list | join('/') }}"
 
   # realpath filter not on managed node
   # see https://github.com/ansible/ansible/issues/29003
@@ -78,16 +91,17 @@
   - name: dir.set|set dir
     ansible.builtin.set_fact:
       dir: 
-        synchronized: "{{ _synchronized | default(false,true) | bool }}"
-        names: "{{ _current_local_name }}"
+        synchronized: "{{ _synchronized }}"
+        names: "{{ _current_name_list }}"
         local: "{{ _realpath_local_dir }}"
         remote: "{{ _realpath_remote_dir }}"
 
   - name: dir.set|reset _current_*
     ansible.builtin.set_fact:
       _current_local_dir: !!null
-      _current_local_length: !!null
-      _current_local_name: !!null
+      _current_name_length: !!null
+      _current_name_list: !!null
+      _keep_name_in_path: !!null
       _current_local_basename: !!null
       _synchronized: !!null
       _realpath_local_dir: !!null
