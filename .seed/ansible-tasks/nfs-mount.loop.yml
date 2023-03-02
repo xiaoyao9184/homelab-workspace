@@ -40,7 +40,7 @@
 
     - name: nfs-mount.loop|fail loop mount error
       when: 
-        - loop_retry | int <= 0
+        - (loop_retry | int) <= 0
       ansible.builtin.fail:
         msg: "fail loop mount {{ loop_nfs.point }} to {{ loop_nfs.mount }}"
     
