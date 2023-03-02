@@ -1,9 +1,0 @@
----
-
-- vars:
-    run_wsl: |
-      ansible-playbook \
-        --ask-become-pass \
-        --inventory $PWD/ansible \
-        $PWD/../../../.seed/ansible-playbook/local.init.yml
-  import_playbook: local-workspace.init.yml
