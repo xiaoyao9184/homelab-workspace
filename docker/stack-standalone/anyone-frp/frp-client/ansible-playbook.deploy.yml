@@ -23,7 +23,10 @@
     - name: copy dir
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.copy.yml"
       vars:
-        copys: "{{ frp.client.dir_copy }}"
+        _default:
+          - src: "{{ dir.local }}/../config/frpc.ini"
+            dest: "{{ dir.remote }}/../config/frpc.ini"
+        copys: "{{ frp.client.dir_copy | default(_default,true) }}"
 
     - name: add external_cfg
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-configs.add.yml"
