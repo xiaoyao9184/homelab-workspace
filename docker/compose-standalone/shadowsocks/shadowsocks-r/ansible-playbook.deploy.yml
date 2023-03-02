@@ -1,0 +1,45 @@
+---
+
+- name: deploy
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --inventory $PWD/ansible \
+        $PWD/../../../docker/compose-standalone/shadowsocks/shadowsocks-r/ansible-playbook.deploy.yml
+  environment:
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
+  hosts: "{{ 'docker:&docker-shadowsocks-node' if (groups['docker-shadowsocks-node'] is defined) else 'docker' }}"
+  tasks: 
+
+    - name: set ws
+      include_tasks: "{{ playbook_dir }}/../../../../.seed/ansible-tasks/ws.set.yml"
+
+    - name: set dir
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.set.yml"
+      vars:
+        length: 2
+
+    - name: copy dir
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.copy.yml"
+      vars:
+        _default:
+          - src: "{{ dir.local }}/../config/r.json"
+            dest: "{{ dir.remote }}/../config/r.json"
+        copys: "{{ shadowsocks.r.dir_copy | default(_default,true) }}"
+
+    - name: build env_file
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-env.create.yml"
+      vars:
+        env: 
+          dest: "{{ dir.remote }}/external_env-r.env"
+          data: "{{ shadowsocks.r.env | default([],true) }}"
+
+    - name: add compose service
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-compose.add.yml"
+      vars:
+        compose:
+          type: compose
+          name: "{{ dir.names[0] }}"
+          path: "{{ dir.remote }}"
+          files: 
+            - "docker-compose.yml"

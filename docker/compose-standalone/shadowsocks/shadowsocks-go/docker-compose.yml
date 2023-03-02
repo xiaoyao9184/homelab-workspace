@@ -1,0 +1,11 @@
+version: "3.8"
+
+services:
+  shadowsocks-go:
+    image: teddysun/shadowsocks-go:latest
+    env_file: external_env-go.env
+    volumes:
+      - ./../config/go.json:/etc/shadowsocks-go/config.json
+    network_mode: "host"
+    container_name: shadowsocks-go
+    restart: always

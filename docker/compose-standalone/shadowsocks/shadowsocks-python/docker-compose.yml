@@ -1,0 +1,11 @@
+version: "3.8"
+
+services:
+  shadowsocks-python:
+    image: teddysun/shadowsocks-python:latest
+    env_file: external_env-python.env
+    volumes:
+      - ./../config/python.json:/etc/shadowsocks-python/config.json
+    network_mode: "host"
+    container_name: shadowsocks-python
+    restart: always
