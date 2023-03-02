@@ -80,13 +80,13 @@
 
 - name: docker-network.add|print network
   delegate_to: "{{ _delegate_to | default(omit) }}"
-  run_once: "{{ _run_once | default(false,true) | bool }}"
+  run_once: "{{ _run_once | default(false) | bool }}"
   ansible.builtin.debug:
     var: _net
 
 - name: docker-network.add|create network
   delegate_to: "{{ _delegate_to | default(omit) }}"
-  run_once: "{{ _run_once | default(false,true) | bool }}"
+  run_once: "{{ _run_once | default(false) | bool }}"
   community.docker.docker_network:
     name: "{{ _net.name }}"
     driver: "{{ _net.driver | default('bridge') }}"

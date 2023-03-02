@@ -91,8 +91,8 @@
   - name: dir.set|set dir
     ansible.builtin.set_fact:
       dir: 
-        synchronized: "{{ _synchronized }}"
-        names: "{{ _current_name_list }}"
+        synchronized: "{{ _synchronized | default(false) | bool }}"
+        names: "{{ _current_local_name }}"
         local: "{{ _realpath_local_dir }}"
         remote: "{{ _realpath_remote_dir }}"
 

@@ -90,7 +90,7 @@
   
   - name: seed-docker.run|set seed_local
     ansible.builtin.set_fact:
-      seed_local: "{{ seed_in_docker_connect_local | default(False,true) }}"
+      seed_local: "{{ seed_in_docker_connect_local | default(false) }}"
       seed_name: "seed-{{ 999999999999999999995 | random | to_uuid }}"
 
   - name: seed-docker.run|print seed_local
