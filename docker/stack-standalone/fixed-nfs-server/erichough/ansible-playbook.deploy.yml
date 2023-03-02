@@ -83,6 +83,8 @@
     - name: set dir
       when: dir is undefined
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.set.yml"
+      vars:
+        length: 2
 
     - name: copy dir
       when: not (dir.synchronized | default(false) | bool)
