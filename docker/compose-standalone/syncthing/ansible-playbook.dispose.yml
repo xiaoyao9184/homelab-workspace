@@ -7,7 +7,7 @@
         --inventory $PWD/ansible \
         $PWD/../../../docker/compose-standalone/syncthing/ansible-playbook.dispose.yml
   environment:
-    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('',true) }}"
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
   hosts: "{{ 'docker:&docker-syncthing-node' if (groups['docker-syncthing-node'] is defined) else 'docker' }}"
   run_once: true
   tasks: 

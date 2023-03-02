@@ -7,7 +7,7 @@
         --inventory $PWD/ansible \
         $PWD/../../../docker/compose-standalone/shinobi/ansible-playbook.deploy.yml
   environment:
-    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('',true) }}"
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
   hosts: "{{ 'docker:&docker-shinobi-node' if (groups['docker-shinobi-node'] is defined) else 'docker' }}"
   run_once: true
   tasks: 

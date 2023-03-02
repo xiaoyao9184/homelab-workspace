@@ -6,7 +6,7 @@
   loop_control:
     loop_var: select_item
   when: 
-    - select_item.datacenter | default('',true) == ''
+    - select_item.datacenter | default('') == ''
   vars:
     vmware_deploy_ovf:
       hostname: "{{ esxi.server.hostname }}"
@@ -24,8 +24,8 @@
   loop_control:
     loop_var: select_item
   when: 
-    - select_item.datacenter | default('',true) != ''
-    - select_item.cluster | default('',true) != ''
+    - select_item.datacenter | default('') != ''
+    - select_item.cluster | default('') != ''
   vars:
     vmware_deploy_ovf:
       hostname: "{{ esxi.server.hostname }}"
@@ -45,8 +45,8 @@
   loop_control:
     loop_var: select_item
   when: 
-    - select_item.datacenter | default('',true) != ''
-    - select_item.esxi_hostname | default('',true) != ''
+    - select_item.datacenter | default('') != ''
+    - select_item.esxi_hostname | default('') != ''
   vars:
     vmware_deploy_ovf:
       hostname: "{{ esxi.server.hostname }}"

@@ -7,7 +7,7 @@
         --inventory $PWD/ansible \
         $PWD/../../../docker/compose-standalone/domoticz/ansible-playbook.deploy.yml
   environment:
-    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('',true) }}"
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
   hosts: "{{ 'docker:&docker-domoticz-node' if (groups['docker-domoticz-node'] is defined) else 'docker' }}"
   run_once: true
   tasks: 

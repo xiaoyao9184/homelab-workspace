@@ -8,7 +8,7 @@
         --inventory $PWD/ansible \
         $PWD/../../../docker/container/portainer-ce/ansible-playbook.run.yml
   environment:
-    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('',true) }}"
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
   hosts: "{{ 'docker:&docker-portainer-node' if (groups['docker-portainer-node'] is defined) else 'docker' }}"
   tasks: 
 

@@ -12,7 +12,7 @@
       private: no
       default: '@default'
   environment:
-    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('',true) }}"
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
   hosts: "{{ 'docker:&docker-headscale-node' if (groups['docker-headscale-node'] is defined) else 'docker' }}"
   tasks:
 

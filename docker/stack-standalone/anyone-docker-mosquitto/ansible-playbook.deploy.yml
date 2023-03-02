@@ -7,7 +7,7 @@
         --inventory $PWD/ansible \
         $PWD/../../../docker/stack-standalone/anyone-docker-mosquitto/ansible-playbook.deploy.yml
   environment:
-    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('',true) }}"
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
   hosts: "{{ 'nfs-client:&docker-mosquitto-node' if (groups['docker-mosquitto-node'] is defined) else 'nfs-client' }}"
   # run_once: true
   tasks:
@@ -34,7 +34,7 @@
 
 - name: deploy
   environment:
-    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('',true) }}"
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
   hosts: "{{ 'docker:&docker-mosquitto-node' if (groups['docker-mosquitto-node'] is defined) else 'docker' }}"
   tasks:
 
@@ -78,7 +78,7 @@
 
 - name: deploy
   environment:
-    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('',true) }}"
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
   hosts: docker-manager
   run_once: true
   tasks: 

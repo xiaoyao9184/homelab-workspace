@@ -9,7 +9,7 @@
         --inventory $PWD/ansible \
         $PWD/../../../docker/compose-standalone/openwrt/ansible-playbook.deploy.yml
   environment:
-    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('',true) }}"
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
   hosts: "{{ 'docker:&docker-openwrt-node' if (groups['docker-openwrt-node'] is defined) else 'docker' }}"
   tasks: 
 

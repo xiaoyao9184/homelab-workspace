@@ -12,7 +12,7 @@
       private: no
       default: 
   environment:
-    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('',true) }}"
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
   hosts: "{{ 'docker:&docker-rclone-node' if (groups['docker-rclone-node'] is defined) else 'docker' }}"
   run_once: true
   tasks: 

@@ -44,7 +44,7 @@
   hosts: "{{ hostvars['localhost'].ansible_group }}"
   # become: true
   environment:
-    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('',true) }}"
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
   pre_tasks:
 
     - name: set task_path

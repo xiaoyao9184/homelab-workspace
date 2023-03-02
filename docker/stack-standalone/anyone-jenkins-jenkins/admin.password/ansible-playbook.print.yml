@@ -8,7 +8,7 @@
         --inventory $PWD/ansible \
         $PWD/../../../docker/stack-standalone/anyone-jenkins-jenkins/admin-password/ansible-playbook.print.yml
   environment:
-    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('',true) }}"
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
   hosts: "{{ 'docker:&docker-jenkins-node' if (groups['docker-jenkins-node'] is defined) else 'docker' }}"
   tasks: 
 

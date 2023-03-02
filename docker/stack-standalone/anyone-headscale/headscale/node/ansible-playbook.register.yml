@@ -12,7 +12,7 @@
       private: no
       default: nodekey:358f7e1a792e56f8ee9cd771bde6b9d48f2a703a02eb11c06c118da2ac61a91b@default
   environment:
-    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('',true) }}"
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
   hosts: "{{ 'docker:&docker-headscale-node' if (groups['docker-headscale-node'] is defined) else 'docker' }}"
   tasks:
 

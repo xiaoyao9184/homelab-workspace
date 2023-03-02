@@ -7,7 +7,7 @@
         --inventory $PWD/ansible \
         $PWD/../../../docker/stack-standalone/anyone-gitlab-runner/ansible-playbook.deploy.yml
   environment:
-    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('',true) }}"
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
   hosts: docker-manager
   run_once: true
   tasks: 
@@ -54,7 +54,7 @@
 
 - name: deploy
   environment:
-    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('',true) }}"
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
   hosts: "{{ 'docker:&docker-gitlab-node' if (groups['docker-gitlab-node'] is defined) else 'docker' }}"
   tasks:
 
@@ -91,7 +91,7 @@
 
 - name: deploy
   environment:
-    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('',true) }}"
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
   hosts: "{{ 'docker:&docker-gitlab-runner' if (groups['docker-gitlab-runner'] is defined) else 'docker' }}"
   tasks:
 

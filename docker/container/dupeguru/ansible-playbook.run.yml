@@ -8,7 +8,7 @@
         --inventory $PWD/ansible \
         $PWD/../../../docker/container/dupeguru/ansible-playbook.run.yml
   environment:
-    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('',true) }}"
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
   hosts: "{{ 'docker:&docker-dupeguru-node' if (groups['docker-dupeguru-node'] is defined) else 'docker' }}"
   tasks: 
 

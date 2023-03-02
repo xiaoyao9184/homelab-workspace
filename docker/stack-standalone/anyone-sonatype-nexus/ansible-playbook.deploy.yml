@@ -7,7 +7,7 @@
         --inventory $PWD/ansible \
         $PWD/../../../docker/stack-standalone/anyone-sonatype-nexus/ansible-playbook.deploy.yml
   environment:
-    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('',true) }}"
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
   hosts: "{{ 'nfs-client:&docker-nexus-node' if (groups['docker-nexus-node'] is defined) else 'nfs-client' }}"
   # run_once: true
   tasks:
@@ -28,7 +28,7 @@
 
 - name: deploy
   environment:
-    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('',true) }}"
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
   hosts: "{{ 'docker:&docker-nexus-node' if (groups['docker-nexus-node'] is defined) else 'docker' }}"
   tasks:
 
@@ -70,7 +70,7 @@
 
 - name: deploy
   environment:
-    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('',true) }}"
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
   hosts: docker-manager
   tasks: 
 
@@ -123,7 +123,7 @@
 
 - name: deploy
   environment:
-    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('',true) }}"
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
   hosts: "{{ 'docker:&docker-nexus-node' if (groups['docker-nexus-node'] is defined) else 'docker' }}"
   tasks:
 

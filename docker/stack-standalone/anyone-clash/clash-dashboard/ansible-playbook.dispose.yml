@@ -7,7 +7,7 @@
         --inventory $PWD/ansible \
         $PWD/../../../docker/stack-standalone/anyone-clash/clash-yacd/ansible-playbook.dispose.yml
   environment:
-    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('',true) }}"
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
   hosts: docker-manager
   run_once: true
   tasks: 
