@@ -5,14 +5,14 @@
     run_wsl: |
       ansible-playbook \
         --inventory $PWD/ansible \
-        $PWD/../../../docker/stack-standalone/anyone-shadowsocks/shadowsocks-libev/ansible-playbook.deploy.yml
+        $PWD/../../../docker/stack-standalone/anyone-teddysun-shadowsocks/shadowsocks-libev/ansible-playbook.deploy.yml
   environment:
     PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
   hosts: docker-manager
   tasks: 
 
     - name: set ws
-      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/ws.set.yml"
+      include_tasks: "{{ playbook_dir }}/../../../../.seed/ansible-tasks/ws.set.yml"
 
     - name: set dir
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.set.yml"
@@ -22,22 +22,25 @@
     - name: copy dir
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.copy.yml"
       vars:
-        copys: "{{ shadowsocks.rust.dir_copy }}"
+        _default:
+          - src: "{{ dir.local }}/../config/libev.json"
+            dest: "{{ dir.remote }}/../config/libev.json"
+        copys: "{{ shadowsocks.libev.dir_copy | default(_default,true) }}"
 
     - name: add external_cfg
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-configs.add.yml"
       vars:
         _default:
-          external_cfg-shadowsocks-r:
-            file: "{{ dir.remote }}/config/rust.json"
-        configs: "{{ shadowsocks.rust.cfg | default(_default,true) }}"
+          external_cfg-shadowsocks-libev:
+            file: "{{ dir.remote }}/config/libev.json"
+        configs: "{{ shadowsocks.libev.cfg | default(_default,true) }}"
 
     - name: build env_file
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-env.create.yml"
       vars:
         env: 
-          dest: "{{ dir.remote }}/external_env-rust.env"
-          data: "{{ shadowsocks.rust.env | default([],true) }}"
+          dest: "{{ dir.remote }}/external_env-libev.env"
+          data: "{{ shadowsocks.libev.env | default([],true) }}"
 
     - name: add stack service
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-compose.add.yml"
