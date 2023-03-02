@@ -1,0 +1,11 @@
+version: "3.8"
+
+services:
+  v2ray:
+    image: teddysun/v2ray:latest
+    env_file: external_env-all.env
+    volumes:
+      - ./config/config.json:/etc/v2ray/config.json
+    network_mode: "host"
+    container_name: v2ray
+    restart: always
