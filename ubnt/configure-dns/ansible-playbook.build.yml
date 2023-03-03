@@ -5,7 +5,7 @@
   vars:
     run_wsl: |
       ansible-playbook \
-        --inventory $PWD/ansible \
+        --inventory $PWD/ansible-inventories \
         $PWD/../../../ubnt/configure-dns/ansible-playbook.build.yml
   hosts: localhost
   connection: local

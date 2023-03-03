@@ -4,7 +4,7 @@
   vars:
     run_wsl: |
       ansible-playbook \
-        --inventory $PWD/ansible \
+        --inventory $PWD/ansible-inventories \
         $PWD/../../../dsm/esata/ansible-playbook.change.yml
   hosts: dsm
   tasks: 

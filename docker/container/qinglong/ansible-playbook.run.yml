@@ -5,7 +5,7 @@
     run_wsl: |
       ansible-playbook \
         --ask-become-pass \
-        --inventory $PWD/ansible \
+        --inventory $PWD/ansible-inventories \
         $PWD/../../../docker/container/qinglong/ansible-playbook.run.yml
   environment:
     PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"

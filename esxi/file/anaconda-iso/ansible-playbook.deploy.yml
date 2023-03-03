@@ -5,7 +5,7 @@
     run_wsl: |
       ansible-playbook \
         --ask-become-pass \
-        --inventory $PWD/ansible \
+        --inventory $PWD/ansible-inventories \
         $PWD/../../../esxi/file/anaconda-iso/ansible-playbook.deploy.yml
   vars_prompt:
     - name: vm_username

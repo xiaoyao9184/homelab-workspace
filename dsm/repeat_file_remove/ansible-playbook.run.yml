@@ -6,7 +6,7 @@
     run_wsl: |
       ansible-playbook \
         --ask-become-pass \
-        --inventory $PWD/ansible \
+        --inventory $PWD/ansible-inventories \
         $PWD/../../../dsm/repeat_file_remove/ansible-playbook.run.yml
   hosts: dsm
   tasks: 

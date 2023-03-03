@@ -4,7 +4,7 @@
   vars:
     run_wsl: |
       ansible-playbook \
-        --inventory $PWD/ansible \
+        --inventory $PWD/ansible-inventories \
         $PWD/../../../docker/stack-standalone/anyone-docker-influxdb/ansible-playbook.deploy.yml
   environment:
     PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"

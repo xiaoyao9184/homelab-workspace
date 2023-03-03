@@ -4,7 +4,7 @@
   vars:
     run_wsl: |
       ansible-playbook \
-        --inventory $PWD/ansible \
+        --inventory $PWD/ansible-inventories \
         $PWD/../../../docker/stack-standalone/anyone-headscale/headscale/node/ansible-playbook.register.yml
   vars_prompt:
     - name: node_key

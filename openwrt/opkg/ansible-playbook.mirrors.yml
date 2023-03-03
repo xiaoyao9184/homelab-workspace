@@ -5,7 +5,7 @@
   vars:
     run_wsl: |
       ansible-playbook \
-        --inventory $PWD/ansible \
+        --inventory $PWD/ansible-inventories \
         $PWD/../../../openwrt/opkg/ansible-playbook.mirrors.yml
   vars_prompt:
     - name: mirror_host

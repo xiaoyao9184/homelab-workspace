@@ -6,7 +6,7 @@
     run_wsl: |
       ansible-playbook \
         --ask-become-pass \
-        --inventory $PWD/ansible \
+        --inventory $PWD/ansible-inventories \
         $PWD/../../../dsm/rclone/ansible-playbook.deploy.yml
   hosts: dsm
   roles:

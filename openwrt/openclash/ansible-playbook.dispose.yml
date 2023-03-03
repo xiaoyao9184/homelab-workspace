@@ -5,7 +5,7 @@
   vars:
     run_wsl: |
       ansible-playbook \
-        --inventory $PWD/ansible \
+        --inventory $PWD/ansible-inventories \
         $PWD/../../../openwrt/openclash/ansible-playbook.dispose.yml
   hosts: localhost
   connection: local

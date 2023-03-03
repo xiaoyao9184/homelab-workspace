@@ -6,7 +6,7 @@
     run_wsl: |
       ansible-playbook \
         --ask-pass \
-        --inventory $PWD/ansible \
+        --inventory $PWD/ansible-inventories \
         $PWD/../../../windows/nvs/ansible-playbook.cache.yml
   hosts: windows
   tasks: 

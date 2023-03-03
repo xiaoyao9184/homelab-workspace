@@ -6,7 +6,7 @@
     run_wsl: |
       ansible-playbook \
         --ask-pass \
-        --inventory $PWD/ansible \
+        --inventory $PWD/ansible-inventories \
         $PWD/../../../windows/netsh/port-range/dynamic/ansible-playbook.set.yml
   hosts: windows
   tasks: 

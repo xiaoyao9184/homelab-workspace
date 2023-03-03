@@ -4,7 +4,7 @@
   vars:
     run_wsl: |
       ansible-playbook \
-        --inventory $PWD/ansible \
+        --inventory $PWD/ansible-inventories \
         $PWD/../../../dsm/zerotier/ansible-playbook.deploy.yml
   hosts: dsm
   tasks: 

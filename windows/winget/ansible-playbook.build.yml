@@ -5,7 +5,7 @@
   vars:
     run_wsl: |
       ansible-playbook \
-        --inventory $PWD/ansible \
+        --inventory $PWD/ansible-inventories \
         $PWD/../../../windows/winget/ansible-playbook.build.yml
   hosts: localhost
   tasks: 
