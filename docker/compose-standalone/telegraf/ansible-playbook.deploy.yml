@@ -35,14 +35,6 @@
         wait_network: "{{ telegraf.port_wait.network | default([],true) }}"
         wait_port: "{{ telegraf.port_wait.port | default({},true) }}"
 
-    - name: build compose_file
-      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-compose.create.yml"
-      vars:
-        compose:
-          version: "3.8"
-          dest: "{{ dir.remote }}/docker-compose.networks.yml"
-          data: "{{ telegraf.compose | default({},true) }}"
-
     # https://medium.com/@jonsbun/why-need-to-be-careful-when-mounting-single-files-into-a-docker-container-4f929340834
     - name: overwrite bind conf
       ansible.builtin.shell: "cat {{ dir.remote }}/config/telegraf.conf > {{ dir.remote }}/bind_file-conf"
@@ -58,6 +50,14 @@
       ansible.builtin.stat:
         path: /var/run/docker.sock
       register: docker_stat
+
+    - name: build compose_file
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-compose.create.yml"
+      vars:
+        compose:
+          version: "3.8"
+          dest: "{{ dir.remote }}/docker-compose.networks.yml"
+          data: "{{ telegraf.compose | default({},true) }}"
 
     - name: add compose service
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-compose.add.yml"

@@ -18,6 +18,14 @@
     - name: set dir
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.set.yml"
 
+    - name: build compose_file
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-compose.create.yml"
+      vars:
+        compose:
+          version: "3.8"
+          dest: "{{ dir.remote }}/docker-compose.networks.yml"
+          data: "{{ traefik.compose | default({},true) }}"
+
     - name: remove compose service
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-compose.rm.yml"
       vars:
@@ -25,3 +33,15 @@
           type: compose
           name: "{{ dir.names[0] }}"
           path: "{{ dir.remote }}"
+          files: 
+            - "docker-compose.networks.yml"
+          # files: 
+          #   - "docker-compose.yml"
+          template: 
+            name: "docker-compose"
+            opt:
+              src: "{{ dir.local }}/docker-compose.yml.j2"
+              dest: "{{ dir.remote }}/docker-compose.yml"
+            vars:
+              TOKEN: "{{ traefik.token }}"
+              NETWORKS: "{{ traefik.compose.networks | default({},true) }}"
