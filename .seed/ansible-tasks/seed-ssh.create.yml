@@ -48,40 +48,73 @@
   delay: 1
 
 - name: seed-ssh.create|add a host in the configuration
+  loop: "{{ groups[_ssh.ansible_group] }}"
+  loop_control:
+    loop_var: name
+  vars:
+    host: "{{ hostvars[name].ansible_host | default(name,true) }}"
   community.general.ssh_config:
     ssh_config_file: "~/.ssh/config"
-    host: "{{ ip }}"
-    hostname: "{{ ip }}"
+    host: "{{ host }}"
+    hostname: "{{ host }}"
     remote_user: "{{ _ssh.username }}"
     identity_file: "~/.ssh/{{ _ssh.basename }}/id_rsa"
     # user_known_hosts_file: "~/.ssh/known_hosts"
     state: present
-  loop: "{{ groups[_ssh.ansible_group] }}"
-  loop_control:
-    loop_var: host
-  vars:
-    ip: "{{ hostvars[host].ansible_host | default(host,true) }}"
+
+- name: seed-ssh.create|set _known_host_list
+  ansible.builtin.set_fact:
+    _known_host_list: []
+
+# - name: seed-ssh.create|add item known_name to _known_host_list
+#   loop: "{{ groups[_ssh.ansible_group] }}"
+#   loop_control:
+#     loop_var: name
+#   vars:
+#     host_only: "{{ hostvars[name].ansible_host | default(name,true) }}"
+#     host_port: "[{{ host_only }}]:{{ hostvars[name].ansible_port }}"
+#     known_item:
+#       host_name: "{{ name }}"
+#       known_name: "{{ host_port if (hostvars[name].ansible_port is defined) else host_only }}"
+#   ansible.builtin.set_fact:
+#     _known_host_list: "{{ _known_host_list + [known_item] }}"
 
 - name: seed-ssh.create|get ssh ecdsa fingerprint for host
-  ansible.builtin.command: ssh-keyscan -t {{ _ssh.keyscan_type }} -p {{ port }} {{ ip }} | grep -v ^#
-  register: keyscan_key_list
   loop: "{{ groups[_ssh.ansible_group] }}"
   loop_control:
-    loop_var: host
+    loop_var: name
   vars:
-    port: "{{ hostvars[host].ansible_port | default(22,true) }}"
-    ip: "{{ hostvars[host].ansible_host | default(host,true) }}"
+    host: "{{ hostvars[name].ansible_host | default(name,true) }}"
+    port: "{{ hostvars[name].ansible_port | default(22,true) }}"
+  ansible.builtin.command: ssh-keyscan -t {{ _ssh.keyscan_type }} -p {{ port }} {{ host }} | grep -v ^#
+  register: keyscan_key_list
   ignore_errors: yes
 
-- name: seed-ssh.create|set ssh ecdsa fingerprint to known_hosts
-  when: keyscan_key_list is not failed
-  ansible.builtin.known_hosts:
-    path: ~/.ssh/known_hosts
-    name: "{{ keyscan_key_item.host }}"
-    key: "{{ keyscan_key_item.stdout }}"
+- name: seed-ssh.create|append _known_host_list
   loop: "{{ keyscan_key_list.results }}"
   loop_control:
     loop_var: keyscan_key_item
+  when: keyscan_key_list is not failed
+  vars:
+    name: "{{ keyscan_key_item.name }}"
+    host_only: "{{ hostvars[name].ansible_host | default(name,true) }}"
+    host_port: "[{{ host_only }}]:{{ hostvars[name].ansible_port }}"
+    known_item:
+      host_name: "{{ name }}"
+      known_name: "{{ host_port if (hostvars[name].ansible_port is defined) else host_only }}"
+      known_key: "{{ keyscan_key_item.stdout }}"
+  ansible.builtin.set_fact:
+    _known_host_list: "{{ _known_host_list + [known_item] }}"
+
+- name: seed-ssh.create|set ssh ecdsa fingerprint to known_hosts
+  loop: "{{ _known_host_list }}"
+  loop_control:
+    loop_var: known_host_item
+  when: keyscan_key_list is not failed
+  ansible.builtin.known_hosts:
+    path: ~/.ssh/known_hosts
+    name: "{{ known_host_item.known_name }}"
+    key: "{{ known_host_item.known_key }}"
   ignore_errors: yes
 
 - name: seed-ssh.create|print info
