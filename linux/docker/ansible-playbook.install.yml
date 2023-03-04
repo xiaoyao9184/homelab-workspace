@@ -1,0 +1,34 @@
+---
+
+- name: install
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --ask-become-pass \
+        --inventory $PWD/ansible-inventories \
+        $PWD/../../../linux/docker/ansible-playbook.install.yml
+  hosts: linux
+  tasks:
+
+    - name: set get_url
+      ansible.builtin.set_fact:
+        get_url: "https://get.docker.com"
+
+    - name: download get_url
+      become: true
+      ansible.builtin.get_url:
+        url: "{{ get_url }}"
+        dest: "~/get-docker.sh"
+
+    - name: do docker get
+      become: true
+      ansible.builtin.shell: "bash ~/get-docker.sh"
+      register: docker_get
+      ignore_errors: true
+    
+    - name: print docker get
+      ansible.builtin.pause:
+        seconds: 1
+        prompt: |
+
+          {{ docker_get.stdout }}
