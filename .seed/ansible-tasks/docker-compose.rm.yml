@@ -165,6 +165,7 @@
     state: absent
     project_name: "{{ _compose.name }}"
     project_src: "{{ _compose.path }}"
+    files: "{{ _compose.files }}"
 
 - name: docker-compose.rm|reset _compose
   ansible.builtin.set_fact:
