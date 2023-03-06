@@ -1,0 +1,58 @@
+---
+
+- name: create
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --inventory $PWD/ansible-inventories \
+        $PWD/../../../docker/stack-standalone/anyone-headscale/headscale/preauthkey/ansible-playbook.create.yml
+  vars_prompt:
+    - name: preauthkey_expire
+      prompt: What expire preauthkey for create(split ',' format {expire}[@{user}])?
+      private: no
+      default: 240h@default
+  environment:
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
+  hosts: "{{ 'docker:&docker-headscale-node' if (groups['docker-headscale-node'] is defined) else 'docker' }}"
+  run_once: true
+  tasks:
+
+    - name: set expire
+      ansible.builtin.set_fact:
+        _preauthkey_create_list: "{{ preauthkey_expire | split(',') }}"
+        _preauthkey_expire_user_list: []
+
+    - name: format expire
+      loop: "{{ _preauthkey_create_list }}"
+      vars:
+        _item_split: "{{ item | split('@') }}"
+        _item:
+          expire: "{{ _item_split[0] }}"
+          user: "{{ _item_split[1] if (_item_split | length == 2) else 'default' }}"
+      ansible.builtin.set_fact:
+        _preauthkey_expire_user_list: "{{ _preauthkey_expire_user_list + [_item] }}"
+
+    - name: set ws
+      include_tasks: "{{ playbook_dir }}/../../../../../.seed/ansible-tasks/ws.set.yml"
+
+    - name: set dir
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.set.yml"
+      vars:
+        length: 2
+
+    - name: wait host port
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/host-port.wait.yml"
+      vars:
+        wait_name: "{{ dir.names | join('_') }}"
+        wait_network:
+          - headscale_headscale
+        wait_port: 
+          headscale: 8080
+
+    - name: create headscale preauthkey
+      include_tasks: "{{ dir.local }}/../ansible-tasks/preauthkey.create.yml"
+      vars:
+        preauthkey:
+          ws: "{{ ws }}"
+          expire_user: "{{ _preauthkey_expire_user_list }}"
+          result: preauthkey_result

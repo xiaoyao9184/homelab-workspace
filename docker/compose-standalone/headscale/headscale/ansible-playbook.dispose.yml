@@ -1,0 +1,64 @@
+---
+
+- name: dispose
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --inventory $PWD/ansible-inventories \
+        $PWD/../../../docker/compose-standalone/headscale/headscale/ansible-playbook.dispose.yml
+  environment:
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
+  hosts: "{{ 'docker:&docker-headscale-node' if (groups['docker-headscale-node'] is defined) else 'docker' }}"
+  run_once: true
+  tasks: 
+
+    - name: set ws
+      include_tasks: "{{ playbook_dir }}/../../../../.seed/ansible-tasks/ws.set.yml"
+
+    - name: set dir
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.set.yml"
+
+    - name: expire headscale preauthkey
+      include_tasks: "{{ dir.local }}/../ansible-tasks/preauthkey.expire.yml"
+      vars:
+        preauthkey:
+          ws: "{{ ws }}"
+          result: preauthkey_result
+
+    - name: delete headscale node
+      include_tasks: "{{ dir.local }}/../ansible-tasks/node.delete.yml"
+      vars:
+        node:
+          ws: "{{ ws }}"
+          result: node_result
+
+    - name: destroy headscale user
+      include_tasks: "{{ dir.local }}/../ansible-tasks/user.destroy.yml"
+      vars:
+        user:
+          ws: "{{ ws }}"
+          result: user_result
+
+    - name: expire headscale apikey
+      include_tasks: "{{ dir.local }}/../ansible-tasks/apikey.expire.yml"
+      vars:
+        apikey:
+          ws: "{{ ws }}"
+          result: apikey_result
+
+    - name: remove compose service
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-compose.rm.yml"
+      vars:
+        compose:
+          type: compose
+          name: "{{ dir.names[0] }}"
+          path: "{{ dir.remote }}"
+          # files: 
+          #   - "docker-compose.yml"
+          template: 
+            name: "docker-compose"
+            opt:
+              src: "{{ dir.local }}/docker-compose.yml.j2"
+              dest: "{{ dir.remote }}/docker-compose.yml"
+            vars:
+              BIND_YAML: "{{ dir.remote }}/bind_file-yaml"

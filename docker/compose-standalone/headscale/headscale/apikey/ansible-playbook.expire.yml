@@ -1,0 +1,43 @@
+---
+
+- name: expire
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --inventory $PWD/ansible-inventories \
+        $PWD/../../../docker/stack-standalone/anyone-headscale/headscale/apikey/ansible-playbook.expire.yml
+  vars_prompt:
+    - name: apikey_prefix
+      prompt: What prefix apikey for expire(split ',' empty all)?
+      private: no
+      default: 
+  environment:
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
+  hosts: "{{ 'docker:&docker-headscale-node' if (groups['docker-headscale-node'] is defined) else 'docker' }}"
+  run_once: true
+  tasks:
+
+    - name: set ws
+      include_tasks: "{{ playbook_dir }}/../../../../../.seed/ansible-tasks/ws.set.yml"
+  
+    - name: set dir
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.set.yml"
+      vars:
+        length: 2
+
+    - name: wait host port
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/host-port.wait.yml"
+      vars:
+        wait_name: "{{ dir.names | join('_') }}"
+        wait_network:
+          - headscale_headscale
+        wait_port: 
+          headscale: 8080
+
+    - name: expire headscale apikey
+      include_tasks: "{{ dir.local }}/../ansible-tasks/apikey.expire.yml"
+      vars:
+        apikey:
+          ws: "{{ ws }}"
+          prefix: "{{ apikey_prefix | split(',') }}"
+          result: apikey_result

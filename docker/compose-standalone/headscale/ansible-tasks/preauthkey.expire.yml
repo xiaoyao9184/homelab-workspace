@@ -1,0 +1,92 @@
+---
+
+
+- name: preauthkey.expire|set _preauthkey
+  vars:
+    lookup_default:
+      type: "compose"
+      name: "headscale"
+      project: "headscale"
+      retries: 1
+      delay: 0
+      result: "lookup_result"
+    lookup_update: "{{ preauthkey.service.lookup | default({}) }}"
+  ansible.builtin.set_fact:
+    _preauthkey:
+      key: "{{ preauthkey.key | default([]) }}"
+      user: "{{ preauthkey.user | default([]) }}"
+      result: "{{ preauthkey.result | default('expire_result') }}"
+      ws: "{{ preauthkey.ws }}"
+      lookup: "{{ lookup_default | combine(lookup_update, recursive=True) }}"
+
+- name: preauthkey.expire|lookup service
+  include_tasks: "{{ _preauthkey.ws.local }}/.seed/ansible-tasks/docker-service.lookup.yml"
+  vars:
+    service: "{{ _preauthkey.lookup }}"
+
+- when: 
+    - _preauthkey.key | length == 0
+    - _preauthkey.user | length == 0
+  block:
+
+    - name: preauthkey.expire|list user
+      community.docker.docker_container_exec:
+        container: "{{ lookup_result.container_id }}"
+        command: "headscale user list -o json"
+      register: list_result
+
+    - name: preauthkey.expire|set _preauthkey.user
+      vars:
+        user: "{{ list_result.stdout | from_json | json_query('[].name') | default([],true) }}"
+        update:
+          user: "{{ user }}"
+      ansible.builtin.set_fact:
+        _preauthkey: "{{ _preauthkey | combine(update, recursive=True) }}"
+
+- when: _preauthkey.user | length > 0
+  block:
+
+    - name: preauthkey.expire|list preauthkey
+      loop: "{{ _preauthkey.user }}"
+      community.docker.docker_container_exec:
+        container: "{{ lookup_result.container_id }}"
+        command: "headscale preauthkey list -u {{ item }} -o json"
+      register: list_result
+
+    - name: preauthkey.expire|add _preauthkey.key
+      loop: "{{ list_result.results }}"
+      when: item.stdout != 'null'
+      vars:
+        key: "{{ item.stdout | from_json | json_query('[].key') | default([],true) }}"
+        update:
+          key: "{{ _preauthkey.key + key }}"
+      ansible.builtin.set_fact:
+        _preauthkey: "{{ _preauthkey | combine(update, recursive=True) }}"
+
+- name: preauthkey.expire|print _preauthkey
+  debug:
+    var: _preauthkey
+
+- name: preauthkey.expire|expire preauthkey
+  loop: "{{ _preauthkey.key }}"
+  when:
+    - lookup_result.exists
+  community.docker.docker_container_exec:
+    container: "{{ lookup_result.container_id }}"
+    command: "headscale preauthkey destroy {{ item }} --force"
+  register: exec_result
+
+- name: preauthkey.expire|set _preauthkey.result
+  when:
+    - exec_result is defined
+    - exec_result.results is defined
+  ansible.builtin.set_fact:
+    "{{ _preauthkey.result }}": "{{ exec_result | json_query('results[].{key: item,value: stdout_lines[-1]}') | items2dict }}"
+
+- name: preauthkey.expire|print _preauthkey.result
+  debug:
+    var: "{{ _preauthkey.result }}"
+
+- name: preauthkey.expire|reset preauthkey_result
+  ansible.builtin.set_fact:
+    _preauthkey: !!null

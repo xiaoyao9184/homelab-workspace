@@ -1,0 +1,52 @@
+---
+
+
+- name: apikey.create|set _apikey
+  vars:
+    lookup_default:
+      type: "compose"
+      name: "headscale"
+      project: "headscale"
+      retries: 1
+      delay: 0
+      result: "lookup_result"
+    lookup_update: "{{ apikey.service.lookup | default({}) }}"
+  ansible.builtin.set_fact:
+    _apikey:
+      count: "{{ apikey.count | default(1) }}"
+      result: "{{ apikey.result | default('create_result') }}"
+      ws: "{{ apikey.ws }}"
+      lookup: "{{ lookup_default | combine(lookup_update, recursive=True) }}"
+
+- name: apikey.create|lookup service
+  include_tasks: "{{ _apikey.ws.local }}/.seed/ansible-tasks/docker-service.lookup.yml"
+  vars:
+    service: "{{ _apikey.lookup }}"
+
+- name: apikey.create|print _apikey
+  debug:
+    var: _apikey
+
+- name: apikey.create|create apikey
+  loop: "{{ range(0, (_apikey.count | int), 1) | list }}"
+  when:
+    - lookup_result.exists
+  community.docker.docker_container_exec:
+    container: "{{ lookup_result.container_id }}"
+    command: "headscale apikey create"
+  register: exec_result
+
+- name: apikey.create|set _apikey.result
+  when:
+    - exec_result is defined
+    - exec_result.results is defined
+  ansible.builtin.set_fact:
+    "{{ _apikey.result }}": "{{ exec_result | json_query('results[].stdout_lines[-1]') }}"
+
+- name: apikey.create|print _apikey.result
+  debug:
+    var: "{{ _apikey.result }}"
+
+- name: apikey.create|reset _apikey
+  ansible.builtin.set_fact:
+    _apikey: !!null

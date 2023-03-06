@@ -1,0 +1,92 @@
+---
+
+- name: deploy
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --inventory $PWD/ansible-inventories \
+        $PWD/../../../docker/compose-standalone/headscale/headscale/ansible-playbook.deploy.yml
+  environment:
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
+  hosts: "{{ 'docker:&docker-headscale-node' if (groups['docker-headscale-node'] is defined) else 'docker' }}"
+  run_once: true
+  tasks:
+
+    - name: set ws
+      include_tasks: "{{ playbook_dir }}/../../../../.seed/ansible-tasks/ws.set.yml"
+
+    - name: set dir
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.set.yml"
+
+    - name: copy dir
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.copy.yml"
+      vars:
+        copys: "{{ headscale.dir_copy | default([],true) }}"
+
+    - name: add external_vol
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-volumes.add.yml"
+      vars:
+        _default:
+          external_vol-headscale-data:
+            driver: local
+          external_vol-headscale-config:
+            driver: local
+        volumes: "{{ headscale.vol | default(_default,true) }}"
+
+    - name: build env_file
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-env.create.yml"
+      vars:
+        env: 
+          dest: "{{ dir.remote }}/external_env-all.env"
+          data: "{{ headscale.env }}"
+
+    # https://medium.com/@jonsbun/why-need-to-be-careful-when-mounting-single-files-into-a-docker-container-4f929340834
+    - name: overwrite bind yaml
+      ansible.builtin.shell: "cat {{ dir.remote }}/config/config.yaml > {{ dir.remote }}/bind_file-yaml"
+
+    - name: add compose service
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-compose.add.yml"
+      vars:
+        compose:
+          type: compose
+          name: "{{ dir.names[0] }}"
+          path: "{{ dir.remote }}"
+          # files: 
+          #   - "docker-compose.yml"
+          template: 
+            name: "docker-compose"
+            opt:
+              src: "{{ dir.local }}/docker-compose.yml.j2"
+              dest: "{{ dir.remote }}/docker-compose.yml"
+            vars:
+              BIND_YAML: "{{ dir.remote }}/bind_file-yaml"
+
+    - name: wait host port
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/host-port.wait.yml"
+      vars:
+        wait_name: "{{ dir.names | join('_') }}"
+        wait_network:
+          - headscale_headscale
+        wait_port: 
+          headscale: 8080
+
+    - name: create headscale apikey
+      include_tasks: "{{ dir.local }}/../ansible-tasks/apikey.create.yml"
+      vars:
+        apikey:
+          ws: "{{ ws }}"
+          result: apikey_create
+
+    - name: create headscale user
+      include_tasks: "{{ dir.local }}/../ansible-tasks/user.create.yml"
+      vars:
+        user:
+          ws: "{{ ws }}"
+          result: user_create
+
+    - name: create headscale preauthkey
+      include_tasks: "{{ dir.local }}/../ansible-tasks/preauthkey.create.yml"
+      vars:
+        preauthkey:
+          ws: "{{ ws }}"
+          result: preauthkey_create

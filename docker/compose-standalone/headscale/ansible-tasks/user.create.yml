@@ -1,0 +1,52 @@
+---
+
+
+- name: user.create|set _user
+  vars:
+    lookup_default:
+      type: "compose"
+      name: "headscale"
+      project: "headscale"
+      retries: 1
+      delay: 0
+      result: "lookup_result"
+    lookup_update: "{{ user.service.lookup | default({}) }}"
+  ansible.builtin.set_fact:
+    _user:
+      name: "{{ user.name | default(['default']) }}"
+      result: "{{ user.result | default('create_result') }}"
+      ws: "{{ user.ws }}"
+      lookup: "{{ lookup_default | combine(lookup_update, recursive=True) }}"
+
+- name: user.create|lookup service
+  include_tasks: "{{ _user.ws.local }}/.seed/ansible-tasks/docker-service.lookup.yml"
+  vars:
+    service: "{{ _user.lookup }}"
+
+- name: user.create|print _user
+  debug:
+    var: _user
+
+- name: user.create|create user
+  loop: "{{ _user.name }}"
+  when:
+    - lookup_result.exists
+  community.docker.docker_container_exec:
+    container: "{{ lookup_result.container_id }}"
+    command: "headscale user create {{ item }}"
+  register: exec_result
+
+- name: user.create|set _user.result
+  when:
+    - exec_result is defined
+    - exec_result.results is defined
+  ansible.builtin.set_fact:
+    "{{ _user.result }}": "{{ exec_result | json_query('results[].{key: item,value: stdout_lines[-1]}') | items2dict }}"
+
+- name: user.create|print _user.result
+  debug:
+    var: "{{ _user.result }}"
+
+- name: user.create|reset _user
+  ansible.builtin.set_fact:
+    _user: !!null

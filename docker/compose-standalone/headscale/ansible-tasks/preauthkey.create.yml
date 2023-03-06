@@ -1,0 +1,53 @@
+---
+
+
+- name: preauthkey.create|set _preauthkey
+  vars:
+    lookup_default:
+      type: "compose"
+      name: "headscale"
+      project: "headscale"
+      retries: 1
+      delay: 0
+      result: "lookup_result"
+    lookup_update: "{{ preauthkey.service.lookup | default({}) }}"
+  ansible.builtin.set_fact:
+    _preauthkey:
+      expire_user: "{{ preauthkey.expire_user | default([{'expire':'240h','user':'default'}]) }}" 
+      result: "{{ preauthkey.result | default('create_result') }}"
+      ws: "{{ preauthkey.ws }}"
+      lookup: "{{ lookup_default | combine(lookup_update, recursive=True) }}"
+
+- name: preauthkey.create|lookup service
+  include_tasks: "{{ _preauthkey.ws.local }}/.seed/ansible-tasks/docker-service.lookup.yml"
+  vars:
+    service: "{{ _preauthkey.lookup }}"
+
+- name: preauthkey.create|print _preauthkey
+  debug:
+    var: _preauthkey
+
+- name: preauthkey.create|create preauthkey
+  loop: "{{ _preauthkey.expire_user }}"
+  when:
+    - lookup_result.exists
+    - item.expire | default(None,true) != None
+  community.docker.docker_container_exec:
+    container: "{{ lookup_result.container_id }}"
+    command: "headscale preauthkey create -e {{ item.expire }} -u {{ item.user }} --reusable"
+  register: exec_result
+
+- name: preauthkey.create|set _preauthkey.result
+  when:
+    - exec_result is defined
+    - exec_result.results is defined
+  ansible.builtin.set_fact:
+    "{{ _preauthkey.result }}": "{{ exec_result | json_query('results[].{expire: item.expire,user: item.user,result: stdout_lines[-1]}') }}"
+
+- name: preauthkey.create|print _preauthkey.result
+  debug:
+    var: "{{ _preauthkey.result }}"
+
+- name: preauthkey.create|reset _preauthkey
+  ansible.builtin.set_fact:
+    _preauthkey: !!null

@@ -19,8 +19,8 @@ services:
       - source: stack_cfg-Caddyfile
         target: /data/Caddyfile
     ports:
-      - 443:443
-      - 80:80
+      - 8380:80
+      - 13443:443
     networks:
       - headscale
     healthcheck:
