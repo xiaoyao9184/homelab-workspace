@@ -1,0 +1,81 @@
+---
+
+- name: deploy
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --inventory $PWD/ansible-inventories \
+        $PWD/../../../docker/compose-standalone/frp/frp-client/ansible-playbook.deploy.yml
+  environment:
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
+  hosts: "{{ 'docker:&docker-frp-client' if (groups['docker-frp-client'] is defined) else 'docker' }}"
+  run_once: true
+  tasks: 
+
+    - name: set ws
+      include_tasks: "{{ playbook_dir }}/../../../../.seed/ansible-tasks/ws.set.yml"
+
+    - name: set dir
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.set.yml"
+      vars:
+        length: 2
+
+    - name: copy dir
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.copy.yml"
+      vars:
+        _default:
+          - src: "{{ dir.local }}/../config/frpc.ini"
+            dest: "{{ dir.remote }}/../config/frpc.ini"
+        copys: "{{ frp.client.dir_copy | default(_default,true) }}"
+
+    - name: add external_net
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-networks.add.yml"
+      vars:
+        networks: "{{ frp.client.net | default([],true) }}"
+
+    - name: wait host port
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/host-port.wait.yml"
+      vars:
+        wait_name: "{{ dir.names | join('_') }}"
+        wait_network: 
+          - frp_frp
+        wait_port: "{{ frp.client.wait_port }}"
+
+    - name: build compose_file
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-compose.create.yml"
+      vars:
+        compose:
+          version: "3.8"
+          dest: "{{ dir.remote }}/docker-compose.networks.yml"
+          data: "{{ frp.client.compose | default({},true) }}"
+
+    - name: build env_file
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-env.create.yml"
+      vars:
+        env: 
+          dest: "{{ dir.remote }}/external_env-all.env"
+          data: "{{ frp.client.env }}"
+
+    # https://medium.com/@jonsbun/why-need-to-be-careful-when-mounting-single-files-into-a-docker-container-4f929340834
+    - name: overwrite bind ini
+      ansible.builtin.shell: "cat {{ dir.remote }}/../config/frpc.ini > {{ dir.remote }}/bind_file-ini"
+
+    - name: add compose service
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-compose.add.yml"
+      vars:
+        compose:
+          type: compose
+          name: "{{ dir.names[0] }}"
+          path: "{{ dir.remote }}"
+          files: 
+            - "docker-compose.networks.yml"
+          # files: 
+          #   - "docker-compose.yml"
+          template: 
+            name: "docker-compose"
+            opt:
+              src: "{{ dir.local }}/docker-compose.yml.j2"
+              dest: "{{ dir.remote }}/docker-compose.yml"
+            vars:
+              BIND_INI: "{{ dir.remote }}/bind_file-ini"
+              NETWORKS: "{{ frp.client.tmp.networks | default([],true) }}"

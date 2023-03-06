@@ -1,0 +1,33 @@
+version: "3.8"
+
+networks:
+  frp:
+    name: frp_frp
+    attachable: true
+
+services:
+  frp-server:
+    image: fatedier/frps:v0.44.0
+    entrypoint: 
+      - "/usr/bin/frps"
+      - "-c"
+      - "/app/frps.ini"
+    env_file: external_env-all.env
+    volumes:
+      - {{ VARS.BIND_INI }}:/app/frps.ini
+    networks:
+      - frp
+{% if VARS.PORTS | length > 0 %}
+    ports:
+      # - "8780:80"
+      # - "17443:443"
+      # - "7500:7500"
+      # - "7001:7001"
+      # - "7002:7002"
+      # - "7400:7400"
+      # - "7500:7500"
+      {{ VARS.PORTS | to_nice_yaml(indent=2) | trim | indent(6) }}
+{% endif %}
+    # network_mode: "host"
+    container_name: frp-server
+    restart: always
