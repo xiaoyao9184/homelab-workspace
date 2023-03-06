@@ -39,6 +39,7 @@
             - "docker-compose.yml"
 
     - name: exec service
+      when: tailscale.up.authkey is defined
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-service.exec.yml"
       vars:
         service:
