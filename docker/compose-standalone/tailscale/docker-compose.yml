@@ -8,10 +8,12 @@ services:
     volumes:
       - /dev/net/tun:/dev/net/tun
       - /var/lib:/var/lib
+      # https://github.com/tailscale/tailscale/issues/6411
+      - /var/run/dbus/system_bus_socket:/var/run/dbus/system_bus_socket
     network_mode: "host"
     container_name: tailscale
     restart: always
     privileged: true
     cap_add:
-      - net_admin
-      - sys_module
+      - NET_ADMIN
+      - NET_RAW
