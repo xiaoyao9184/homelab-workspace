@@ -1,0 +1,48 @@
+---
+
+- name: dispose
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --inventory $PWD/ansible-inventories \
+        $PWD/../../../docker/compose-standalone/caddy/ansible-playbook.dispose.yml
+  environment:
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
+  hosts: "{{ 'docker:&docker-caddy-node' if (groups['docker-caddy-node'] is defined) else 'docker' }}"
+  run_once: true
+  tasks: 
+
+    - name: set ws
+      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/ws.set.yml"
+
+    - name: set dir
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.set.yml"
+
+    - name: build compose_file
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-compose.create.yml"
+      vars:
+        compose:
+          version: "3.8"
+          dest: "{{ dir.remote }}/docker-compose.networks.yml"
+          data: "{{ caddy.compose | default({},true) }}"
+
+    - name: remove compose service
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-compose.rm.yml"
+      vars:
+        compose:
+          type: compose
+          name: "{{ dir.names[0] }}"
+          path: "{{ dir.remote }}"
+          files: 
+            - "docker-compose.networks.yml"
+          # files: 
+          #   - "docker-compose.yml"
+          template:
+            name: docker-compose
+            opt:
+              src: "{{ dir.local }}/docker-compose.yml.j2"
+              dest: "{{ dir.remote }}/docker-compose.yml"
+            vars:
+              BIND_CADDY: "{{ dir.remote }}/bind_file-caddyfile"
+              NETWORKS: "{{ caddy.tmp.networks | default([],true) }}"
+              PORTS: "{{ caddy.tmp.ports | default([],true) }}"

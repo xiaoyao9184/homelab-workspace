@@ -1,0 +1,39 @@
+version: "3.8"
+
+networks:
+  caddy:
+
+volumes:
+  data:
+    name: external_vol-caddy-data
+    external: true
+  config:
+    name: external_vol-caddy-config
+    external: true
+
+services:
+  caddy:
+    image: caddy:latest
+    env_file: external_env-all.env
+    volumes:
+      - {{ VARS.BIND_CADDY }}:/etc/caddy/Caddyfile
+      - data:/data
+      - config:/config
+      # get tailscale
+      - /var/run/tailscale/tailscaled.sock:/var/run/tailscale/tailscaled.sock
+    networks:
+      - caddy
+{% if VARS.NETWORKS | length > 0 %}
+      {{ VARS.NETWORKS | to_nice_yaml(indent=2) | trim | indent(6) }}
+{% endif %}
+{% if VARS.PORTS | length > 0 %}
+    ports:
+      # - 80:80
+      # - 443:443
+      # - 443:443/udp
+      # - 2019:2019
+      {{ VARS.PORTS | to_nice_yaml(indent=2) | trim | indent(6) }}
+{% endif %}
+    # network_mode: "host"
+    container_name: caddy
+    restart: always

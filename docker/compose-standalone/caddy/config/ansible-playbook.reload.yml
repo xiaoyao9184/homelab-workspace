@@ -1,0 +1,43 @@
+---
+
+
+- name: print
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --inventory $PWD/ansible-inventories \
+        $PWD/../../../docker/compose-standalone/caddy/config/ansible-playbook.reload.yml
+  environment:
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
+  hosts: "{{ 'docker:&docker-caddy-node' if (groups['docker-caddy-node'] is defined) else 'docker' }}"
+  run_once: true
+  tasks: 
+
+    - name: set ws
+      include_tasks: "{{ playbook_dir }}/../../../../.seed/ansible-tasks/ws.set.yml"
+
+    - name: set dir
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.set.yml"
+      vars:
+        length: 2
+        keep: false
+
+    - name: copy dir
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.copy.yml"
+      vars:
+        copys: "{{ caddy.dir_copy | default([],true) }}"
+
+    # https://medium.com/@jonsbun/why-need-to-be-careful-when-mounting-single-files-into-a-docker-container-4f929340834
+    - name: overwrite bind caddyfile
+      ansible.builtin.shell: "cat {{ dir.remote }}/config/Caddyfile > {{ dir.remote }}/bind_file-caddyfile"
+
+    - name: reload config
+      include_tasks: "{{ dir.local }}/config/ansible-tasks.reload.yml"
+      vars:
+        caddy:
+          service:
+            type: compose
+            name: "caddy"
+            project: "{{ dir.names[0] }}"
+          ws: "{{ ws }}"
+          result: config_reload
