@@ -5,9 +5,13 @@ services:
     image: tailscale/tailscale:latest
     command: tailscaled
     env_file: external_env-all.env
+    environment:
+      - TS_SOCKET=/var/run/tailscale/tailscaled.sock
     volumes:
       - /dev/net/tun:/dev/net/tun
       - /var/lib:/var/lib
+      # https://www.reddit.com/r/Tailscale/comments/104y6nq/docker_tailscale_and_caddy_with_https_a_love_story/
+      - /var/run/tailscale:/var/run/tailscale
       # https://github.com/tailscale/tailscale/issues/6411
       - /var/run/dbus/system_bus_socket:/var/run/dbus/system_bus_socket
     network_mode: "host"
