@@ -1,14 +1,18 @@
 version: "3.8"
 
-configs:
-  config:
-    name: stack_cfg-v2ray-config.json
-    file: ./config/config.json
+volumes:
+  etc:
+    name: v2ray-etc
 
 networks:
   v2ray:
     name: "host"
     external: true
+
+configs:
+  config:
+    name: stack_cfg-v2ray-config.json
+    file: ./config/config.json
 
 services:
   v2ray:
@@ -17,6 +21,8 @@ services:
     configs:
       - source: config
         target: /etc/v2ray/config.json
+    volumes:
+      - etc:/etc/v2ray
     # ports:
     #   - 9000:9000
     #   - 9000:9000/udp
