@@ -1,14 +1,18 @@
 version: "3.8"
 
-configs:
-  config:
-    name: stack_cfg-xray-config.json
-    file: ./config/config.json
+volumes:
+  etc:
+    name: xray-etc
 
 networks:
   xray:
     name: "host"
     external: true
+
+configs:
+  config:
+    name: stack_cfg-xray-config.json
+    file: ./config/config.json
 
 services:
   xray:
@@ -17,6 +21,8 @@ services:
     configs:
       - source: config
         target: /etc/xray/config.json
+    volumes:
+      - etc:/etc/xray
     # ports:
     #   - 9000:9000
     #   - 9000:9000/udp
