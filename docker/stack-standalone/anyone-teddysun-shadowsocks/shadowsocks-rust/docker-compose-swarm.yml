@@ -1,13 +1,17 @@
 version: "3.8"
 
-configs:
-  config:
-    name: external_cfg-shadowsocks-rust
-    external: true
+volumes:
+  etc:
+    name: shadowsocks-rust-etc
 
 networks:
   shadowsocks:
     name: "host"
+    external: true
+
+configs:
+  config:
+    name: external_cfg-shadowsocks-rust
     external: true
 
 services:
@@ -17,6 +21,8 @@ services:
     configs:
       - source: config
         target: /etc/shadowsocks-rust/config.json
+    volumes:
+      - etc:/etc/shadowsocks-rust
     # ports:
     #   - 9000:9000
     #   - 9000:9000/udp

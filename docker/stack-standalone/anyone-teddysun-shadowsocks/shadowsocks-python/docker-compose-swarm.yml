@@ -1,13 +1,17 @@
 version: "3.8"
 
-configs:
-  config:
-    name: external_cfg-shadowsocks-python
-    external: true
+volumes:
+  etc:
+    name: shadowsocks-python-etc
 
 networks:
   shadowsocks:
     name: "host"
+    external: true
+
+configs:
+  config:
+    name: external_cfg-shadowsocks-python
     external: true
 
 services:
@@ -17,6 +21,8 @@ services:
     configs:
       - source: config
         target: /etc/shadowsocks-python/config.json
+    volumes:
+      - etc:/etc/shadowsocks-python
     # ports:
     #   - 9000:9000
     #   - 9000:9000/udp

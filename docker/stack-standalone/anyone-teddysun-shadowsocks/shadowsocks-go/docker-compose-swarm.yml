@@ -1,13 +1,17 @@
 version: "3.8"
 
-configs:
-  config:
-    name: external_cfg-shadowsocks-go
-    external: true
+volumes:
+  etc:
+    name: shadowsocks-go-etc
 
 networks:
   shadowsocks:
     name: "host"
+    external: true
+
+configs:
+  config:
+    name: external_cfg-shadowsocks-go
     external: true
 
 services:
@@ -17,6 +21,8 @@ services:
     configs:
       - source: config
         target: /etc/shadowsocks-go/config.json
+    volumes:
+      - etc:/etc/shadowsocks-go
     # ports:
     #   - 9000:9000
     #   - 9000:9000/udp
