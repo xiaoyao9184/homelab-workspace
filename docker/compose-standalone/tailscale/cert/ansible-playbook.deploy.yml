@@ -1,0 +1,45 @@
+---
+
+- name: deploy
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --inventory $PWD/ansible-inventories \
+        $PWD/../../../docker/compose-standalone/tailscale/cert/ansible-playbook.deploy.yml
+  vars_prompt:
+    - name: cert_domain
+      prompt: "What is domain(like aaa.tailfe8c.ts.net)?"
+      private: no
+      default: 
+  environment:
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
+  hosts: "{{ 'docker:&docker-tailscale-node' if (groups['docker-tailscale-node'] is defined) else 'docker' }}"
+  run_once: true
+  tasks: 
+
+    - name: set ws
+      include_tasks:
+        file: "{{ playbook_dir }}/../../../../.seed/ansible-tasks/ws.set.yml"
+        # https://github.com/ansible/ansible/issues/72099
+        apply:
+          run_once: true
+
+    - name: set dir
+      include_tasks:
+        file: "{{ ws.local }}/.seed/ansible-tasks/dir.set.yml"
+        apply:
+          run_once: true
+      vars:
+        length: 2
+
+    - name: cert deploy
+      include_tasks: "{{ dir.local }}/ansible-tasks.deploy.yml"
+      vars:
+        tailscale:
+          service:
+            type: compose
+            name: "tailscale"
+            project: "{{ dir.names[0] }}"
+          ws: "{{ ws }}"
+          result: cert_deploy
+          domain: "{{ cert_domain }}"

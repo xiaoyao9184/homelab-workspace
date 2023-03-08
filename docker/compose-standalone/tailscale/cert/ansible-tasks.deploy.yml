@@ -1,0 +1,49 @@
+---
+
+- name: cert.deploy|set _cert
+  vars:
+    lookup_default:
+      name: "tailscale"
+      project: "tailscale"
+      retries: 1
+      delay: 0
+      result: "lookup_result"
+    lookup_update: "{{ tailscale.service | default({}) }}"
+  ansible.builtin.set_fact:
+    _cert:
+      result: "{{ tailscale.result | default('create_result') }}"
+      ws: "{{ tailscale.ws }}"
+      lookup: "{{ lookup_default | combine(lookup_update, recursive=True) }}"
+      domain: "{{ tailscale.domain }}"
+
+- name: cert.deploy|lookup service
+  include_tasks: "{{ _cert.ws.local }}/.seed/ansible-tasks/docker-service.lookup.yml"
+  vars:
+    service: "{{ _cert.lookup }}"
+
+- name: cert.deploy|print _cert
+  debug:
+    var: _cert
+
+- name: cert.deploy|exec deploy
+  when:
+    - lookup_result.exists
+  community.docker.docker_container_exec:
+    container: "{{ lookup_result.container_id }}"
+    command: "tailscale cert {{ _cert.domain }}"
+  register: exec_result
+
+- name: cert.deploy|set _cert.result
+  when:
+    - exec_result is defined
+    - exec_result.stdout is defined
+  ansible.builtin.set_fact:
+    "{{ _cert.result }}": "{{ exec_result.stdout_lines[-1] }}"
+  
+- name: cert.deploy|print _cert.result
+  debug:
+    var: "{{ _cert.result }}"
+
+- name: cert.deploy|reset _cert
+  ansible.builtin.set_fact:
+    _cert: !!null
