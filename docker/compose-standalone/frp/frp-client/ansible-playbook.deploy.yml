@@ -34,12 +34,12 @@
         networks: "{{ frp.client.net | default([],true) }}"
 
     - name: wait host port
+      when: frp.client.wait_port is defined
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/host-port.wait.yml"
       vars:
         wait_name: "{{ dir.names | join('_') }}"
-        wait_network: 
-          - frp_frp
-        wait_port: "{{ frp.client.wait_port }}"
+        wait_network: "{{ frp.client.wait_port.networks | default([],true) }}"
+        wait_port: "{{ frp.client.wait_port.hosts | default({},true) }}"
 
     - name: build compose_file
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-compose.create.yml"
