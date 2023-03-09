@@ -1,5 +1,8 @@
 version: "3.8"
 
+networks:
+  v2ray:
+
 volumes:
   etc:
     name: v2ray-etc
@@ -11,6 +14,14 @@ services:
     volumes:
       - ./config/config.json:/etc/v2ray/config.json
       - etc:/etc/v2ray
-    network_mode: "host"
+    networks:
+      - v2ray
+{% if VARS.PORTS | length > 0 %}
+    ports:
+      # - 8000:8000
+      # - 8000:8000/udp
+      {{ VARS.PORTS | to_nice_yaml(indent=2) | trim | indent(6) }}
+{% endif %}
+    # network_mode: "host"
     container_name: v2ray
     restart: always

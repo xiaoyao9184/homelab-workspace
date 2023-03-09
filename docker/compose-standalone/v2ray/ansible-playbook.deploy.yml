@@ -43,5 +43,12 @@
           type: compose
           name: "{{ dir.names[0] }}"
           path: "{{ dir.remote }}"
-          files: 
-            - "docker-compose.yml"
+          # files: 
+          #   - "docker-compose.yml"
+          template:
+            name: docker-compose
+            opt:
+              src: "{{ dir.local }}/docker-compose.yml.j2"
+              dest: "{{ dir.remote }}/docker-compose.yml"
+            vars:
+              PORTS: "{{ v2ray.tmp.ports | default([],true) }}"
