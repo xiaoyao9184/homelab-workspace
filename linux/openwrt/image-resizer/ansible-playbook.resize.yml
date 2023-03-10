@@ -11,7 +11,7 @@
     OPENWRT_TARGET: "{{ openwrt.image.builder.OPENWRT_TARGET }}"
   vars_prompt:
     - name: prompt_path
-      prompt: "input image path(img.gz/img)[from image-builder]"
+      prompt: "input image path(img.gz/img)[use image-builder path with resizer.type from inventories]"
       private: no
       default: 
     - name: prompt_size
