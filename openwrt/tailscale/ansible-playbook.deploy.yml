@@ -192,7 +192,7 @@
 
         - name: copy file
           ansible.builtin.copy:
-            src: "{{ hostvars['localhost']['copy_dir'] }}" 
+            src: "{{ hostvars['localhost']['copy_dir'] }}/" 
             dest: /
             mode: '0755'
 
