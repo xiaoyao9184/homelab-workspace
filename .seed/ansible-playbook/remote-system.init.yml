@@ -20,7 +20,7 @@
         - groups.docker is defined
       ansible.builtin.set_fact:
         ansible_group: "docker"
-
+    # TODO add init.group for user setting group
     - name: input group 
       when: ansible_group is undefined
       ansible.builtin.pause:
@@ -43,6 +43,8 @@
 - name: "init system at {{ hostvars['localhost'].ansible_group }}"
   hosts: "{{ hostvars['localhost'].ansible_group }}"
   # become: true
+  # disable gather_facts for miss python on target
+  gather_facts: false
   environment:
     PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
   pre_tasks:
