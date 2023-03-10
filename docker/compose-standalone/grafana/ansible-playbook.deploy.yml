@@ -34,6 +34,12 @@
             driver: local
         volumes: "{{ grafana.vol | default(_default,true) }}"
 
+    - name: copy to volume
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-volumes.copy.yml"
+      vars:
+        _default: {}
+        volumes: "{{ grafana.vol_cp | default(_default,true) }}"
+
     - name: add external_net
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-networks.add.yml"
       vars:
