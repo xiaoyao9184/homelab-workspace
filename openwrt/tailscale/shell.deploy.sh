@@ -50,6 +50,7 @@ uci set firewall.tszone.name='tailscale'
 uci set firewall.tszone.masq='1'
 uci set firewall.tszone.forward='ACCEPT'
 uci set firewall.tszone.network='tailscale'
+uci set firewall.tszone.device='tailscale0'
 uci set firewall.lanfwts=forwarding
 uci set firewall.lanfwts.src='lan'
 uci set firewall.lanfwts.dest='tailscale'

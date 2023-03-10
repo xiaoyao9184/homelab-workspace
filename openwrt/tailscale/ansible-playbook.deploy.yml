@@ -331,6 +331,7 @@
           masq: '1'
           forward: 'ACCEPT'
           network: 'tailscale'
+          device: 'tailscale0'
         
     - name: uci add firewall.lanfwts
       uci:
