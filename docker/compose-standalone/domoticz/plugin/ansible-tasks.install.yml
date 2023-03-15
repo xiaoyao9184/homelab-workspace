@@ -1,0 +1,55 @@
+---
+
+- name: plugin.install|set _plugin
+  vars:
+    lookup_default:
+      name: "domoticz"
+      project: "domoticz"
+      retries: 1
+      delay: 0
+      result: "lookup_result"
+    lookup_update: "{{ plugin.service | default({}) }}"
+  ansible.builtin.set_fact:
+    _plugin:
+      result: "{{ plugin.result | default('create_result') }}"
+      ws: "{{ plugin.ws }}"
+      lookup: "{{ lookup_default | combine(lookup_update, recursive=True) }}"
+      vol_cp: "{{ plugin.vol_cp }}"
+
+- name: plugin.install|lookup service
+  include_tasks: "{{ _plugin.ws.local }}/.seed/ansible-tasks/docker-service.lookup.yml"
+  vars:
+    service: "{{ _plugin.lookup }}"
+
+- name: plugin.install|print _plugin
+  debug:
+    var: _plugin
+
+- name: plugin.install|copy to volume
+  include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-volumes.copy.yml"
+  vars:
+    _default: []
+    volumes: "{{ _plugin.vol_cp | default(_default,true) }}"
+
+- name: plugin.install|exec
+  when:
+    - lookup_result.exists
+  community.docker.docker_container_exec:
+    container: "{{ lookup_result.container_id }}"
+    command: "ls -l /opt/domoticz/userdata/plugins/"
+  register: exec_result
+
+- name: plugin.install|set _plugin.result
+  when:
+    - exec_result is defined
+    - exec_result.stdout is defined
+  ansible.builtin.set_fact:
+    "{{ _plugin.result }}": "{{ exec_result.stdout_lines[-1] | default(exec_result.stderr) }}"
+
+- name: plugin.install|print _plugin.result
+  debug:
+    var: "{{ _plugin.result }}"
+
+- name: plugin.install|reset _plugin
+  ansible.builtin.set_fact:
+    _plugin: !!null

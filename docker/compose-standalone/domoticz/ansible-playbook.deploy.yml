@@ -10,7 +10,7 @@
     PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
   hosts: "{{ 'docker:&docker-domoticz-node' if (groups['docker-domoticz-node'] is defined) else 'docker' }}"
   run_once: true
-  tasks: 
+  tasks:
 
     - name: set ws
       include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/ws.set.yml"
@@ -32,15 +32,21 @@
     - name: add external_net
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-networks.add.yml"
       vars:
-        _default:
-          external_net-domoticz:
-            driver: bridge
+        _default: {}
         networks: "{{ domoticz.net | default(_default,true) }}"
+
+    - name: build compose_file
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-compose.create.yml"
+      vars:
+        compose:
+          version: "3.8"
+          dest: "{{ dir.remote }}/docker-compose.networks.yml"
+          data: "{{ domoticz.compose | default({},true) }}"
 
     - name: build env_file
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-env.create.yml"
       vars:
-        env: 
+        env:
           dest: "{{ dir.remote }}/external_env-all.env"
           data: "{{ domoticz.env | default([],true) }}"
 
@@ -51,15 +57,19 @@
           type: compose
           name: "{{ dir.names[0] }}"
           path: "{{ dir.remote }}"
-          # files: 
+          files:
+            - "docker-compose.networks.yml"
+          # files:
           #   - "docker-compose.yml"
-          template: 
+          template:
             name: "docker-compose"
             opt:
               src: "{{ dir.local }}/docker-compose.yml.j2"
               dest: "{{ dir.remote }}/docker-compose.yml"
             vars:
-              IP: "{{ domoticz.tmp.ip }}"
+              NETWORKS: "{{ domoticz.tmp.networks | default([],true) }}"
+              PORTS: "{{ domoticz.tmp.ports | default([],true) }}"
+              DEVICES: "{{ domoticz.tmp.devices | default([],true) }}"
 
     - name: exec service
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-service.exec.yml"
@@ -74,9 +84,11 @@
       loop_control:
         loop_var: command
 
-    - name: restart container
-      when: domoticz.exec is defined
-      community.docker.docker_container:
-        name: domoticz
-        state: started
-        restart: true
+    - name: restart service
+      when: domoticz.restart | default(false) | bool
+      community.docker.docker_compose:
+        state: present
+        restarted: true
+        project_name: "{{ _compose.name }}"
+        project_src: "{{ _compose.path }}"
+        files: "{{ _compose.files }}"
