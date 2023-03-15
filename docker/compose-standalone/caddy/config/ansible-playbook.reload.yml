@@ -1,7 +1,7 @@
 ---
 
 
-- name: print
+- name: reload
   vars:
     run_wsl: |
       ansible-playbook \

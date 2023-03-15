@@ -24,7 +24,7 @@
   debug:
     var: _config
 
-- name: config.reload|exec print
+- name: config.reload|exec
   when:
     - lookup_result.exists
   community.docker.docker_container_exec:
