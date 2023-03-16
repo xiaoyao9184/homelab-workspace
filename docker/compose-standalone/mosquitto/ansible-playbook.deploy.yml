@@ -4,6 +4,7 @@
   vars:
     run_wsl: |
       ansible-playbook \
+        --ask-become-pass \
         --inventory $PWD/ansible-inventories \
         $PWD/../../../docker/compose-standalone/mosquitto/ansible-playbook.deploy.yml
   environment:
@@ -34,6 +35,7 @@
 
     # https://medium.com/@jonsbun/why-need-to-be-careful-when-mounting-single-files-into-a-docker-container-4f929340834
     - name: overwrite bind conf
+      become: true
       ansible.builtin.shell: "cat {{ dir.remote }}/config/mosquitto.conf > {{ dir.remote }}/bind_file-conf"
 
     - name: build env_file
