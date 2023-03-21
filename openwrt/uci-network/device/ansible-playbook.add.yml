@@ -1,0 +1,24 @@
+---
+
+
+- name: add
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --inventory $PWD/ansible-inventories \
+        $PWD/../../../openwrt/uci-network/device/ansible-playbook.add.yml
+  hosts: openwrt
+  roles:
+    - gekmihesg.openwrt
+  tasks: 
+
+    - name: set network device
+      loop: "{{ uci.network.device | default([],true) }}"
+      ansible.builtin.shell: |
+        uci add network device
+        {% for key, value in item.items() %}
+        uci set network.@device[-1].{{ key }}='{{ value }}'
+        {% endfor %}
+
+    - name: commit network
+      ansible.builtin.shell: uci commit network

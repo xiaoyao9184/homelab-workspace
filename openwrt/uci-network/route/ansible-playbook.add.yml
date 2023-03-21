@@ -1,0 +1,24 @@
+---
+
+
+- name: add
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --inventory $PWD/ansible-inventories \
+        $PWD/../../../openwrt/uci-network/route/ansible-playbook.add.yml
+  hosts: openwrt
+  roles:
+    - gekmihesg.openwrt
+  tasks: 
+
+    - name: set network route
+      loop: "{{ uci.network.route | default([],true) }}"
+      ansible.builtin.shell: |
+        uci add network route
+        {% for key, value in item.items() %}
+        uci set network.@route[-1].{{ key }}='{{ value }}'
+        {% endfor %}
+
+    - name: commit network
+      ansible.builtin.shell: uci commit network
