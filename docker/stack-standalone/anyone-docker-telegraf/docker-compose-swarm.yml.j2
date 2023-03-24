@@ -27,7 +27,8 @@ services:
       - influxdb
     deploy:
       endpoint_mode: vip
-      mode: global
+      mode: replicated
+      replicas: 1
       placement:
         constraints:
           - node.platform.os == linux
