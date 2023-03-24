@@ -10,22 +10,22 @@
         $PWD/../../../windows/chocolatey/ansible-playbook.package.yml
   vars_prompt:
     - name: group_name
-      prompt: "What is packages group[default all group]?"
+      prompt: "What is packages group[empty mean use all group]?"
       private: no
-      default: all
+      default: 
   hosts: windows
   tasks: 
 
-    - include_tasks: "{{ playbook_dir }}/../../.seed/ansible-tasks/config-group.set.yml"
+    - name: select package name
+      include_tasks: "{{ playbook_dir }}/../../.seed/ansible-tasks/var-grouped.select.yml"
       vars:
-        group:
-          name: "{{ group_name }}"
-          all: "{{ chocolatey.packages }}"
-          default: "{{ chocolatey.packages.values() | flatten(1) }}"
-          register: _packages
+        grouped:
+          dict: "{{ chocolatey.packages }}"
+          select: "{{ group_name }}"
+          register: packages
 
     - name: install through chocolatey
-      loop: "{{ _packages }}"
+      loop: "{{ packages }}"
       vars:
         _default:
           state: present

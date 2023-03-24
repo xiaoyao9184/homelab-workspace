@@ -10,22 +10,22 @@
         $PWD/../../../windows/optional-feature/ansible-playbook.config.yml
   vars_prompt:
     - name: group_name
-      prompt: "What is optional_features group[default all group]?"
+      prompt: "What is optional_features group[empty mean use all group]?"
       private: no
-      default: all
+      default: 
   hosts: windows
   tasks: 
 
-    - include_tasks: "{{ playbook_dir }}/../../.seed/ansible-tasks/config-group.set.yml"
+    - name: select optional_feature name
+      include_tasks: "{{ playbook_dir }}/../../.seed/ansible-tasks/var-grouped.select.yml"
       vars:
-        group:
-          name: "{{ group_name }}"
-          all: "{{ optional_features }}"
-          default: "{{ optional_features.values() | flatten(1) }}"
-          register: _features
+        grouped:
+          dict: "{{ optional_features }}"
+          select: "{{ group_name }}"
+          register: features
 
     - name: enable optional feature
-      loop: "{{ _features }}"
+      loop: "{{ features }}"
       vars:
         _default:
           state: present
