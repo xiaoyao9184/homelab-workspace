@@ -1,0 +1,55 @@
+# A set of mix variables dictionary with key name or list like this:
+# var:
+#   - name1:
+#       file: config1.conf
+#     name2:
+#       file: config2.conf
+#   - - name: name3
+#       file: config3.conf
+#     - file: config4.conf
+# list `var`'s keys are variable name
+# 
+# Parameters:
+# mixed.list always is a list
+# mixed.register is register of mixed
+
+---
+
+
+- name: var-mix.flatten|init _coll
+  vars:
+    coll_default: "{{ mixed.list | default([],true) }}"
+  ansible.builtin.set_fact:
+    _coll: "{{ coll_default }}"
+    _flatten: []
+    _list: []
+
+- name: var-mix.flatten|append _flatten
+  loop: "{{ _coll }}"
+  loop_control:
+    loop_var: dict_or_list
+  vars:
+    list: "{{ dict_or_list if (dict_or_list | type_debug == 'list') else [] }}"
+    dict: "{{ (dict_or_list | dict2items(key_name='name')) if (dict_or_list | type_debug == 'dict') else [] }}"
+    sublist: "{{ list + dict }}"
+  ansible.builtin.set_fact:
+    _flatten: "{{ _flatten + sublist }}"
+
+- name: var-mix.flatten|append _list
+  loop: "{{ _flatten }}"
+  loop_control:
+    loop_var: nv
+  vars:
+    value: "{{ nv.value | default(nv,true) }}"
+    update:
+      name: "{{ nv.name | default(omit) }}"
+    item: "{{ value | combine(update, recursive=True) }}"
+  ansible.builtin.set_fact:
+    _list: "{{ _list + [item] }}"
+
+- name: var-mix.flatten|register _list
+  ansible.builtin.set_fact:
+    "{{ mixed.register }}": "{{ _list }}"
+    _list: !!null
+    _flatten: !!null
+    _coll: !!null
