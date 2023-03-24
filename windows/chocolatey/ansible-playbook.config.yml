@@ -9,19 +9,20 @@
         --inventory $PWD/ansible-inventories \
         $PWD/../../../windows/chocolatey/ansible-playbook.config.yml
   vars_prompt:
-    - name: group_select
-      prompt: "What is configs group?"
+    - name: group_name
+      prompt: "What is configs group[default all group]?"
       private: no
       default: all
   hosts: windows
   tasks: 
 
-    - include_tasks: "{{ playbook_dir }}/../../.seed/ansible-tasks/list-group.select.yml"
+    - include_tasks: "{{ playbook_dir }}/../../.seed/ansible-tasks/config-group.set.yml"
       vars:
         group:
-          data: "{{ chocolatey.configs }}"
-          select: "{{ group_select }}"
-          register: "_configs"
+          name: "{{ group_name }}"
+          all: "{{ chocolatey.configs }}"
+          default: "{{ chocolatey.configs.values() | flatten(1) }}"
+          register: _configs
 
     - name: config the chocolatey
       loop: "{{ _configs }}"

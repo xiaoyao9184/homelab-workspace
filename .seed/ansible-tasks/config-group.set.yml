@@ -2,8 +2,10 @@
 
 
 - name: config-group.set|set config_group
+  vars:
+    _default: "{{ group.default | default([group.name],true) }}"
   ansible.builtin.set_fact:
-    "{{ group.register }}": "{{ group.all[group.name] | default([group.name]) }}"
+    "{{ group.register }}": "{{ group.all[group.name] | default(_default) }}"
 
 - ansible.builtin.debug:
     verbosity: 3

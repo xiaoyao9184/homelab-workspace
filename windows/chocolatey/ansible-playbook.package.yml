@@ -9,19 +9,20 @@
         --inventory $PWD/ansible-inventories \
         $PWD/../../../windows/chocolatey/ansible-playbook.package.yml
   vars_prompt:
-    - name: group_select
-      prompt: "What is packages group?"
+    - name: group_name
+      prompt: "What is packages group[default all group]?"
       private: no
       default: all
   hosts: windows
   tasks: 
 
-    - include_tasks: "{{ playbook_dir }}/../../.seed/ansible-tasks/list-group.select.yml"
+    - include_tasks: "{{ playbook_dir }}/../../.seed/ansible-tasks/config-group.set.yml"
       vars:
         group:
-          data: "{{ chocolatey.packages }}"
-          select: "{{ group_select }}"
-          register: "_packages"
+          name: "{{ group_name }}"
+          all: "{{ chocolatey.packages }}"
+          default: "{{ chocolatey.packages.values() | flatten(1) }}"
+          register: _packages
 
     - name: install through chocolatey
       loop: "{{ _packages }}"

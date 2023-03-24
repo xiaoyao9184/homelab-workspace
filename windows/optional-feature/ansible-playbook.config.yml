@@ -9,19 +9,20 @@
         --inventory $PWD/ansible-inventories \
         $PWD/../../../windows/optional-feature/ansible-playbook.config.yml
   vars_prompt:
-    - name: group_select
-      prompt: "What is configs group?"
+    - name: group_name
+      prompt: "What is optional_features group[default all group]?"
       private: no
       default: all
   hosts: windows
   tasks: 
 
-    - include_tasks: "{{ playbook_dir }}/../../.seed/ansible-tasks/list-group.select.yml"
+    - include_tasks: "{{ playbook_dir }}/../../.seed/ansible-tasks/config-group.set.yml"
       vars:
         group:
-          data: "{{ optional_features }}"
-          select: "{{ group_select }}"
-          register: "_features"
+          name: "{{ group_name }}"
+          all: "{{ optional_features }}"
+          default: "{{ optional_features.values() | flatten(1) }}"
+          register: _features
 
     - name: enable optional feature
       loop: "{{ _features }}"
