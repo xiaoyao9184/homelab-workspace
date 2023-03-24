@@ -1,0 +1,47 @@
+# A set of variables named by dictionary key like this:
+# var:
+#   name1:
+#     p1: value0
+#     p2: value1
+#   name2:
+#     p1: value2
+#   name3:
+#     p1: value3
+# dict `var`'s keys are variable name
+# 
+# Parameters:
+# named.dict always is a dict
+# named.select is list of names/keys
+# named.register is register of named
+
+---
+
+
+- name: var-named.select|init _dict + _select
+  vars:
+    dict_default: "{{ named.dict | default({},true) }}"
+    select_list: "{{ [] if (named.select == '') else ( (named.select | split(',')) if (named.select | type_debug == 'string') else named.select ) }}"
+    # select_list: "{{ named.select | list }}"
+    select_empty: "{{ select_list | length == 0 }}"
+  ansible.builtin.set_fact:
+    _dict: "{{ dict_default }}"
+    _select: "{{ dict_default.keys() if (select_empty) else select_list }}"
+    _list: []
+
+- name: var-named.select|append _list
+  loop: "{{ _dict | dict2items | selectattr('key','in',_select) }}"
+  loop_control:
+    loop_var: kv
+  vars:
+    update:
+      name: "{{ kv.key }}"
+    item_with_key_name: "{{ kv.value | combine(update, recursive=True) }}"
+  ansible.builtin.set_fact:
+    _list: "{{ _list + [item_with_key_name] }}"
+
+- name: var-named.select|register _list
+  ansible.builtin.set_fact:
+    "{{ named.register }}": "{{ _list }}"
+    _list: !!null
+    _select: !!null
+    _dict: !!null
