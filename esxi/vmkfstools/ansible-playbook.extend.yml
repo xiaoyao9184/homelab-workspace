@@ -26,11 +26,12 @@
           select: "{{ vmkfstools_name }}"
           register: vmkfstools_group
 
-    - include_tasks: "{{ ws.local }}/.seed/ansible-tasks/config-list.set.yml"
+    - name: select vm var
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/var-named.select.yml"
       vars:
-        list:
+        named:
+          dict: "{{ esxi.vmkfstools }}"
           select: "{{ vmkfstools_group }}"
-          all: "{{ esxi.vmkfstools }}"
           register: vmkfstools_list
 
     - name: set vmkfstools_cmd_list

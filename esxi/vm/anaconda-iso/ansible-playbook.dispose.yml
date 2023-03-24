@@ -33,11 +33,12 @@
           select: "{{ vm_name }}"
           register: vm_group
 
-    - include_tasks: "{{ ws.local }}/.seed/ansible-tasks/config-list.set.yml"
+    - name: select vm var
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/var-named.select.yml"
       vars:
-        list:
-          select: "{{ vm_group }}"
-          all: "{{ esxi.vm }}"
+        named:
+          dict: "{{ esxi.vm }}"
+          select: "{{ file_group }}"
           register: vm_list
 
     - name: set vm_guest_list

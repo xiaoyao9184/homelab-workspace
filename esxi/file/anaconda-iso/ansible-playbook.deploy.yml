@@ -34,11 +34,12 @@
           select: "{{ vm_name }}"
           register: file_group
 
-    - include_tasks: "{{ ws.local }}/.seed/ansible-tasks/config-list.set.yml"
+    - name: select file var
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/var-named.select.yml"
       vars:
-        list:
+        named:
+          dict: "{{ esxi.file }}"
           select: "{{ file_group }}"
-          all: "{{ esxi.file }}"
           register: file_list
 
     - name: make iso
