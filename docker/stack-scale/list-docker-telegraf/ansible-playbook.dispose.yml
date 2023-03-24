@@ -1,0 +1,85 @@
+---
+
+- name: dispose
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --inventory $PWD/ansible-inventories \
+        $PWD/../../../docker/stack-standalone/list-docker-telegraf/ansible-playbook.dispose.yml
+  vars_prompt:
+    - name: service_names
+      prompt: "What is service name(see telegraf.jobs keys)[empty use all]?"
+      private: no
+      default: 
+  environment:
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
+  hosts: docker-manager
+  tasks: 
+
+    - name: set ws
+      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/ws.set.yml"
+
+    - name: set dir
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.set.yml"
+
+    - name: stat docker group
+      ansible.builtin.stat:
+        path: /var/run/docker.sock
+      register: docker_stat
+
+    - name: default service_names
+      when: service_names == ''
+      block:
+
+        - name: list config_files
+          include_tasks: "{{ ws.local }}/.seed/ansible-tasks/file-name.list.yml"
+          vars:
+            name: 
+              option_find: "{{ inventory_dir }}/../telegraf/service"
+              result_var: config_files
+              location: local
+
+        - name:
+          ansible.builtin.set_fact:
+            service_names: "{{ config_files | map('basename') | map('splitext') | map('first') | join(',') }}"
+
+    - name: init jobs_name
+      ansible.builtin.set_fact:
+        jobs_name: "{{ service_names | split(',') }}"
+
+    - name: init jobs_template
+      ansible.builtin.set_fact:
+        jobs_template: []
+
+    - name: stat docker.sock for jobs_template
+      ansible.builtin.stat:
+        path: /var/run/docker.sock
+      register: docker_stat
+
+    - name: append jobs_template
+      loop: "{{ jobs_name }}"
+      loop_control:
+        loop_var: name
+      vars:
+        template:
+          name: "{{ name }}"
+          opt:
+            src: "{{ dir.local }}/docker-compose-swarm.yml.j2"
+            dest: "{{ dir.remote }}/docker-compose-swarm/{{ name }}.yml"
+          vars:
+            SERIVCE_NAME: "{{ name }}"
+            HOMENAME: "{{ ansible_hostname }}"
+            USR_GROUP: "{{ docker_stat.stat.gid }}"
+      ansible.builtin.set_fact:
+        jobs_template: "{{ jobs_template + [template] }}"
+
+    - name: remove compose service
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-compose.rm.yml"
+      vars:
+        compose:
+          type: stack
+          name: "{{ dir.names[0] }}"
+          path: "{{ dir.remote }}/docker-compose-swarm"
+          # files: 
+          #   - "docker-compose-swarm.yml"
+          template: "{{ jobs_template }}"

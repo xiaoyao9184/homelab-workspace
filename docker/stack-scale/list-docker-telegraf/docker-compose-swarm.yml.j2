@@ -1,0 +1,65 @@
+version: "3.8"
+
+configs:
+  {{ VARS.SERIVCE_NAME }}-conf:
+    name: external_cfg-telegraf-{{ VARS.SERIVCE_NAME }}-conf
+    external: true
+
+networks:
+  influxdb:
+    name: external_net-influxdb
+    external: true
+
+services:
+  telegraf-{{ VARS.SERIVCE_NAME }}:
+    image: telegraf:1.24.1
+    hostname: "{{ VARS.HOMENAME }}"
+    user: telegraf:{{ VARS.USR_GROUP }}
+    env_file: external_env-{{ VARS.SERIVCE_NAME }}.env
+    configs:
+      - source: {{ VARS.SERIVCE_NAME }}-conf
+        target: /etc/telegraf/telegraf.conf
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /usr/share/snmp/mibs/:/usr/share/snmp/mibs/
+      - /var/lib/mibs:/var/lib/mibs
+    networks:
+      - influxdb
+    deploy:
+      endpoint_mode: vip
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.platform.os == linux
+          - node.labels.telegraf-{{ VARS.SERIVCE_NAME }} == true
+        preferences:
+          - spread: node.platform.os
+      labels:
+        "com.docker.stack.namespace": seed
+      # resources:
+      #   limits:
+      #     cpus: '4'
+      #     memory: 4096M
+      #   reservations:
+      #     cpus: '1'
+      #     memory: 2048M
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 2
+        window: 60s
+      rollback_config:
+        parallelism: 0
+        delay: 0s
+        failure_action: pause
+        monitor: 5m
+        max_failure_ratio: 0
+        order: stop-first
+      update_config:
+        parallelism: 0
+        delay: 0s
+        failure_action: rollback
+        monitor: 5m
+        max_failure_ratio: 0
+        order: stop-first
