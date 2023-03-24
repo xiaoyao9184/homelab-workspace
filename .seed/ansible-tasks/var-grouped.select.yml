@@ -1,0 +1,47 @@
+# A set of variables grouped by dictionary key like this:
+# var:
+#   group1:
+#     - value0
+#     - value1
+#   group2:
+#     - value2
+#   group3: 
+#     - value3
+# dict `var`'s keys are group name
+# 
+# Parameters:
+# grouped.dict always is a dict
+# grouped.select is list of keys
+# grouped.flatten is flatten values
+# grouped.register is register of grouped
+
+---
+
+
+- name: var-grouped.select|init _dict + _select + _flatten
+  vars:
+    dict_default: "{{ grouped.dict | default({},true) }}"
+    select_list: "{{ [] if (grouped.select == '') else ( (grouped.select | split(',')) if (grouped.select | type_debug == 'string') else grouped.select ) }}"
+    # select_list: "{{ grouped.select | list }}"
+    select_empty: "{{ select_list | length == 0 }}"
+  ansible.builtin.set_fact:
+    _dict: "{{ dict_default }}"
+    _select: "{{ dict_default.keys() if (select_empty) else select_list }}"
+    _flatten: "{{ grouped.flatten | default(1,true) | int }}"
+    _list: []
+
+- name: var-grouped.select|append _list
+  loop: "{{ _dict | dict2items | selectattr('key','in',_select) }}"
+  loop_control:
+    loop_var: kv
+  vars:
+    sublist: "{{ [kv.value] if (_flatten | int == 0) else ([kv.value] | flatten(_flatten | int)) }}"
+  ansible.builtin.set_fact:
+    _list: "{{ _list + sublist }}"
+
+- name: var-grouped.select|register _list
+  ansible.builtin.set_fact:
+    "{{ grouped.register }}": "{{ _list | default([]) }}"
+    _list: !!null
+    _select: !!null
+    _dict: !!null
