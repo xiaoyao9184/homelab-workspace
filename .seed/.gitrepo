@@ -5,8 +5,8 @@
 ;
 [subrepo]
 	remote = git@gitlab.lan:homelab/seed-ansible-path.git
-	branch = tags/0.1.0
-	commit = 30c5fc1a89ef8ace3044e007d74d352b0d31a008
-	parent = 211a90892aee3eca71c205f747f031a0ef39039e
+	branch = master
+	commit = c9bd46500cc7c21cb47ad28ee2ce717378285b86
+	parent = 6daa39bbc9f3b31fdb97431644c7883883ca4dc6
 	method = merge
 	cmdver = 0.4.5
