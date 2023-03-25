@@ -1,0 +1,73 @@
+---
+
+
+- name: docker-env.create|set _env
+  ansible.builtin.set_fact:
+    _env: []
+    _list: []
+    _dict: {}
+
+- name: docker-env.create|list env
+  when: 
+    - env.data is defined
+    - env.data | type_debug == "list"
+  ansible.builtin.set_fact:
+    _list: "{{ env.data }}"
+
+- name: docker-env.create|append list
+  ansible.builtin.set_fact:
+    _env: "{{ _env + _list }}"
+
+- name: docker-env.create|dict env
+  when: 
+    - env.data is defined
+    - env.data | type_debug == "dict"
+  ansible.builtin.set_fact:
+    _dict: "{{ env.data }}"
+
+- name: docker-env.create|append dict
+  ansible.builtin.set_fact:
+    _env: "{{ _env + [ env_item ] }}"
+  vars:
+    env_item: "{{ env_kv.key }}={{ env_kv.value }}"
+  loop: "{{ _dict | dict2items }}"
+  loop_control:
+    loop_var: env_kv
+
+- name: docker-env.create|print _env
+  ansible.builtin.debug:
+    var: _env
+
+- name: docker-env.create|create temporary file
+  ansible.builtin.tempfile:
+    state: file
+    suffix: docker-env.create
+  register: tempfile
+
+- name: docker-env.create|write env file
+  ansible.builtin.copy:
+    content: "{{ _env | join('\n') }}"
+    dest: "{{ tempfile.path }}"
+# - name: docker-env.create|write env file
+#   ansible.builtin.lineinfile:
+#     path: "{{ tempfile.path }}"
+#     line: "{{ env_item }}"
+#   loop: "{{ _env }}"
+#   loop_control:
+#     loop_var: env_item
+
+- name: docker-env.create|copy to env.dest
+  when: env.dest is defined
+  ansible.builtin.copy:
+    src: "{{ tempfile.path }}"
+    dest: "{{ env.dest }}"
+    remote_src: true
+    # owner: root
+    # group: root
+    mode: '0777'
+
+- name: docker-env.add|reset _env
+  ansible.builtin.set_fact:
+    _env: !!null
+    _list: !!null
+    _dict: !!null

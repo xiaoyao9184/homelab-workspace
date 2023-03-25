@@ -1,0 +1,27 @@
+---
+
+
+- name: docker-volumes.add|dict
+  when: volumes | type_debug == "dict"
+  ansible.builtin.set_fact:
+    _volumes: "{{ volumes | dict2items }}"
+
+- name: docker-volumes.add|list
+  when: volumes | type_debug == "list"
+  ansible.builtin.set_fact:
+    _volumes: "{{ volumes }}"
+
+# docker-volume.bind mkdir for bind volume
+- include_tasks: docker-volume.mkdir.yml
+  loop: "{{ _volumes }}"
+  loop_control:
+    loop_var: volume
+  
+- include_tasks: docker-volume.add.yml
+  loop: "{{ _volumes }}"
+  loop_control:
+    loop_var: volume
+
+- name: docker-volumes.add|reset _volumes
+  ansible.builtin.set_fact:
+    _volumes: !!null

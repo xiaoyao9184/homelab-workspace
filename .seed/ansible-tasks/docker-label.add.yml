@@ -1,0 +1,28 @@
+---
+
+- name: docker-label.add|dict
+  when:
+    - labels is defined 
+    - labels | type_debug == "dict"
+  ansible.builtin.set_fact:
+    _labels: "{{ [ labels ] }}"
+
+- name: docker-label.add|list
+  when: 
+    - labels is defined 
+    - labels | type_debug == "list"
+  ansible.builtin.set_fact:
+    _labels: "{{ labels }}"
+
+- name: docker-label.add|add label for node
+  community.docker.docker_node:
+    hostname: "{{ label.hostname }}"
+    labels: "{{ label.labels }}"
+  loop: "{{ _labels }}"
+  loop_control:
+    loop_var: label
+
+- name: docker-label.add|reset _labels
+  ansible.builtin.set_fact:
+    _labels: !!null
+  

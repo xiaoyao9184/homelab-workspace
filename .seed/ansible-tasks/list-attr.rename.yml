@@ -1,0 +1,40 @@
+---
+
+# https://stackoverflow.com/questions/66193508/ansible-transforming-list-to-dictionary-with-items2dict
+
+
+- name: list-attr.rename|set _attr
+  ansible.builtin.set_fact:
+    _attr: "{{ attr }}"
+    _rename_result: []
+
+- name: list-attr.rename|nothing item attr in list
+  ansible.builtin.set_fact:
+    _rename_result: "{{ _rename_result + item_nothing }}"
+  vars:
+    item_nothing: "{{ _attr.list | selectattr(_attr.old, 'undefined') }}"
+
+- name: list-attr.rename|rename item attr in list
+  ansible.builtin.set_fact:
+    _rename_result: "{{ _rename_result + [item_rename] }}"
+  vars:
+    keys_old: "{{ attr_item.keys() | difference([_attr.old]) }}"
+    keys_new: "{{ keys_old | list + [_attr.new] }}"
+    vaules_new: "{{ keys_old | map('extract', attr_item) | list + [attr_item[_attr.old]] }}"
+    item_rename: "{{ dict(keys_new|zip(vaules_new)) }}"
+  loop: "{{ _attr.list | selectattr(_attr.old, 'defined') }}"
+  loop_control:
+    loop_var: attr_item
+
+- name: list-attr.rename|set result_var
+  ansible.builtin.set_fact:
+    "{{ _attr.result_var }}": "{{ _rename_result }}"
+
+- name: list-attr.rename|print result_var
+  ansible.builtin.debug:
+    var: "{{ _attr.result_var }}"
+
+- name: list-attr.rename|reset _attr
+  ansible.builtin.set_fact:
+    _attr: !!null
+    _rename_result: !!null

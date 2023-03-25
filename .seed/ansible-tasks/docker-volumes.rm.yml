@@ -1,0 +1,23 @@
+---
+
+
+- name: docker-volumes.rm|dict
+  when: volumes | type_debug == "dict"
+  ansible.builtin.set_fact:
+    _volumes: "{{ volumes | dict2items }}"
+
+- name: docker-volumes.rm|list
+  when: volumes | type_debug == "list"
+  ansible.builtin.set_fact:
+    _volumes: "{{ volumes }}"
+
+- include_tasks: docker-volume.rm.yml
+  vars:
+    volume_prefix: "{{ volumes_prefix }}"
+  loop: "{{ _volumes }}"
+  loop_control:
+    loop_var: volume
+
+- name: docker-volumes.rm|reset _volumes
+  ansible.builtin.set_fact:
+    _volumes: !!null

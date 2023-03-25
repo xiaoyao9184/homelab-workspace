@@ -1,0 +1,51 @@
+---
+
+
+- name: docker-volume.add|not loop
+  when: volume.key is undefined
+  block:
+
+    - name: docker-volume.add|set _vol from volume
+      ansible.builtin.set_fact:
+        _vol: "{{ volume }}"
+
+- name: docker-volume.add|in loop
+  when: volume.key is defined
+  block:
+
+    - name: docker-volume.add|set _vol from volume.value
+      ansible.builtin.set_fact:
+        _vol: "{{ volume.value | default({},true) }}"
+
+    - name: docker-volume.add|combine _vol.name form volume.key
+      when: _vol.name is undefined
+      ansible.builtin.set_fact:
+        _vol: "{{ _vol | combine(_vol_update, recursive=True) }}"
+      vars:
+        _vol_update:
+          name: "{{ volume.key }}"
+
+- name: docker-volume.add|combine _vol.labels form default
+  ansible.builtin.set_fact:
+    _vol: "{{ _vol | combine(_vol_update, recursive=True) }}"
+  vars:
+    _vol_update:
+      labels:
+        "com.docker.stack.namespace": seed
+        "com.github.xiaoyao9184.docker-seed.type": "docker-volume.add"
+        "com.github.xiaoyao9184.docker-seed.creator": "{{ lookup('ansible.builtin.env', 'SEED_NAME') | default('docker-volume.add',true) }}"
+
+- name: docker-volume.add|print volume
+  ansible.builtin.debug:
+    var: _vol
+
+- name: docker-volume.add|create volume
+  community.docker.docker_volume:
+    name: "{{ _vol.name }}"
+    driver: "{{ _vol.driver | default('local') }}"
+    driver_options: "{{ _vol.driver_opts | default({}) }}"
+    labels: "{{ _vol.labels }}"
+
+- name: docker-volume.add|reset _vol
+  ansible.builtin.set_fact:
+    _vol: !!null

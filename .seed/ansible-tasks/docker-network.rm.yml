@@ -1,0 +1,46 @@
+---
+
+
+- name: docker-network.rm|not loop
+  when: network.key is undefined
+  block:
+
+    - name: docker-network.rm|set _net from network
+      ansible.builtin.set_fact:
+        _net: "{{ network }}"
+
+- name: docker-network.rm|in loop
+  when: network.key is defined
+  block:
+
+    - name: docker-network.rm|set _net from network.value
+      ansible.builtin.set_fact:
+        _net: "{{ network.value | default({},true) }}"
+
+    - name: docker-network.rm|combine _net.name form network.key
+      when: _net.name is undefined
+      ansible.builtin.set_fact:
+        _net: "{{ _net | combine(_net_update, recursive=True) }}"
+      vars:
+        _net_update:
+          name: "{{ network.key }}"
+
+- name: docker-network.rm|print network
+  ansible.builtin.debug:
+    verbosity: 3
+    var: _net
+
+- name: docker-network.rm|remove network
+  community.docker.docker_network:
+    state: absent
+    name: "{{ network_prefix }}_{{ _net.name }}"
+  register: _net_result
+  until: 
+    - _net_result is not failed
+  retries: 5
+  delay: 10
+
+- name: docker-network.rm|reset _net
+  ansible.builtin.set_fact:
+    _net: !!null
+    _net_result: !!null

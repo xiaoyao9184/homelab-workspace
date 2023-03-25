@@ -1,0 +1,46 @@
+---
+
+
+- name: docker-volume.rm|not loop
+  when: volume.key is undefined
+  block:
+
+    - name: docker-volume.rm|set _vol from volume
+      ansible.builtin.set_fact:
+        _vol: "{{ volume }}"
+
+- name: docker-volume.rm|in loop
+  when: volume.key is defined
+  block:
+
+    - name: docker-volume.rm|set _vol from volume.value
+      ansible.builtin.set_fact:
+        _vol: "{{ volume.value | default({},true) }}"
+
+    - name: docker-volume.rm|combine _vol.name form volume.key
+      when: _vol.name is undefined
+      ansible.builtin.set_fact:
+        _vol: "{{ _vol | combine(_vol_update, recursive=True) }}"
+      vars:
+        _vol_update:
+          name: "{{ volume.key }}"
+
+- name: docker-volume.rm|print volume
+  ansible.builtin.debug:
+    verbosity: 3
+    var: _vol
+
+- name: docker-volume.rm|remove volume
+  community.docker.docker_volume:
+    state: absent
+    name: "{{ volume_prefix }}_{{ _vol.name }}"
+  register: _vol_result
+  until: 
+    - _vol_result is not failed
+  retries: 5
+  delay: 10
+
+- name: docker-volume.rm|reset _vol
+  ansible.builtin.set_fact:
+    _vol: !!null
+    _vol_result: !!null

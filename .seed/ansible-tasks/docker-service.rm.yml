@@ -1,0 +1,49 @@
+---
+
+
+- name: docker-service.rm|not loop
+  when: service.key is undefined
+  block:
+
+    - name: docker-service.rm|set _ser from service
+      ansible.builtin.set_fact:
+        _ser: "{{ service }}"
+
+- name: docker-service.rm|in loop
+  when: service.key is defined
+  block:
+
+    - name: docker-service.rm|set _ser from service.value
+      ansible.builtin.set_fact:
+        _ser: "{{ service.value | default({},true) }}"
+
+    - name: docker-service.rm|combine _ser.name form service.key
+      when: _ser.name is undefined
+      ansible.builtin.set_fact:
+        _ser: "{{ _ser | combine(_ser_update, recursive=True) }}"
+      vars:
+        _ser_update:
+          name: "{{ service.key }}"
+
+- name: docker-service.rm|print service
+  ansible.builtin.debug:
+    verbosity: 3
+    msg: 
+      - "{{ service_prefix }}"
+      - "{{ _ser }}"
+
+- name: docker-service.rm|remove service
+  community.docker.docker_swarm_service:
+    state: absent
+    name: "{{ service_prefix }}_{{ _ser.name }}"
+  register: _ser_result
+  until: 
+    - _ser_result is not failed
+  retries: 5
+  delay: 10
+
+
+- name: docker-service.rm|reset _ser
+  ansible.builtin.set_fact:
+    _ser: !!null
+    _ser_result: !!null

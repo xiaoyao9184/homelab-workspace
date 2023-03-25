@@ -1,0 +1,18 @@
+---
+
+- name: host-port.wait-local|connect seed to network
+  shell: "docker network connect {{ item }} {{ lookup('ansible.builtin.env', 'SEED_NAME') }}"
+  loop: "{{ wait_network }}"
+
+- name: host-port.wait-local|wait 7 days for port open
+  ansible.builtin.wait_for:
+    timeout: 604800
+    delay: 10
+    port: "{{ item.value }}"
+    host: "{{ item.key }}"
+  loop: "{{ wait_port | dict2items }}"
+
+- name: host-port.wait-local|disconnect seed to network
+  shell: "docker network disconnect {{ item }} {{ lookup('ansible.builtin.env', 'SEED_NAME') }}"
+  loop: "{{ wait_network }}"
+  

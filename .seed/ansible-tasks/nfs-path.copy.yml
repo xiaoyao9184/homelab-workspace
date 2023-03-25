@@ -1,0 +1,93 @@
+---
+
+
+- name: nfs-path.copy|set _mount _copy from copy_path 
+  when: copy_path.key is undefined
+  vars:
+    mount_keys: ['name','mount','option','unmount']
+    mount_values: "{{ mount_keys | map('extract', copy_path) | list }}"
+    copy_keys: "{{ copy_path.keys() | difference(mount_keys) }}"
+    copy_values: "{{ copy_keys | map('extract', copy_path) | list }}"
+  ansible.builtin.set_fact:
+    _mount: "{{ dict(mount_keys | zip(mount_values)) }}"
+    _copy: "{{ dict(copy_keys | zip(copy_values)) }}"
+
+- name: nfs-path.copy|update _mount.name by copy_path.key in dict loop 
+  when: copy_path.key is defined
+  vars:
+    nfs_name: "{{ copy_path.key }}"
+    other_keys: ['mount','option','unmount']
+    other_values: "{{ other_keys | map('extract', copy_path.value) | list }}"
+    mount_keys: ['name','mount','option','unmount']
+    copy_keys: "{{ copy_path.value.keys() | difference(mount_keys) }}"
+    copy_values: "{{ copy_keys | map('extract', copy_path.value) | list }}"
+  ansible.builtin.set_fact:
+    _mount: "{{ dict((mount_keys) | zip([nfs_name] + other_values)) }}"
+    _copy: "{{ dict(copy_keys | zip(copy_values)) }}"
+
+- name: nfs-path.copy|check in docker-seed connect local(docker-in-docker)
+  when: 
+    - lookup('ansible.builtin.env', 'SEED_NAME') != ''
+    - ansible_connection == 'local'
+  ansible.builtin.set_fact:
+    seed_in_docker_connect_local: true
+
+- name: nfs-path.copy|update _mount.point by _copy.dest:use host
+  when: seed_in_docker_connect_local is defined
+  vars:
+    service: "{{ nfs.service[_mount.name] }}"
+    mount:
+      point: "{{ service.host }}:{{ _copy.dest }}"
+  ansible.builtin.set_fact:
+    _mount: "{{ _mount | combine(mount, recursive=True) }}"
+
+- name: nfs-path.copy|update _mount.point by _copy.dest:use addr
+  when: seed_in_docker_connect_local is undefined
+  vars:
+    service: "{{ nfs.service[_mount.name] }}"
+    mount:
+      point: "{{ service.addr }}:{{ _copy.dest }}"
+  ansible.builtin.set_fact:
+    _mount: "{{ _mount | combine(mount, recursive=True) }}"
+
+- name: nfs-path.copy|print _mount
+  ansible.builtin.debug:
+    var: _mount
+
+- name: nfs-path.copy|update _copy.dest by _mount.mount
+  vars:
+    cp:
+      dest: "{{ _mount.mount }}"
+  ansible.builtin.set_fact:
+    _copy: "{{ _copy | combine(cp, recursive=True) }}"
+
+- name: nfs-path.copy|print _copy
+  ansible.builtin.debug:
+    var: _copy
+
+- name: nfs-path.copy|mkdir _mount.mount
+  become: true
+  ansible.builtin.file:
+    path: "{{ _mount.mount }}"
+    state: directory
+    # mode: 0777
+    # owner: root
+    # group: root
+
+- name: nfs-path.copy|mount _mount
+  become: true
+  ansible.posix.mount:
+    src: "{{ _mount.point }}"
+    path: "{{ _mount.mount }}"
+    fstype: nfs
+    opts: "{{ _mount.option }}"
+    state: mounted
+
+- name: nfs-path.copy|copy
+  ansible.builtin.copy: "{{ _copy }}"
+
+- name: nfs-path.copy|unmount _mount
+  become: true
+  ansible.posix.mount:
+    path: "{{ _mount.mount }}"
+    state: unmounted

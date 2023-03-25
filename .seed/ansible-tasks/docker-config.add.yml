@@ -1,0 +1,61 @@
+---
+
+
+- name: docker-config.add|not loop
+  when: config.key is undefined
+  block:
+
+    - name: docker-config.add|set _cfg from config
+      ansible.builtin.set_fact:
+        _cfg: "{{ config }}"
+
+- name: docker-config.add|in loop
+  when: config.key is defined
+  block:
+
+    - name: docker-config.add|set _cfg from config.value
+      ansible.builtin.set_fact:
+        _cfg: "{{ config.value | default({},true) }}"
+
+    - name: docker-config.add|combine _cfg.name form config.key
+      when: _cfg.name is undefined
+      ansible.builtin.set_fact:
+        _cfg: "{{ _cfg | combine(_cfg_update, recursive=True) }}"
+      vars:
+        _cfg_update:
+          name: "{{ config.key }}"
+
+- name: docker-config.add|combine _cfg.labels form default
+  ansible.builtin.set_fact:
+    _cfg: "{{ _cfg | combine(_cfg_update, recursive=True) }}"
+  vars:
+    _cfg_update:
+      labels:
+        "com.docker.stack.namespace": seed
+        "com.github.xiaoyao9184.docker-seed.type": "docker-config.add"
+        "com.github.xiaoyao9184.docker-seed.creator": "{{ lookup('ansible.builtin.env', 'SEED_NAME') | default('docker-config.add',true) }}"
+
+- name: docker-config.add|print config
+  ansible.builtin.debug:
+    var: _cfg
+
+- name: docker-config.add|create config by file
+  when: _cfg.file is defined
+  community.docker.docker_config:
+    name: "{{ _cfg.name }}"
+    template_driver: "{{ _cfg.template_driver | default('golang') }}"
+    data_src: "{{ _cfg.file }}"
+    labels: "{{ _cfg.labels }}"
+
+- name: docker-config.add|create config by data
+  when: _cfg.data is defined
+  community.docker.docker_config:
+    name: "{{ _cfg.name }}"
+    template_driver: "{{ _cfg.template_driver | default('golang') }}"
+    data: "{{ _cfg.data }}"
+    data_is_b64: "{{ _cfg.data_is_b64 | default(false) }}"
+    labels: "{{ _cfg.labels }}"
+
+- name: docker-config.add|reset _cfg
+  ansible.builtin.set_fact:
+    _cfg: !!null

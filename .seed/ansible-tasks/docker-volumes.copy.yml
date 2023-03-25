@@ -1,0 +1,21 @@
+---
+
+
+- name: docker-volumes.copy|dict
+  when: volumes | type_debug == "dict"
+  ansible.builtin.set_fact:
+    _volumes: "{{ volumes | dict2items }}"
+
+- name: docker-volumes.copy|list
+  when: volumes | type_debug == "list"
+  ansible.builtin.set_fact:
+    _volumes: "{{ volumes }}"
+
+- include_tasks: docker-volume.copy.yml
+  loop: "{{ _volumes }}"
+  loop_control:
+    loop_var: volume
+
+- name: docker-volumes.copy|reset _volumes
+  ansible.builtin.set_fact:
+    _volumes: !!null

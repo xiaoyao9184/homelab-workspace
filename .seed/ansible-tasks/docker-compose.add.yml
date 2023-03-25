@@ -1,0 +1,104 @@
+---
+
+
+- name: docker-compose.add|set _compose
+  ansible.builtin.set_fact:
+    _compose: 
+      name: "{{ compose.name }}"
+      type: "{{ compose.type }}"
+      path: "{{ compose.path }}"
+      files: "{{ compose.files | default([]) }}"
+
+# https://github.com/ansible/ansible/issues/29003
+- name: docker-compose.add|realpath of _compose.path
+  when: _compose.path.find("~") != -1
+  block:
+
+    - name: docker-compose.add|stats of _compose.path
+      ansible.builtin.stat:
+        path: "{{ _compose.path }}"
+      register: _stat_path
+
+    - name: docker-compose.add|combine _compose.path
+      ansible.builtin.set_fact:
+        _compose: "{{ _compose | combine(_update, recursive=True) }}"
+      vars:
+        _update:
+          path: "{{ _stat_path.stat.path }}"
+          
+    - name: docker-compose.add|reset _stat_path
+      ansible.builtin.set_fact:
+        _stat_path: !!null
+
+- name: docker-compose.add|use template
+  when: 
+    - compose.template is defined
+  block:
+
+    - name: docker-compose.add|one template
+      when: compose.template | type_debug == "dict"
+      ansible.builtin.set_fact:
+        _template: "{{ [ compose.template ] }}"
+      
+    - name: docker-compose.add|multiple template
+      when: 
+        - compose.template | type_debug == "list" 
+      ansible.builtin.set_fact:
+        _template: "{{ compose.template }}"
+
+    - name: docker-compose.add|template file
+      ansible.builtin.template: "{{ _template_item.opt }}"
+      vars: 
+        # why see https://stackoverflow.com/questions/50477012/how-to-use-a-dictionary-of-registered-ansible-variables-in-vars
+        VARS: "{{ _template_item.vars }}"
+      loop: "{{ _template }}"
+      loop_control:
+        loop_var: _template_item
+
+    - name: docker-compose.add|set _files
+      ansible.builtin.set_fact:
+        _files: []
+
+    - name: docker-compose.add|add template file
+      ansible.builtin.set_fact:
+        _files: "{{ _files + [file] }}"
+      vars:
+        file: "{{ _template_item.name }}.yml"
+      loop: "{{ _template }}"
+      loop_control:
+        loop_var: _template_item
+      
+    - name: docker-compose.add|combine _compose.files
+      ansible.builtin.set_fact:
+        _compose: "{{ _compose | combine(_update, recursive=True) }}"
+      vars:
+        _update:
+          files: "{{ _compose.files + _files }}"
+          
+    - name: docker-compose.add|reset _template _files
+      ansible.builtin.set_fact:
+        _template: !!null
+        _files: !!null
+
+- name: docker-compose.add|print _compose
+  ansible.builtin.debug:
+    var: _compose
+
+- name: docker-compose.add|stack
+  when: _compose.type == 'stack'
+  community.docker.docker_stack:
+    state: present
+    name: "{{ _compose.name }}"
+    compose: "{{ [_compose.path] | product(_compose.files) | map('join', '/') }}"
+
+- name: docker-compose.add|compose
+  when: _compose.type == 'compose'
+  community.docker.docker_compose:
+    state: present
+    project_name: "{{ _compose.name }}"
+    project_src: "{{ _compose.path }}"
+    files: "{{ _compose.files }}"
+
+- name: docker-compose.add|reset _compose
+  ansible.builtin.set_fact:
+    _compose: !!null

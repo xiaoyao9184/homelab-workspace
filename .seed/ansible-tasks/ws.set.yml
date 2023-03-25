@@ -1,0 +1,113 @@
+---
+
+
+# NOTE
+# For clusters usually run once to generate available to all nodes.
+# see https://medium.com/opsops/the-magic-of-run-once-e31d583eca62
+# 
+# When _realpath_remote_ws uses relative paths ~, 
+# folders are created on all nodes for get absolute paths, these tasks are not.
+- block:
+
+  - when: _current_local_ws | default(None) == None
+    block: 
+
+      - name: ws.set|set _current_local_ws by local.workspace
+        when: local.workspace is defined
+        ansible.builtin.set_fact:
+          _current_local_ws: "{{ local.workspace }}"
+
+      - name: ws.set|set _current_local_ws by dir
+        when: dir is defined
+        ansible.builtin.set_fact:
+          _current_local_ws: "{{ dir }}"
+
+      - name: ws.set|set _current_local_ws default by playbook_dir
+        ansible.builtin.set_fact:
+          _current_local_ws: "{{ _current_local_ws | default(playbook_dir) }}"
+
+  - name: ws.set|check _current_local_ws seed-path exists
+    delegate_to: localhost
+    connection: local
+    ansible.builtin.stat:
+      path: "{{ _current_local_ws }}/.seed"
+    register: _stat_local_ws_seed
+
+  - name: ws.set|break seed-path not exists
+    when: not _stat_local_ws_seed.stat.exists
+    ansible.builtin.fail:
+      msg: "not workspace {{ _current_local_ws }}"
+
+  # mean: workspace local and remote path is same not need copy
+  - name: ws.set|set _synchronized when docker-seed target local
+    when: 
+      - lookup('ansible.builtin.env', 'SEED_NAME') != ''
+      - ansible_connection == 'local'
+    ansible.builtin.set_fact:
+      _synchronized: true
+
+  - name: ws.set|set _realpath_local_ws _realpath_remote_ws
+    vars:
+      local_realpath: "{{ _current_local_ws | realpath }}"
+      remote_default: "~/.seed/{{ local_realpath | basename }}"
+      remote_workspace: "{{ remote.workspace | default(remote_default) }}"
+    ansible.builtin.set_fact:
+      _realpath_local_ws: "{{ local_realpath }}"
+      _realpath_remote_ws: "{{ remote_workspace }}"
+  
+  # realpath filter not on managed node
+  # see https://github.com/ansible/ansible/issues/29003
+  - when: _realpath_remote_ws.find("~") != -1
+    block:
+
+      - name: ws.set|mkdir _realpath_remote_ws
+        run_once: false
+        ansible.builtin.file:
+          path: "{{ _realpath_remote_ws }}"
+          state: directory
+
+      - name: ws.set|stat of _realpath_remote_ws
+        run_once: false
+        ansible.builtin.stat:
+          path: "{{ _realpath_remote_ws }}"
+        register: _stat_remote_ws
+
+      - name: ws.set|replace _realpath_remote_ws with stat path
+        run_once: false
+        ansible.builtin.set_fact:
+          _realpath_remote_ws: "{{ _stat_remote_ws.stat.path }}"
+
+  - name: ws.set|set ws
+    ansible.builtin.set_fact:
+      ws:
+        synchronized: "{{ _synchronized | default(false) | bool }}"
+        local: "{{ _realpath_local_ws }}"
+        remote: "{{ _realpath_remote_ws }}"
+
+  # https://medium.com/opsops/how-to-undefine-fact-in-ansible-5fff46432360
+  - name: ws.set|reset _current_*
+    ansible.builtin.set_fact:
+      _current_local_ws: !!null
+      _stat_local_ws_seed: !!null
+      _synchronized: !!null
+      _realpath_local_ws: !!null
+      _realpath_remote_ws: !!null
+      _stat_remote_ws: !!null
+
+  - name: ws.set|print worksapce
+    run_once: false
+    ansible.builtin.debug:
+      var: ws
+
+  rescue:
+
+    - name: ws.set|no parent of _current_local_ws
+      when: _current_local_ws == '/'
+      ansible.builtin.fail:
+        msg: cant go parent find worksapce
+
+    - name: ws.set|get parent of _current_local_ws
+      ansible.builtin.set_fact:
+        _current_local_ws: "{{ _current_local_ws | dirname }}"
+
+    - include_tasks: ws.set.yml

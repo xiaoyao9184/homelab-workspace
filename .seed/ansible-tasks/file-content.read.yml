@@ -1,0 +1,34 @@
+---
+
+
+- name: file-content.read|set _content
+  ansible.builtin.set_fact:
+    _content: "{{ content }}"
+    _content_result: []
+
+- name: file-content.read|slurp file
+  ansible.builtin.slurp:
+    src: "{{ file }}"
+  register: _content_files
+  loop: "{{ _content.files }}"
+  loop_control:
+    loop_var: file
+
+- name: file-content.read|add content
+  ansible.builtin.set_fact:
+    _content_result: "{{ _content_result + [content_yml] }}"
+  vars:
+    content_yml: "{{ content_file.content | b64decode | from_yaml }}"
+  loop: "{{ _content_files.results }}"
+  loop_control:
+    loop_var: content_file
+
+- name: file-content.read|set result_var
+  ansible.builtin.set_fact:
+    "{{ _content.result_var }}": "{{ _content_result }}"
+
+- name: file-content.read|reset _content
+  ansible.builtin.set_fact:
+    _content: !!null
+    _content_files: !!null
+    _content_result: !!null

@@ -1,0 +1,21 @@
+---
+
+
+- name: docker-configs.add|dict
+  when: configs | type_debug == "dict"
+  ansible.builtin.set_fact:
+    _configs: "{{ configs | dict2items }}"
+
+- name: docker-configs.add|list
+  when: configs | type_debug == "list"
+  ansible.builtin.set_fact:
+    _configs: "{{ configs }}"
+
+- include_tasks: docker-config.add.yml
+  loop: "{{ _configs }}"
+  loop_control:
+    loop_var: config
+
+- name: docker-configs.add|reset _configs
+  ansible.builtin.set_fact:
+    _configs: !!null

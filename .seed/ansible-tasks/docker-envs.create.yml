@@ -1,0 +1,25 @@
+---
+
+
+- name: docker-envs.create|dict
+  when:
+    - envs is defined 
+    - envs | type_debug == "dict"
+  ansible.builtin.set_fact:
+    _envs: "{{ [ envs ] }}"
+
+- name: docker-envs.create|list
+  when: 
+    - envs is defined 
+    - envs | type_debug == "list"
+  ansible.builtin.set_fact:
+    _envs: "{{ envs }}"
+
+- include_tasks: docker-env.create.yml
+  loop: "{{ _envs }}"
+  loop_control:
+    loop_var: env
+
+- name: docker-envs.add|reset _envs
+  ansible.builtin.set_fact:
+    _envs: !!null

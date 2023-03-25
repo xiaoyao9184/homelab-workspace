@@ -1,0 +1,21 @@
+---
+
+
+- name: docker-networks.add|dict
+  when: networks | type_debug == "dict"
+  ansible.builtin.set_fact:
+    _networks: "{{ networks | dict2items }}"
+
+- name: docker-networks.add|list
+  when: networks | type_debug == "list"
+  ansible.builtin.set_fact:
+    _networks: "{{ networks }}"
+
+- include_tasks: docker-network.add.yml
+  loop: "{{ _networks }}"
+  loop_control:
+    loop_var: network
+
+- name: docker-networks.add|reset _networks
+  ansible.builtin.set_fact:
+    _networks: !!null

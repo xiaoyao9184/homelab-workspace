@@ -1,0 +1,43 @@
+---
+
+
+- name: file-name.list|set _name
+  ansible.builtin.set_fact:
+    _name: "{{ name }}"
+
+- name: file-name.list|set _find_opt by dict
+  when: _name.option_find | type_debug == "dict" 
+  ansible.builtin.set_fact:
+    _find_opt: "{{ _name.option_find }}"
+
+- name: file-name.list|set _find_opt by string
+  when: _name.option_find | type_debug == "str" 
+  ansible.builtin.set_fact:
+    _find_opt: 
+      paths: "{{ _name.option_find }}"
+
+- name: file-name.list|find in remote
+  when: _name.location != 'local'
+  ansible.builtin.find: "{{ _find_opt }}"
+  register: _find_result
+
+- name: file-name.list|find in local
+  when: _name.location == 'local'
+  delegate_to: localhost
+  connection: local
+  ansible.builtin.find: "{{ _find_opt }}"
+  register: _find_result
+
+- name: file-name.list|set result_var
+  ansible.builtin.set_fact:
+    "{{ _name.result_var }}": "{{ _find_result.files | map(attribute='path') | list }}"
+
+- name: file-name.list|print result_var
+  ansible.builtin.debug:
+    var: "{{ _name.result_var }}"
+
+- name: file-name.list|reset _name
+  ansible.builtin.set_fact:
+    _name: !!null
+    _find_opt: !!null
+    _find_result: !!null

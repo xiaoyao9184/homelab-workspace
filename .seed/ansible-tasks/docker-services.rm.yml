@@ -1,0 +1,23 @@
+---
+
+
+- name: docker-services.rm|dict
+  when: services | type_debug == "dict"
+  ansible.builtin.set_fact:
+    _services: "{{ services | dict2items }}"
+
+- name: docker-services.rm|list
+  when: services | type_debug == "list"
+  ansible.builtin.set_fact:
+    _services: "{{ services }}"
+
+- include_tasks: docker-service.rm.yml
+  vars:
+    service_prefix: "{{ services_prefix }}"
+  loop: "{{ _services }}"
+  loop_control:
+    loop_var: service
+
+- name: docker-services.rm|reset _services
+  ansible.builtin.set_fact:
+    _services: !!null
