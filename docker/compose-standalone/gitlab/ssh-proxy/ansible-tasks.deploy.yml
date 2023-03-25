@@ -1,0 +1,113 @@
+---
+
+
+- name: ssh-proxy.deploy|set _proxy
+  vars:
+    lookup_default:
+      name: "gitlab"
+      project: "gitlab"
+      retries: 1
+      delay: 0
+      result: "lookup_result"
+    lookup_update: "{{ gitlab.service | default({}) }}"
+  ansible.builtin.set_fact:
+    _proxy:
+      result: "{{ gitlab.result | default('create_result') }}"
+      ws: "{{ gitlab.ws }}"
+      dir: "{{ gitlab.dir }}"
+      lookup: "{{ lookup_default | combine(lookup_update, recursive=True) }}"
+
+- name: ssh-proxy.deploy|set source_dir
+  run_once: true
+  delegate_to: localhost
+  ansible.builtin.set_fact:
+    source_dir: "~/.seed/gitlab-ssh-proxy"
+    url: "{{ github.url_prefix | default('') }}https://github.com/rendyanthony/gitlab-ssh-proxy.git"
+
+- name: ssh-proxy.deploy|git source
+  run_once: true
+  delegate_to: localhost
+  ansible.builtin.git:
+    repo: "{{ url }}"
+    dest: "{{ source_dir }}"
+    version: master
+
+- name: ssh-proxy.deploy|copy source to remote
+  ansible.builtin.copy:
+    src: "{{ source_dir }}/"
+    dest: "{{ _proxy.dir.remote }}/.gitlab-ssh-proxy"
+
+- name: ssh-proxy.deploy|setup install
+  become: true
+  environment:
+    SE_LINUX: 'no'
+  ansible.builtin.shell: 
+    cmd: "bash {{ _proxy.dir.remote }}/.gitlab-ssh-proxy/setup.sh install"
+    chdir: "{{ _proxy.dir.remote }}/.gitlab-ssh-proxy"
+  register: install_result
+
+- name: ssh-proxy.deploy|print install
+  ansible.builtin.debug:
+    var: install_result
+
+- name: ssh-proxy.deploy|add git user
+  become: true
+  ansible.builtin.user:
+    name: git
+
+- name: ssh-proxy.deploy|generate ssh key
+  become: true
+  community.crypto.openssh_keypair:
+    path: "/home/git/.ssh/id_rsa"
+    size: 2048
+    type: rsa
+  # https://github.com/microsoft/WSL/issues/670
+  register: generate_result
+  until: "generate_result is not failed"
+  retries: 3
+  delay: 1
+
+- name: ssh-proxy.deploy|slurp remote file
+  become: true
+  ansible.builtin.slurp:
+    src: "/home/git/.ssh/id_rsa.pub"
+  register: public_key
+
+- name: ssh-proxy.deploy|lookup service
+  include_tasks: "{{ _proxy.ws.local }}/.seed/ansible-tasks/docker-service.lookup.yml"
+  vars:
+    service: "{{ _proxy.lookup }}"
+
+- name: ssh-proxy.deploy|print _proxy
+  debug:
+    var: _proxy
+
+- name: ssh-proxy.deploy|exec append authorized_keys
+  when:
+    - lookup_result.exists
+  community.docker.docker_container_exec:
+    container: "{{ lookup_result.container_id }}"
+    command: "/bin/bash -c 'echo \"{{ public_key['content'] | b64decode }}\" >> /var/opt/gitlab/.ssh/authorized_keys && cat /var/opt/gitlab/.ssh/authorized_keys'"
+    # command: "/bin/bash -c 'echo \"test2\n\n\" >> /var/opt/gitlab/.ssh/authorized_keys'"
+  register: exec_result
+
+- name: ssh-proxy.deploy|set _proxy.result
+  when:
+    - exec_result is defined
+    - exec_result.stdout is defined
+  ansible.builtin.set_fact:
+    "{{ _proxy.result }}": "{{ exec_result.stdout_lines[-1] }}"
+  
+- name: ssh-proxy.deploy|print _proxy.result
+  debug:
+    var: "{{ _proxy.result }}"
+
+- name: ssh-proxy.deploy|reset _proxy
+  ansible.builtin.set_fact:
+    _proxy: !!null
+
+- name: ssh-proxy.deploy|reload sshd
+  become: true
+  ansible.builtin.service:
+    name: sshd
+    state: reloaded
