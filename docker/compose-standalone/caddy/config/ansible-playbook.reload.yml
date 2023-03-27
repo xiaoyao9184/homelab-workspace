@@ -22,7 +22,7 @@
         length: 2
         keep: false
 
-    - name: copy dir
+    - name: copy to dir
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.copy.yml"
       vars:
         copys: "{{ caddy.dir_copy | default([],true) }}"

@@ -19,7 +19,7 @@
       vars:
         length: 2
 
-    - name: copy dir
+    - name: copy to dir
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.copy.yml"
 
     - name: build env_file

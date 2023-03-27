@@ -87,7 +87,7 @@
           list: "{{ jobs_var | map(attribute='dir_copy') }}"
           register: jobs_dir_copy
 
-    - name: copy dir
+    - name: copy to dir
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.copy.yml"
       vars:
         copys: "{{ jobs_dir_copy }}"

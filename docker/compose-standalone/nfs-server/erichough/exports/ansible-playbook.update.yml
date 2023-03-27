@@ -19,7 +19,7 @@
       vars:
         length: 3
 
-    - name: copy dir
+    - name: copy to dir
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.copy.yml"
       vars:
         copys: "{{ nfs.exports.dir_copy | default([],true) }}"

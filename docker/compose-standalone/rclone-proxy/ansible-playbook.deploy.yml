@@ -95,7 +95,7 @@
       loop_control:
         loop_var: name
 
-    - name: copy dir
+    - name: copy to dir
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.copy.yml"
       vars:
         copys: "{{ dir_copy_list | flatten }}"

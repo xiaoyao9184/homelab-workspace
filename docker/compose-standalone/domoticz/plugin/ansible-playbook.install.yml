@@ -27,7 +27,7 @@
       delegate_to: localhost
       ansible.builtin.git: "{{ item }}"
 
-    - name: copy dir
+    - name: copy to dir
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.copy.yml"
       vars:
         copys: "{{ domoticz.plugin.dir_copy | default([],true) }}"

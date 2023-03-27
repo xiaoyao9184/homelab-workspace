@@ -33,7 +33,7 @@
       vars:
         length: 2
 
-    - name: copy dir
+    - name: copy to dir
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.copy.yml"
       vars:
         copys: "{{ nfs.dir_copy | default([],true) }}"
@@ -86,7 +86,7 @@
       vars:
         length: 2
 
-    - name: copy dir
+    - name: copy to dir
       when: not (dir.synchronized | default(false) | bool)
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.copy.yml"
       vars:
