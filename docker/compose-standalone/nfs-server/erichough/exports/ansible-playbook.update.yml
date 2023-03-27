@@ -28,7 +28,7 @@
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-volumes.copy.yml"
       vars:
         _default:
-          external_vol-erichough-nfs-server:
+          external_vol-nfs-server-data:
             remote_src: true
             src: "{{ dir.remote }}/../data/"
             dest: "./"

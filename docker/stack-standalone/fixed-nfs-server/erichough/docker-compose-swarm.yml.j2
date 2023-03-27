@@ -6,7 +6,7 @@ version: "3.3"
 #     file: ./exports/exports
 
 volumes:
-  external_vol-erichough-nfs-server:
+  external_vol-nfs-server-data:
     external: true
 
 networks:
@@ -27,7 +27,7 @@ services:
     #   - source: stack_cfg-exports
     #     target: /etc/exports
     volumes:
-      - external_vol-erichough-nfs-server:/data
+      - external_vol-nfs-server-data:/data
       - /lib/modules:/lib/modules:ro
       - {{ VARS.BIND_EXPORTS }}:/etc/exports
     networks:

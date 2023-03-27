@@ -1,7 +1,8 @@
 version: "3.3"
 
 volumes:
-  external_vol-erichough-nfs-server:
+  data:
+    name: external_vol-nfs-server-data
     external: true
 
 services:
@@ -9,7 +10,7 @@ services:
     image: erichough/nfs-server:2.2.1
     env_file: external_env-server.env
     volumes:
-      - external_vol-erichough-nfs-server:/data
+      - data:/data
       - /lib/modules:/lib/modules:ro
       - {{ VARS.BIND_EXPORTS }}:/etc/exports
     cap_add:
