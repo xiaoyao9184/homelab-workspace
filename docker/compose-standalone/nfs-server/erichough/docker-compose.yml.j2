@@ -1,5 +1,8 @@
 version: "3.3"
 
+networks:
+  nfs:
+
 volumes:
   data:
     name: external_vol-nfs-server-data
@@ -17,7 +20,21 @@ services:
       - SYS_ADMIN
       - SYS_MODULE
       - CAP_SYS_ADMIN
-    network_mode: host
+    networks:
+      - nfs
+{% if VARS.PORTS | length > 0 %}
+    ports:
+      # - 111:111
+      # - 111:111/udp
+      # - 2049:2049
+      # - 2049:2049/udp
+      # - 32765:32765
+      # - 32765:32765/udp
+      # - 32767:32767
+      # - 32767:32767/udp
+      {{ VARS.PORTS | to_nice_yaml(indent=2) | trim | indent(6) }}
+{% endif %}
+    # network_mode: "host"
     container_name: nfs-server
     restart: always
     user: root
