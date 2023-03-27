@@ -72,7 +72,7 @@
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/var-mixed.flatten.yml"
       vars:
         mixed:
-          list: "{{ jobs_var | map(attribute='lab') }}"
+          list: "{{ jobs_var | selectattr('lab', 'defined') | map(attribute='lab') }}"
           register: jobs_lab
 
     - name: add swarm label
@@ -84,7 +84,7 @@
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/var-mixed.flatten.yml"
       vars:
         mixed:
-          list: "{{ jobs_var | map(attribute='dir_copy') }}"
+          list: "{{ jobs_var | selectattr('dir_copy', 'defined') | map(attribute='dir_copy') }}"
           register: jobs_dir_copy
 
     - name: copy to dir
@@ -96,7 +96,7 @@
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/var-mixed.flatten.yml"
       vars:
         mixed:
-          list: "{{ jobs_var | map(attribute='cfg') }}"
+          list: "{{ jobs_var | selectattr('cfg', 'defined') | map(attribute='cfg') }}"
           register: jobs_cfg
 
     - name: add external_cfg
