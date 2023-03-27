@@ -55,7 +55,7 @@
             src: "{{ dir.remote }}/data/"
             dest: "./"
             directory_mode: '0777'
-        volumes: "{{ nfs.vol_cp | default(_default) }}"
+        volumes: "{{ nfs.vol_copy | default(_default) }}"
 
     # https://medium.com/@jonsbun/why-need-to-be-careful-when-mounting-single-files-into-a-docker-container-4f929340834
     - name: overwrite bind exports

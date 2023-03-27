@@ -14,7 +14,7 @@
       result: "{{ plugin.result | default('create_result') }}"
       ws: "{{ plugin.ws }}"
       lookup: "{{ lookup_default | combine(lookup_update, recursive=True) }}"
-      vol_cp: "{{ plugin.vol_cp }}"
+      vol_copy: "{{ plugin.vol_copy }}"
 
 - name: plugin.install|lookup service
   include_tasks: "{{ _plugin.ws.local }}/.seed/ansible-tasks/docker-service.lookup.yml"
@@ -29,7 +29,7 @@
   include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-volumes.copy.yml"
   vars:
     _default: []
-    volumes: "{{ _plugin.vol_cp | default(_default,true) }}"
+    volumes: "{{ _plugin.vol_copy | default(_default,true) }}"
 
 - name: plugin.install|exec
   when:

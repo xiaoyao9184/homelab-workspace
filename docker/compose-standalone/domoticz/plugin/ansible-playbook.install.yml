@@ -42,7 +42,7 @@
             project: "{{ dir.names[0] }}"
           ws: "{{ ws }}"
           result: plugin_install
-          vol_cp: "{{ domoticz.plugin.vol_cp | default([],true) }}"
+          vol_copy: "{{ domoticz.plugin.vol_copy | default([],true) }}"
 
     - name: restart service
       when: domoticz.plugin.restart | default(false) | bool
