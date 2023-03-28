@@ -26,6 +26,7 @@
   when: item.src is undefined
   ansible.builtin.file:
     path: "{{ item.dest }}"
+    mode: "{{ item.mode | default(omit) }}"
     state: directory
 
 - name: dir.copy|copy
