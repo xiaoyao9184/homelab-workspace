@@ -23,6 +23,12 @@
     - name: set dir
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.set.yml"
 
+    - name: copy to dir
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.copy.yml"
+      vars:
+        copys:
+          - dest: "{{ dir.remote }}/docker-compose"
+
     - name: default service_names
       when: service_names == ''
       block:
