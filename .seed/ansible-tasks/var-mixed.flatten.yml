@@ -16,15 +16,15 @@
 ---
 
 
-- name: var-mix.flatten|init _coll
+- name: var-mixed.flatten|init _coll
   vars:
-    coll_default: "{{ mixed.list | default([],true) }}"
+    coll_default: "{{ [mixed.default] if (mixed.default is defined) else [] }}"
   ansible.builtin.set_fact:
-    _coll: "{{ coll_default }}"
+    _coll: "{{ mixed.list | default(coll_default,true) }}"
     _flatten: []
     _list: []
 
-- name: var-mix.flatten|append _flatten
+- name: var-mixed.flatten|append _flatten
   loop: "{{ _coll }}"
   loop_control:
     loop_var: dict_or_list
@@ -35,7 +35,7 @@
   ansible.builtin.set_fact:
     _flatten: "{{ _flatten + sublist }}"
 
-- name: var-mix.flatten|append _list
+- name: var-mixed.flatten|append _list
   loop: "{{ _flatten }}"
   loop_control:
     loop_var: nv
@@ -47,7 +47,7 @@
   ansible.builtin.set_fact:
     _list: "{{ _list + [item] }}"
 
-- name: var-mix.flatten|register _list
+- name: var-mixed.flatten|register _list
   ansible.builtin.set_fact:
     "{{ mixed.register }}": "{{ _list }}"
     _list: !!null
