@@ -22,10 +22,11 @@
     - name: set dir
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.set.yml"
 
-    - name: stat docker group
-      ansible.builtin.stat:
-        path: /var/run/docker.sock
-      register: docker_stat
+    - name: copy to dir
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.copy.yml"
+      vars:
+        copys:
+          - dest: "{{ dir.remote }}/docker-compose-swarm"
 
     - name: default service_names
       when: service_names == ''
