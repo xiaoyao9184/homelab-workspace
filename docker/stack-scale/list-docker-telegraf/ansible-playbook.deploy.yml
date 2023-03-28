@@ -4,7 +4,6 @@
   vars:
     run_wsl: |
       ansible-playbook \
-        -vvv \
         --inventory $PWD/ansible-inventories \
         $PWD/../../../docker/stack-scale/list-docker-telegraf/ansible-playbook.deploy.yml
   vars_prompt:
@@ -31,15 +30,6 @@
       loop:
         - "{{ dir.remote }}/docker-compose-swarm"
 
-    - name: add external_net
-      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-networks.add.yml"
-      vars:
-        _default:
-          external_net-influxdb:
-            driver: overlay
-            attachable: true
-        networks: "{{ telegraf.net | default(_default,true) }}"
-
     - name: default service_names
       when: service_names == ''
       block:
@@ -56,60 +46,76 @@
           ansible.builtin.set_fact:
             service_names: "{{ config_files | map('basename') | map('splitext') | map('first') | join(',') }}"
 
-    - name: init jobs_name
+    - name: init services_name
       ansible.builtin.set_fact:
-        jobs_name: "{{ service_names | split(',') }}"
+        services_name: "{{ service_names | split(',') }}"
 
-    - name: init jobs_var
+    - name: init services_var
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/var-named.select.yml"
       vars:
         named:
           dict: "{{ telegraf.jobs | default({},true) }}"
-          select: "{{ jobs_name }}"
-          register: jobs_var
+          select: "{{ services_name }}"
+          register: services_var
 
-    - name: init jobs_lab
+    - name: init services_net
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/var-mixed.flatten.yml"
       vars:
         mixed:
-          list: "{{ jobs_var | selectattr('lab', 'defined') | map(attribute='lab') }}"
-          register: jobs_lab
+          list: "{{ services_var | selectattr('net', 'defined') | map(attribute='net') }}"
+          default:
+            - name: external_net-influxdb
+              driver: overlay
+              attachable: true
+          register: services_net
+
+    - name: add external_net
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-networks.add.yml"
+      vars:
+        networks: "{{ services_net }}"
+
+    - name: init services_lab
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/var-mixed.flatten.yml"
+      vars:
+        mixed:
+          list: "{{ services_var | selectattr('lab', 'defined') | map(attribute='lab') }}"
+          register: services_lab
 
     - name: add swarm label
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-label.add.yml"
       vars:
-        labels: "{{ jobs_lab }}"
+        labels: "{{ services_lab }}"
 
-    - name: init jobs_dir_copy
+    - name: init services_dir_copy
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/var-mixed.flatten.yml"
       vars:
         mixed:
-          list: "{{ jobs_var | selectattr('dir_copy', 'defined') | map(attribute='dir_copy') }}"
-          register: jobs_dir_copy
+          list: "{{ services_var | selectattr('dir_copy', 'defined') | map(attribute='dir_copy') }}"
+          register: services_dir_copy
 
     - name: copy to dir
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.copy.yml"
       vars:
-        copys: "{{ jobs_dir_copy }}"
+        copys: "{{ services_dir_copy }}"
 
-    - name: init jobs_cfg
+    - name: init services_cfg
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/var-mixed.flatten.yml"
       vars:
         mixed:
-          list: "{{ jobs_var | selectattr('cfg', 'defined') | map(attribute='cfg') }}"
-          register: jobs_cfg
+          list: "{{ services_var | selectattr('cfg', 'defined') | map(attribute='cfg') }}"
+          register: services_cfg
 
     - name: add external_cfg
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-configs.add.yml"
       vars:
-        configs: "{{ jobs_cfg }}"
+        configs: "{{ services_cfg }}"
 
-    - name: init jobs_env
+    - name: init services_env
       ansible.builtin.set_fact:
-        jobs_env: []
+        services_env: []
     
-    - name: append jobs_env
-      loop: "{{ jobs_name }}"
+    - name: append services_env
+      loop: "{{ services_name }}"
       loop_control:
         loop_var: name
       vars:
@@ -118,24 +124,24 @@
           dest: "{{ dir.remote }}/docker-compose-swarm/external_env-{{ name }}.env"
           data: "{{ config.env | default([],true) }}"
       ansible.builtin.set_fact:
-        jobs_env: "{{ jobs_env + [env] }}"
+        services_env: "{{ services_env + [env] }}"
 
     - name: build env_file
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-envs.create.yml"
       vars:
-        envs: "{{ jobs_env }}"
+        envs: "{{ services_env }}"
 
-    - name: init jobs_template
+    - name: init services_template
       ansible.builtin.set_fact:
-        jobs_template: []
+        services_template: []
 
-    - name: stat docker.sock for jobs_template
+    - name: stat docker.sock for services_template
       ansible.builtin.stat:
         path: /var/run/docker.sock
       register: docker_stat
 
-    - name: append jobs_template
-      loop: "{{ jobs_name }}"
+    - name: append services_template
+      loop: "{{ services_name }}"
       loop_control:
         loop_var: name
       vars:
@@ -149,7 +155,7 @@
             HOMENAME: "{{ ansible_hostname }}"
             USR_GROUP: "{{ docker_stat.stat.gid }}"
       ansible.builtin.set_fact:
-        jobs_template: "{{ jobs_template + [template] }}"
+        services_template: "{{ services_template + [template] }}"
 
     - name: add compose service
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-compose.add.yml"
@@ -160,4 +166,4 @@
           path: "{{ dir.remote }}/docker-compose-swarm"
           # files: 
           #   - "docker-compose-swarm.yml"
-          template: "{{ jobs_template }}"
+          template: "{{ services_template }}"

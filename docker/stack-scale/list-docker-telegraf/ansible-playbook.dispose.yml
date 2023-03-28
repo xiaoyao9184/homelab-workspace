@@ -43,21 +43,21 @@
           ansible.builtin.set_fact:
             service_names: "{{ config_files | map('basename') | map('splitext') | map('first') | join(',') }}"
 
-    - name: init jobs_name
+    - name: init services_name
       ansible.builtin.set_fact:
-        jobs_name: "{{ service_names | split(',') }}"
+        services_name: "{{ service_names | split(',') }}"
 
-    - name: init jobs_template
+    - name: init services_template
       ansible.builtin.set_fact:
-        jobs_template: []
+        services_template: []
 
-    - name: stat docker.sock for jobs_template
+    - name: stat docker.sock for services_template
       ansible.builtin.stat:
         path: /var/run/docker.sock
       register: docker_stat
 
-    - name: append jobs_template
-      loop: "{{ jobs_name }}"
+    - name: append services_template
+      loop: "{{ services_name }}"
       loop_control:
         loop_var: name
       vars:
@@ -71,7 +71,7 @@
             HOMENAME: "{{ ansible_hostname }}"
             USR_GROUP: "{{ docker_stat.stat.gid }}"
       ansible.builtin.set_fact:
-        jobs_template: "{{ jobs_template + [template] }}"
+        services_template: "{{ services_template + [template] }}"
 
     - name: remove compose service
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-compose.rm.yml"
@@ -82,4 +82,4 @@
           path: "{{ dir.remote }}/docker-compose-swarm"
           # files: 
           #   - "docker-compose-swarm.yml"
-          template: "{{ jobs_template }}"
+          template: "{{ services_template }}"
