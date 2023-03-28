@@ -5,10 +5,10 @@
     run_wsl: |
       ansible-playbook \
         --inventory $PWD/ansible-inventories \
-        $PWD/../../../docker/compose-standalone/rclone-proxy/ansible-playbook.dispose.yml
+        $PWD/../../../docker/compose-scale/rclone/ansible-playbook.dispose.yml
   vars_prompt:
     - name: service_names
-      prompt: "What is service name(same as config file name in inventory_dir/telegraf)?"
+      prompt: "What is service name(see rclone.services keys)[empty use all]?"
       private: no
       default: 
   environment:
@@ -39,16 +39,16 @@
           ansible.builtin.set_fact:
             service_names: "{{ config_files | map('basename') | map('splitext') | map('first') | join(',') }}"
 
-    - name: set service_name_list
+    - name: init services_template
       ansible.builtin.set_fact:
-        service_name_list: "{{ service_names.split(',') }}"
-        template_list: []
+        services_template: []
 
-    - name: add service_name_list
-      ansible.builtin.set_fact:
-        template_list: "{{ template_list + [template] }}"
+    - name: append services_template
+      loop: "{{ services_name }}"
+      loop_control:
+        loop_var: name
       vars:
-        service: "{{ rclone_proxy.service[name] }}"
+        service: "{{ rclone.service[name] }}"
         template:
           name: "{{ name }}"
           opt:
@@ -57,9 +57,8 @@
           vars:
             SERIVCE_NAME: "{{ name }}"
             BIND_DATA: "{{ service.bind_map.data }}"
-      loop: "{{ service_name_list }}"
-      loop_control:
-        loop_var: name
+      ansible.builtin.set_fact:
+        services_template: "{{ services_template + [template] }}"
 
     - name: remove compose service
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-compose.rm.yml"
@@ -70,4 +69,4 @@
           path: "{{ dir.remote }}/docker-compose"
           # files: 
           #   - "docker-compose.yml"
-          template: "{{ template_list }}"
+          template: "{{ services_template }}"

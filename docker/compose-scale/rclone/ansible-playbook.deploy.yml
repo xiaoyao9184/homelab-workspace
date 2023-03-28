@@ -1,0 +1,161 @@
+---
+
+- name: deploy
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --inventory $PWD/ansible-inventories \
+        $PWD/../../../docker/compose-scale/rclone/ansible-playbook.deploy.yml
+  vars_prompt:
+    - name: service_names
+      prompt: "What is service name(see rclone.services keys)[empty use all]?"
+      private: no
+      default: 
+  environment:
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
+  hosts: "{{ 'docker:&docker-rclone-node' if (groups['docker-rclone-node'] is defined) else 'docker' }}"
+  run_once: true
+  tasks: 
+
+    - name: check shared
+      loop: "{{ rclone.shared_check | default([]) }}"
+      ansible.builtin.shell: "cat /proc/1/mountinfo | grep '{{ item }} ' | grep 'shared' "
+      register: check_result
+
+    - name: fail not shared
+      when:
+        - check_result.rc is defined 
+        - check_result.rc == 0
+      ansible.builtin.fail:
+        msg: "shared check fail"
+
+    - name: set ws
+      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/ws.set.yml"
+
+    - name: set dir
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.set.yml"
+
+    - name: mkdir for serivce
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+      loop:
+        - "{{ dir.remote }}/docker-compose"
+
+    - name: default service_names
+      when: service_names == ''
+      block:
+
+        - name: list config_files
+          include_tasks: "{{ ws.local }}/.seed/ansible-tasks/file-name.list.yml"
+          vars:
+            name: 
+              option_find: "{{ inventory_dir }}/../rclone"
+              result_var: config_files
+              location: local
+
+        - name: set service_names
+          ansible.builtin.set_fact:
+            service_names: "{{ config_files | map('basename') | map('splitext') | map('first') | join(',') }}"
+
+    - name: init services_name
+      ansible.builtin.set_fact:
+        services_name: "{{ service_names | split(',') }}"
+
+    - name: init services_var
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/var-named.select.yml"
+      vars:
+        named:
+          dict: "{{ rclone.services | default({},true) }}"
+          select: "{{ services_name }}"
+          register: services_var
+
+    - name: init services_dir_copy
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/var-mixed.flatten.yml"
+      vars:
+        mixed:
+          list: "{{ services_var | selectattr('dir_copy', 'defined') | map(attribute='dir_copy') }}"
+          register: services_dir_copy
+
+    - name: copy to dir
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.copy.yml"
+      vars:
+        copys: "{{ services_dir_copy }}"
+
+    - name: init services_vol
+      ansible.builtin.set_fact:
+        services_vol: []
+
+    - name: append services_vol
+      loop: "{{ services_name }}"
+      loop_control:
+        loop_var: name
+      vars:
+        service: "{{ rclone.services[name] }}"
+        vol:
+          - name: "external_vol-rclone-config-{{ name }}"
+            driver: local
+            driver_opts:
+              type: none
+              device: "{{ service.vol_map.config }}"
+              o: bind
+      ansible.builtin.set_fact:
+        services_vol: "{{ services_vol + [vol] }}"
+
+    - name: add external_vol
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-volumes.add.yml"
+      vars:
+        volumes: "{{ services_vol }}"
+
+    - name: init services_env
+      ansible.builtin.set_fact:
+        services_env: []
+
+    - name: append services_env
+      loop: "{{ services_name }}"
+      loop_control:
+        loop_var: name
+      vars:
+        serivce: "{{ rclone.services[name] }}"
+        env:
+          dest: "{{ dir.remote }}/docker-compose-swarm/external_env-{{ name }}.env"
+          data: "{{ serivce.env | default(rclone.env,true) }}"
+      ansible.builtin.set_fact:
+        services_env: "{{ services_env + [env] }}"
+
+    - name: build env_file
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-envs.create.yml"
+      vars:
+        envs: "{{ services_env }}"
+
+    - name: init services_template
+      ansible.builtin.set_fact:
+        services_template: []
+
+    - name: append services_template
+      loop: "{{ services_name }}"
+      loop_control:
+        loop_var: name
+      vars:
+        service: "{{ rclone.service[name] }}"
+        template:
+          name: "{{ name }}"
+          opt:
+            src: "{{ dir.local }}/docker-compose.yml.j2"
+            dest: "{{ dir.remote }}/docker-compose/{{ name }}.yml"
+          vars:
+            SERIVCE_NAME: "{{ name }}"
+            BIND_DATA: "{{ service.bind_map.data }}"
+      ansible.builtin.set_fact:
+        services_template: "{{ services_template + [template] }}"
+
+    - name: add compose service
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-compose.add.yml"
+      vars:
+        compose:
+          type: compose
+          name: "{{ dir.names[0] }}"
+          path: "{{ dir.remote }}/docker-compose"
+          # files: 
+          #   - "docker-compose.yml"
+          template: "{{ services_template }}"
