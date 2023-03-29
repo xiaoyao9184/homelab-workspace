@@ -48,6 +48,7 @@
     - name: copy to dir
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.copy.yml"
       vars:
+        sync: []
         copys: "{{ domoticz.dir_copy | default([],true) }}"
 
     - name: add external_vol
@@ -80,9 +81,11 @@
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.set.yml"
 
     - name: copy to dir
-      when: not (dir.synchronized | default(false) | bool)
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.copy.yml"
       vars:
+        sync:
+          - src: "{{ dir.local }}/docker-compose-swarm.yml"
+            dest: "{{ dir.remote }}/docker-compose-swarm.yml"
         copys: "{{ domoticz.dir_copy | default([],true) }}"
 
     - name: add swarm label

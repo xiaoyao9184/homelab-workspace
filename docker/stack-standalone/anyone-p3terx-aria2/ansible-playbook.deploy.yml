@@ -60,6 +60,7 @@
     - name: copy to dir
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.copy.yml"
       vars:
+        sync: []
         copys: "{{ aria2.dir_copy | default([],true) }}"
 
     # TODO no nfs-client installed on system maybe use docker-mount.wait?
@@ -112,9 +113,9 @@
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.set.yml"
 
     - name: copy to dir
-      when: not (dir.synchronized | default(false) | bool)
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.copy.yml"
       vars:
+        sync: []
         copys: "{{ aria2.dir_copy | default([],true) }}"
 
     - name: add swarm label

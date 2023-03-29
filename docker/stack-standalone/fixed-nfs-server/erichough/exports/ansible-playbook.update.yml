@@ -28,7 +28,11 @@
     - name: copy to dir
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.copy.yml"
       vars:
-        copys: "{{ nfs.exports.dir_copy }}"
+        default:
+          - src: "{{ dir.remote }}/../data/"
+            dest: "{{ dir.remote }}/../data"
+        sync: []
+        copys: "{{ nfs.exports.dir_copy | default(default,true) }}"
 
     - name: copy to volume
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-volumes.copy.yml"
@@ -40,6 +44,30 @@
             dest: "./"
             directory_mode: '0777'
         volumes: "{{ nfs.exports.vol_copy | default(_default) }}"
+
+
+- name: deploy
+  hosts: docker-manager
+  run_once: true
+  tasks: 
+
+    - name: set ws
+      when: ws is undefined
+      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/ws.set.yml"
+
+    - name: set dir
+      when: dir is undefined
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.set.yml"
+      vars:
+        length: 2
+
+    - name: copy to dir
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.copy.yml"
+      vars:
+        sync:
+          - src: "{{ dir.local }}/exports"
+            dest: "{{ dir.remote }}/exports"
+        copys: "{{ nfs.exports.dir_copy | default([],true) }}"
 
     # https://medium.com/@jonsbun/why-need-to-be-careful-when-mounting-single-files-into-a-docker-container-4f929340834
     - name: overwrite bind exports

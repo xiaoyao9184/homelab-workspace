@@ -19,6 +19,14 @@
       vars:
         length: 2
 
+    - name: copy to dir
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.copy.yml"
+      vars:
+        sync:
+          - src: "{{ dir.local }}/docker-compose-swarm.yml"
+            dest: "{{ dir.remote }}/docker-compose-swarm.yml"
+        copys: []
+
     - name: remove stack service
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-compose.rm.yml"
       vars:

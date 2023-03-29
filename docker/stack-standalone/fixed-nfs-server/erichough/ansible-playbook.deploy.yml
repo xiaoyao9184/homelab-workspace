@@ -36,7 +36,11 @@
     - name: copy to dir
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.copy.yml"
       vars:
-        copys: "{{ nfs.dir_copy | default([],true) }}"
+        default:
+          - src: "{{ dir.remote }}/data/"
+            dest: "{{ dir.remote }}/data"
+        sync: []
+        copys: "{{ nfs.dir_copy | default(default,true) }}"
 
     - name: add external_vol
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-volumes.add.yml"
@@ -87,9 +91,11 @@
         length: 2
 
     - name: copy to dir
-      when: not (dir.synchronized | default(false) | bool)
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.copy.yml"
       vars:
+        sync:
+          - src: "{{ dir.local }}/exports/exports"
+            dest: "{{ dir.remote }}/exports/exports"
         copys: "{{ nfs.dir_copy | default([],true) }}"
 
     - name: add swarm label

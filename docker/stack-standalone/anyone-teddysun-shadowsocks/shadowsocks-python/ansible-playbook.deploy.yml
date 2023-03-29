@@ -22,10 +22,12 @@
     - name: copy to dir
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.copy.yml"
       vars:
-        _default:
+        sync:
           - src: "{{ dir.local }}/../config/python.json"
             dest: "{{ dir.remote }}/../config/python.json"
-        copys: "{{ shadowsocks.python.dir_copy | default(_default,true) }}"
+          - src: "{{ dir.local }}/docker-compose-swarm.yml"
+            dest: "{{ dir.remote }}/docker-compose-swarm.yml"
+        copys: "{{ shadowsocks.python.dir_copy | default([],true) }}"
 
     - name: add external_cfg
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-configs.add.yml"
