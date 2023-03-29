@@ -1,18 +1,27 @@
 ---
 
 
+- name: dir.copy|set _copy_append
+  ansible.builtin.set_fact:
+    _copy_append: []
+
+- name: dir.copy|default _copy_append
+  when: not dir.synchronized
+  vars:
+    sync_default:
+      - src: "{{ dir.local }}/"
+        dest: "{{ dir.remote }}"
+    sync_copy: "{{ sync | default(sync_default) }}"
+  ansible.builtin.set_fact:
+    _copy_append: "{{ [] if (dir.synchronized) else sync_copy }}"
+
 - name: dir.copy|set _copy
   ansible.builtin.set_fact:
     _copy: "{{ copys | default([]) }}"
 
-- name: dir.copy|append dir to _copy
-  when: not dir.synchronized
-  vars:
-    item:
-      src: "{{ dir.local }}/"
-      dest: "{{ dir.remote }}"
+- name: dir.copy|append _copy_append to _copy
   ansible.builtin.set_fact:
-    _copy: "{{ [ item ] + _copy }}"
+    _copy: "{{ _copy_append + _copy }}"
 
 - name: dir.copy|mkdir dest parent
   loop: "{{ _copy }}"
