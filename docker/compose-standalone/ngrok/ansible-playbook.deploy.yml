@@ -21,6 +21,9 @@
     - name: copy to dir
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.copy.yml"
       vars:
+        sync:
+          - src: "{{ dir.local }}/config/ngrok.yml"
+            dest: "{{ dir.remote }}/config/ngrok.yml"
         copys: "{{ ngrok.dir_copy | default([],true) }}"
 
     - name: build env_file

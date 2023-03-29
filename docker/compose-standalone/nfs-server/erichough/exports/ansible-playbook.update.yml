@@ -22,6 +22,9 @@
     - name: copy to dir
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.copy.yml"
       vars:
+        sync:
+          - src: "{{ dir.local }}/exports"
+            dest: "{{ dir.remote }}/exports"
         copys: "{{ nfs.exports.dir_copy | default([],true) }}"
 
     - name: copy to volume

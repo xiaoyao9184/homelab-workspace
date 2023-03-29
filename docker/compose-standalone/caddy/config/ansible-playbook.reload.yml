@@ -20,19 +20,21 @@
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.set.yml"
       vars:
         length: 2
-        keep: false
 
     - name: copy to dir
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.copy.yml"
       vars:
-        copys: "{{ caddy.dir_copy | default([],true) }}"
+        sync:
+          - src: "{{ dir.local }}/Caddyfile"
+            dest: "{{ dir.remote }}/Caddyfile"
+        copys: "{{ caddy.config.dir_copy | default([],true) }}"
 
     # https://medium.com/@jonsbun/why-need-to-be-careful-when-mounting-single-files-into-a-docker-container-4f929340834
     - name: overwrite bind caddyfile
-      ansible.builtin.shell: "cat {{ dir.remote }}/config/Caddyfile > {{ dir.remote }}/bind_file-caddyfile"
+      ansible.builtin.shell: "cat {{ dir.remote }}/Caddyfile > {{ dir.remote }}/../bind_file-caddyfile"
 
     - name: reload config
-      include_tasks: "{{ dir.local }}/config/ansible-tasks.reload.yml"
+      include_tasks: "{{ dir.local }}/ansible-tasks.reload.yml"
       vars:
         caddy:
           service:

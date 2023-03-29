@@ -20,6 +20,9 @@
 
     - name: copy to dir
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.copy.yml"
+      vars:
+        sync: []
+        copys: "{{ traefik.dir_copy | default([],true) }}"
 
     - name: add external_net
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-networks.add.yml"

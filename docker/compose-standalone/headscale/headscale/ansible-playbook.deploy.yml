@@ -21,6 +21,9 @@
     - name: copy to dir
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.copy.yml"
       vars:
+        sync:
+          - src: "{{ dir.local }}/config/config.yaml"
+            dest: "{{ dir.remote }}/config/config.yaml"
         copys: "{{ headscale.dir_copy | default([],true) }}"
 
     - name: add external_vol

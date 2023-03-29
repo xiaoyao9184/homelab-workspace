@@ -20,6 +20,11 @@
     - name: copy to dir
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.copy.yml"
       vars:
+        sync:
+          - src: "{{ dir.local }}/config/influxdb.conf"
+            dest: "{{ dir.remote }}/config/influxdb.conf"
+          - src: "{{ dir.local }}/config/types.db"
+            dest: "{{ dir.remote }}/config/types.db"
         copys: "{{ influxdb.dir_copy | default([],true) }}"
 
     - name: add external_vol

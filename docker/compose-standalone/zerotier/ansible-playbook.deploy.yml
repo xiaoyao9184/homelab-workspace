@@ -20,6 +20,11 @@
 
     - name: copy to dir
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.copy.yml"
+      vars:
+        sync:
+          - src: "{{ dir.local }}/docker-compose.yml"
+            dest: "{{ dir.remote }}/docker-compose.yml"
+        copys: "{{ zerotier.dir_copy | default([],true) }}"
 
     - name: build env_file
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-env.create.yml"

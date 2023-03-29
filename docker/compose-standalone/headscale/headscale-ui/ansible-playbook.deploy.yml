@@ -20,6 +20,11 @@
 
     - name: copy to dir
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.copy.yml"
+      vars:
+        sync:
+          - src: "{{ dir.local }}/config/Caddyfile"
+            dest: "{{ dir.remote }}/config/Caddyfile"
+        copys: "{{ headscale.ui.dir_copy | default([],true) }}"
 
     - name: wait host port
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/host-port.wait.yml"

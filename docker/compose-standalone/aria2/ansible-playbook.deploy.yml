@@ -21,6 +21,7 @@
     - name: copy to dir
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.copy.yml"
       vars:
+        sync: []
         copys: "{{ aria2.dir_copy | default([],true) }}"
 
     - name: add external_vol
