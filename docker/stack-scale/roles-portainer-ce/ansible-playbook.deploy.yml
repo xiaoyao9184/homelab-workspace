@@ -20,6 +20,11 @@
 
     - name: copy to dir
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.copy.yml"
+      vars:
+        sync:
+          - src: "{{ dir.local }}/portainer-agent-stack.yml"
+            dest: "{{ dir.remote }}/portainer-agent-stack.yml"
+        copys: []
 
     - name: add stack service
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-compose.add.yml"
