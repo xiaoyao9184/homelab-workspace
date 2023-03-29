@@ -1,0 +1,80 @@
+# A set of variables grouped by list attr
+# 
+# Parameters:
+# grouped.var always is a list
+# grouped.select is list of group name
+# grouped.flatten is flatten values
+# grouped.register is register of grouped
+# 
+# `grouped.var` like this:
+# var:
+#   - value_attr1: value0
+#     group: group1
+#   - value_attr1: value1
+#     group: group1
+#   - value_attr1: value2
+#     group: group2
+#   - value_attr1: value3
+#     group: group3
+# `grouped.select` is 'group1,group3'
+# `grouped.register` will be:
+# var:
+#   - value_attr1: value0
+#   - value_attr1: value1
+#   - value_attr1: value3
+# 
+# if `grouped.var` item are nested
+# var:
+#   - 
+#     - value_attr1: value0
+#       group: group1
+#   - 
+#     - value_attr1: value1
+#       group: group1
+#   - 
+#     - value_attr1: value2
+#       group: group2
+#   - 
+#     - value_attr1: value3
+#       group: group3
+# set `grouped.flatten` to '1' flatten 1 level nested list
+---
+
+
+- name: attr-grouped.select|init _coll + _select + _flatten
+  vars:
+    coll_default: {}
+    select_text: "{{ grouped.select | default('') }}"
+    select_list: "{{ [] if (select_text == '') else ( (select_text | split(',')) if (select_text | type_debug == 'string') else select_text ) }}"
+    select_empty: "{{ select_list | length == 0 }}"
+  ansible.builtin.set_fact:
+    _coll: "{{ grouped.var | default(coll_default,true) }}"
+    _select: "{{ [] if (select_empty) else select_list }}"
+    _flatten: "{{ grouped.flatten | default(0,true) | int }}"
+    _list: []
+
+- name: attr-grouped.select|append _list
+  loop: "{{ _coll }}"
+  loop_control:
+    loop_var: item
+  vars:
+    item_flatten: "{{ item if (_flatten | int == 0) else (item | flatten(_flatten | int)) }}"
+    # set 'default' group if not set group attr
+    item_group: "{{ 'default' if (item_flatten.group is undefined) else item_flatten.group }}"
+    item_keys: ['group']
+    item_values: "{{ item_keys | map('extract', item_flatten) | list }}"
+    dict_keys: "{{ item_flatten.keys() | difference(item_keys) }}"
+    dict_values: "{{ dict_keys | map('extract', item_flatten) | list }}"
+    dict_item: "{{ dict(dict_keys | zip(dict_values)) }}"
+    list_append_always: "{{ [dict_item] if (_select | length == 0) else [] }}"
+    list_append_match: "{{ [dict_item] if (item_group in _select) else [] }}"
+  ansible.builtin.set_fact:
+    _list: "{{ _list + list_append_always + list_append_match }}"
+
+- name: attr-grouped.select|register _list
+  ansible.builtin.set_fact:
+    "{{ grouped.register }}": "{{ _list | default([]) }}"
+    _list: !!null
+    _flatten: !!null
+    _select: !!null
+    _coll: !!null

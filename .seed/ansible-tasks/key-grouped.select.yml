@@ -1,0 +1,77 @@
+# A set of variables grouped by dictionary key
+# 
+# Parameters:
+# grouped.var always is a dict
+# grouped.select is list of group name
+# grouped.flatten is flatten values
+# grouped.register is register of grouped
+# 
+# `grouped.var` like this:
+# var:
+#   group1:
+#     - value0
+#     - value1
+#   group2:
+#     - value2
+#   group3: 
+#     - value3
+# `grouped.select` is 'group1,group3'
+# `grouped.register` will be:
+# var:
+#   - value0
+#   - value1
+#   - value3
+# 
+# if `grouped.var` item are string not list
+# var:
+#   group1: value1
+#   group2: value2
+#   group3: value3
+# set `grouped.flatten` to '0' disable flatten
+# 
+# if `grouped.var` item are nested
+# var:
+#   group1:
+#     - 
+#       - value0
+#       - value1
+#   group2:
+#     - 
+#       - value2
+#   group3: 
+#     - 
+#       - value3
+# set `grouped.flatten` to '2' flatten 2 level nested list
+
+---
+
+
+- name: key-grouped.select|init _coll + _select + _flatten
+  vars:
+    coll_default: "{{ grouped.var | default({},true) }}"
+    select_text: "{{ grouped.select | default('') }}"
+    select_list: "{{ [] if (select_text == '') else ( (select_text | split(',')) if (select_text | type_debug == 'string') else select_text ) }}"
+    # select_list: "{{ grouped.select | list }}"
+    select_empty: "{{ select_list | length == 0 }}"
+  ansible.builtin.set_fact:
+    _coll: "{{ coll_default }}"
+    _select: "{{ coll_default.keys() if (select_empty) else select_list }}"
+    _flatten: "{{ grouped.flatten | default(1,true) | int }}"
+    _list: []
+
+- name: key-grouped.select|append _list
+  loop: "{{ _coll | dict2items | selectattr('key','in',_select) }}"
+  loop_control:
+    loop_var: kv
+  vars:
+    sublist: "{{ [kv.value] if (_flatten | int == 0) else ([kv.value] | flatten(_flatten | int)) }}"
+  ansible.builtin.set_fact:
+    _list: "{{ _list + sublist }}"
+
+- name: key-grouped.select|register _list
+  ansible.builtin.set_fact:
+    "{{ grouped.register }}": "{{ _list | default([]) }}"
+    _list: !!null
+    _flatten: !!null
+    _select: !!null
+    _coll: !!null
