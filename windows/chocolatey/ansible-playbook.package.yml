@@ -20,7 +20,7 @@
       include_tasks: "{{ playbook_dir }}/../../.seed/ansible-tasks/var-grouped.select.yml"
       vars:
         grouped:
-          dict: "{{ chocolatey.packages }}"
+          var: "{{ chocolatey.packages }}"
           select: "{{ group_name }}"
           register: packages
 

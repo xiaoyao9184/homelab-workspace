@@ -22,7 +22,7 @@
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/var-grouped.select.yml"
       vars:
         grouped:
-          dict: "{{ esxi.group }}"
+          var: "{{ esxi.group }}"
           select: "{{ vmkfstools_name }}"
           register: vmkfstools_group
 
