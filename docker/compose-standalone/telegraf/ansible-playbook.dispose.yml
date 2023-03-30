@@ -48,6 +48,6 @@
               dest: "{{ dir.remote }}/docker-compose.yml"
             vars:
               BIND_CONF: "{{ dir.remote }}/bind_file-conf"
-              NETWORKS: "{{ telegraf.compose.networks | default({},true) }}"
+              NETWORKS: "{{ telegraf.tmp.networks | default([],true) }}"
               HOMENAME: "{{ ansible_hostname }}"
               USR_GROUP: "{{ docker_stat.stat.gid }}"

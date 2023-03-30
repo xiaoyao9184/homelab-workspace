@@ -3,13 +3,6 @@ version: "3.8"
 networks:
   telegraf:
     name: telegraf_default
-{# {% for key, value in VARS.NETWORKS.items() %}
-  {{ key }}:
-    name: {{ value.name }}
-{% if value.external is defined %}
-    external: {{ value.external | lower }}
-{% endif %}
-{% endfor %} #}
 
 services:
   telegraf:
@@ -24,9 +17,9 @@ services:
       - {{ VARS.BIND_CONF }}:/etc/telegraf/telegraf.conf
     networks:
       - telegraf
-{% for name in VARS.NETWORKS.keys() %}
-      - {{ name }}
-{% endfor %}
+{% if VARS.NETWORKS | length > 0 %}
+      {{ VARS.NETWORKS | to_nice_yaml(indent=2) | trim | indent(6) }}
+{% endif %}
     container_name: telegraf
     restart: always
     healthcheck:
