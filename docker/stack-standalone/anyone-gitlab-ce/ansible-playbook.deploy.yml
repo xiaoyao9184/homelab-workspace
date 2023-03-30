@@ -94,9 +94,11 @@
   tasks: 
 
     - name: set ws
+      when: ws is undefined
       include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/ws.set.yml"
 
     - name: set dir
+      when: dir is undefined
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.set.yml"
 
     - name: copy to dir

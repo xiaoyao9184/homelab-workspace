@@ -24,7 +24,7 @@
         sync:
           - src: "{{ dir.local }}/docker-compose-swarm.yml"
             dest: "{{ dir.remote }}/docker-compose-swarm.yml"
-        copys: "{{ gitlab.runner.dir_copy | default([],true) }}"
+        copys: []
 
     - name: add swarm label
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-label.add.yml"
