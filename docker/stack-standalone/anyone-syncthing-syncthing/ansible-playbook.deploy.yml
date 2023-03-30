@@ -9,33 +9,6 @@
         $PWD/../../../docker/stack-standalone/anyone-syncthing-syncthing/ansible-playbook.deploy.yml
   environment:
     PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
-  hosts: "{{ 'nfs-client:&docker-syncthing-node' if (groups['docker-syncthing-node'] is defined) else 'nfs-client' }}"
-  # run_once: true
-  tasks:
-
-    - name: wait nfs mount
-      when: syncthing.nfs_wait is defined
-      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/nfs-mount.wait.yml"
-      vars:
-        _default:
-          - name: on_manager
-            point: "/syncthing-data"
-            mount: "/mnt/nfs/syncthing-data"
-            option: "vers=4,loud,rw,sync"
-            unmount: true
-            retry: 5
-          - name: on_manager
-            point: "/syncthing-home"
-            mount: "/mnt/nfs/syncthing-home"
-            option: "vers=4,loud,rw,sync"
-            unmount: true
-            retry: 5
-        wait_nfs: "{{ syncthing.nfs_wait | default(_default) }}"
-
-
-- name: deploy
-  environment:
-    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
   hosts: "{{ 'docker:&docker-syncthing-node' if (groups['docker-syncthing-node'] is defined) else 'docker' }}"
   tasks:
 
@@ -65,6 +38,28 @@
       vars:
         sync: []
         copys: "{{ syncthing.dir_copy | default([],true) }}"
+
+    - name: wait nfs mount
+      when: 
+        # BUG default never use
+        - "'nfs-client' in group_names"
+        - syncthing.nfs_wait is defined
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/nfs-mount.wait.yml"
+      vars:
+        _default:
+          - name: on_manager
+            point: "/syncthing-data"
+            mount: "/mnt/nfs/syncthing-data"
+            option: "vers=4,loud,rw,sync"
+            unmount: true
+            retry: 5
+          - name: on_manager
+            point: "/syncthing-home"
+            mount: "/mnt/nfs/syncthing-home"
+            option: "vers=4,loud,rw,sync"
+            unmount: true
+            retry: 5
+        wait_nfs: "{{ syncthing.nfs_wait | default(_default) }}"
 
     - name: add external_vol
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-volumes.add.yml"
