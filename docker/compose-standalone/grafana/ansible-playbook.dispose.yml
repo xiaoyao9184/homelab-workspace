@@ -42,4 +42,4 @@
               src: "{{ dir.local }}/docker-compose.yml.j2"
               dest: "{{ dir.remote }}/docker-compose.yml"
             vars:
-              NETWORKS: "{{ grafana.compose.networks | default({},true) }}"
+              NETWORKS: "{{ grafana.tmp.networks | default([],true) }}"

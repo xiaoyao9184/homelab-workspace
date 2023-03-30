@@ -14,13 +14,6 @@ volumes:
 networks:
   grafana:
     name: grafana_default
-{# {% for key, value in VARS.NETWORKS.items() %}
-  {{ key }}:
-    name: {{ value.name }}
-{% if value.external is defined %}
-    external: {{ value.external | lower }}
-{% endif %}
-{% endfor %} #}
 
 services:
   grafana:
@@ -34,9 +27,9 @@ services:
       - 3000:3000
     networks:
       - grafana
-{% for name in VARS.NETWORKS.keys() %}
-      - {{ name }}
-{% endfor %}
+{% if VARS.NETWORKS | length > 0 %}
+      {{ VARS.NETWORKS | to_nice_yaml(indent=2) | trim | indent(6) }}
+{% endif %}
     container_name: grafana
     restart: always
     healthcheck:
