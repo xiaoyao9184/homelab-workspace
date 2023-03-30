@@ -55,4 +55,4 @@
               dest: "{{ dir.remote }}/docker-compose.yml"
             vars:
               TOKEN: "{{ traefik.token }}"
-              NETWORKS: "{{ traefik.compose.networks | default({},true) }}"
+              NETWORKS: "{{ traefik.tmp.networks | default([],true) }}"
