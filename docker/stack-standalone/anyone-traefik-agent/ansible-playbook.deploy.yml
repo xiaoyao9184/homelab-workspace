@@ -57,5 +57,5 @@
               src: "{{ dir.local }}/docker-compose-swarm.yml.j2"
               dest: "{{ dir.remote }}/docker-compose-swarm.yml"
             vars:
-              TOKEN: "{{ traefik.token }}"
-              NETWORKS: "{{ traefik.compose.networks | default({},true) }}"
+              TOKEN: "{{ traefik.tmp.token }}"
+              NETWORKS: "{{ traefik.tmp.networks | default({},true) }}"
