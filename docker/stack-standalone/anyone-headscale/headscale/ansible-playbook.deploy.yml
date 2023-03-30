@@ -8,33 +8,6 @@
         $PWD/../../../docker/stack-standalone/anyone-headscale/headscale/ansible-playbook.deploy.yml
   environment:
     PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
-  hosts: "{{ 'nfs-client:&docker-headscale-node' if (groups['docker-headscale-node'] is defined) else 'nfs-client' }}"
-  # run_once: true
-  tasks:
-
-    - name: wait nfs mount
-      when: headscale.nfs_wait is defined
-      include_tasks: "{{ playbook_dir }}/../../../../.seed/ansible-tasks/nfs-mount.wait.yml"
-      vars:
-        _default:
-          - name: on_manager
-            point: "/headscale-data"
-            mount: "/mnt/nfs/headscale-data"
-            option: "vers=4,loud,rw,sync"
-            unmount: true
-            retry: 5
-          - name: on_manager
-            point: "/headscale-config"
-            mount: "/mnt/nfs/headscale-config"
-            option: "vers=4,loud,rw,sync"
-            unmount: true
-            retry: 5
-        wait_nfs: "{{ headscale.nfs_wait | default(_default) }}"
-
-
-- name: deploy
-  environment:
-    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
   hosts: "{{ 'docker:&docker-headscale-node' if (groups['docker-headscale-node'] is defined) else 'docker' }}"
   tasks:
 
@@ -58,6 +31,28 @@
       vars:
         sync: []
         copys: "{{ headscale.dir_copy | default([],true) }}"
+
+    - name: wait nfs mount
+      when: 
+        # BUG default never use
+        - "'nfs-client' in group_names"
+        - headscale.nfs_wait is defined
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/nfs-mount.wait.yml"
+      vars:
+        _default:
+          - name: on_manager
+            point: "/headscale-data"
+            mount: "/mnt/nfs/headscale-data"
+            option: "vers=4,loud,rw,sync"
+            unmount: true
+            retry: 5
+          - name: on_manager
+            point: "/headscale-config"
+            mount: "/mnt/nfs/headscale-config"
+            option: "vers=4,loud,rw,sync"
+            unmount: true
+            retry: 5
+        wait_nfs: "{{ headscale.nfs_wait | default(_default) }}"
 
     - name: add external_vol
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-volumes.add.yml"
