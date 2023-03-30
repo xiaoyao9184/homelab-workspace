@@ -8,27 +8,6 @@
         $PWD/../../../docker/stack-scale/global-gitlab-runner/ansible-playbook.deploy.yml
   environment:
     PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
-  hosts: "{{ 'nfs-client:&docker-gitlab-runner' if (groups['docker-gitlab-runner'] is defined) else 'nfs-client' }}"
-  # run_once: true
-  tasks:
-
-    # - name: wait nfs mount
-    #   when: gitlab.runner.nfs_wait is defined
-    #   include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/nfs-mount.wait.yml"
-    #   vars:
-    #     _default:
-    #       on_manager:
-    #         point: "/gitlab-runner"
-    #         mount: "/mnt/nfs/gitlab-runner"
-    #         option: "vers=4,loud,rw,sync"
-    #         unmount: true
-    #         retry: 5
-    #     wait_nfs: "{{ gitlab.runner.nfs_wait | default(_default) }}"
-
-
-- name: deploy
-  environment:
-    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
   hosts: "{{ 'docker:&docker-gitlab-runner' if (groups['docker-gitlab-runner'] is defined) else 'docker' }}"
   tasks:
 
@@ -45,11 +24,11 @@
         apply:
           run_once: true
 
-    - name: copy to dir
-      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.copy.yml"
-      vars:
-        sync: []
-        copys: "{{ gitlab.runner.dir_copy | default([],true) }}"
+    # - name: copy to dir
+    #   include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.copy.yml"
+    #   vars:
+    #     sync: []
+    #     copys: []
 
     # - name: add external_vol
     #   include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-volumes.add.yml"
