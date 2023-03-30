@@ -8,13 +8,34 @@
         $PWD/../../../docker/stack-standalone/anyone-grafana-grafana/ansible-playbook.deploy.yml
   environment:
     PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
-  hosts: "{{ 'nfs-client:&docker-grafana-node' if (groups['docker-grafana-node'] is defined) else 'nfs-client' }}"
-  # run_once: true
+  hosts: "{{ 'docker:&docker-grafana-node' if (groups['docker-grafana-node'] is defined) else 'docker' }}"
   tasks:
 
+    - name: set ws
+      include_tasks:
+        file: "{{ playbook_dir }}/../../../.seed/ansible-tasks/ws.set.yml"
+        # https://github.com/ansible/ansible/issues/72099
+        apply:
+          run_once: true
+
+    - name: set dir
+      include_tasks:
+        file: "{{ ws.local }}/.seed/ansible-tasks/dir.set.yml"
+        apply:
+          run_once: true
+
+    - name: copy to dir
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.copy.yml"
+      vars:
+        sync: []
+        copys: []
+
     - name: wait nfs mount
-      when: grafana.nfs_wait is defined
-      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/nfs-mount.wait.yml"
+      when: 
+        # BUG default never use
+        - "'nfs-client' in group_names"
+        - grafana.nfs_wait is defined
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/nfs-mount.wait.yml"
       vars:
         _default:
           - name: on_manager
@@ -36,32 +57,6 @@
             unmount: true
             retry: 5
         wait_nfs: "{{ grafana.nfs_wait | default(_default) }}"
-
-
-- name: deploy
-  environment:
-    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
-  hosts: "{{ 'docker:&docker-grafana-node' if (groups['docker-grafana-node'] is defined) else 'docker' }}"
-  tasks:
-
-    - name: set ws
-      include_tasks:
-        file: "{{ playbook_dir }}/../../../.seed/ansible-tasks/ws.set.yml"
-        # https://github.com/ansible/ansible/issues/72099
-        apply:
-          run_once: true
-
-    - name: set dir
-      include_tasks:
-        file: "{{ ws.local }}/.seed/ansible-tasks/dir.set.yml"
-        apply:
-          run_once: true
-
-    - name: copy to dir
-      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.copy.yml"
-      vars:
-        sync: []
-        copys: "{{ grafana.dir_copy | default([],true) }}"
 
     - name: add external_vol
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-volumes.add.yml"
