@@ -8,7 +8,7 @@
         $PWD/../../../docker/stack-scale/list-docker-telegraf/ansible-playbook.deploy.yml
   vars_prompt:
     - name: service_names
-      prompt: "What is service name(see telegraf.jobs keys)[empty use all]?"
+      prompt: "What is service name(see telegraf.services keys)[empty use all]?"
       private: no
       default: 
   environment:
@@ -47,7 +47,7 @@
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/var-named.select.yml"
       vars:
         named:
-          dict: "{{ telegraf.jobs | default({},true) }}"
+          dict: "{{ telegraf.services | default({},true) }}"
           select: "{{ services_name }}"
           register: services_var
 
@@ -114,7 +114,7 @@
       loop_control:
         loop_var: name
       vars:
-        config: "{{ telegraf.jobs[name] }}"
+        config: "{{ telegraf.services[name] }}"
         env:
           dest: "{{ dir.remote }}/docker-compose-swarm/external_env-{{ name }}.env"
           data: "{{ config.env | default([],true) }}"
