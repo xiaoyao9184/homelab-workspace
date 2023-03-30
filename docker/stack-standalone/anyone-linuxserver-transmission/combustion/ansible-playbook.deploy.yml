@@ -9,7 +9,7 @@
         $PWD/../../../docker/stack-standalone/anyone-linuxserver-transmission/combustion/ansible-playbook.deploy.yml
   environment:
     PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
-  hosts: "{{ 'nfs-client:&docker-transmission-node' if (groups['docker-transmission-node'] is defined) else 'nfs-client' }}"
+  hosts: "{{ 'docker:&docker-transmission-node' if (groups['docker-transmission-node'] is defined) else 'docker' }}"
   run_once: true
   tasks: 
 
