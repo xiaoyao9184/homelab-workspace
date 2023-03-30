@@ -20,7 +20,7 @@
 
     - name: set ws
       include_tasks:
-        file: "{{ playbook_dir }}/../../../.seed/ansible-tasks/ws.set.yml"
+        file: "{{ playbook_dir }}/../../../../.seed/ansible-tasks/ws.set.yml"
         # https://github.com/ansible/ansible/issues/72099
         apply:
           run_once: true
