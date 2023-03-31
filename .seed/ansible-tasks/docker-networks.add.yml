@@ -11,10 +11,11 @@
   ansible.builtin.set_fact:
     _networks: "{{ networks }}"
 
-- include_tasks: docker-network.add.yml
+- name: docker-networks.add|loop
   loop: "{{ _networks }}"
   loop_control:
     loop_var: network
+  include_tasks: docker-network.add.yml
 
 - name: docker-networks.add|reset _networks
   ansible.builtin.set_fact:

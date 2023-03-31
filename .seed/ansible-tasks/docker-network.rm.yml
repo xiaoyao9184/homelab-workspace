@@ -1,46 +1,94 @@
+# Some driver of network must delegate_to to run on docker-manager
 ---
 
-
-- name: docker-network.rm|not loop
+- name: docker-network.rm|list loop
   when: network.key is undefined
   block:
 
     - name: docker-network.rm|set _net from network
       ansible.builtin.set_fact:
         _net: "{{ network }}"
+        # BUG? When different variable in loop include_tasks, run_once set_fact will set all host fact
+        _nets_manager: []
 
-- name: docker-network.rm|in loop
+- name: docker-network.rm|dict loop
   when: network.key is defined
   block:
 
     - name: docker-network.rm|set _net from network.value
       ansible.builtin.set_fact:
         _net: "{{ network.value | default({},true) }}"
+        # BUG? When different variable in loop include_tasks, run_once set_fact will set all host fact
+        _nets_manager: []
 
     - name: docker-network.rm|combine _net.name form network.key
       when: _net.name is undefined
-      ansible.builtin.set_fact:
-        _net: "{{ _net | combine(_net_update, recursive=True) }}"
       vars:
-        _net_update:
+        update:
           name: "{{ network.key }}"
+      ansible.builtin.set_fact:
+        _net: "{{ _net | combine(update, recursive=True) }}"
 
-- name: docker-network.rm|print network
-  ansible.builtin.debug:
-    verbosity: 3
-    var: _net
+- block:
 
-- name: docker-network.rm|remove network
-  community.docker.docker_network:
-    state: absent
-    name: "{{ network_prefix }}_{{ _net.name }}"
-  register: _net_result
-  until: 
-    - _net_result is not failed
-  retries: 5
-  delay: 10
+    - name: docker-network.rm|set _net_scope by overlay driver
+      when:
+        - _net.driver is defined
+        - _net.driver == 'overlay'
+      ansible.builtin.set_fact:
+        _net_scope: swarm
+
+    - name: docker-network.rm|set _net_scope by swarm scope
+      when:
+        - _net.scope is defined
+        - _net.scope == 'swarm'
+      ansible.builtin.set_fact:
+        _net_scope: swarm
+
+- when: _net_scope | default('',true) != 'swarm'
+  block:
+
+    - name: docker-network.rm|print network
+      ansible.builtin.debug:
+        var: _net
+
+    - name: docker-network.rm|remove network
+      community.docker.docker_network:
+        state: absent
+        name: "{{ _net.name }}"
+
+- when: _net_scope | default('',true) == 'swarm'
+  block:
+
+    # Merge multiple docker nodes '_net' variables when is swarm network
+    - name: docker-network.rm|append swarm _nets_manager from each docker host
+      run_once: true
+      loop: "{{ groups['docker'] }}"
+      loop_control:
+        loop_var: hostitem
+      vars:
+        list: "{{ _nets_manager | default([],true) }}"
+        append: "{{ [hostvars[hostitem]._net] if (hostvars[hostitem]._net | default(None,true) != None) else [] }}"
+      ansible.builtin.set_fact:
+        _nets_manager: "{{ (list + append) | unique }}"
+
+    - name: docker-network.rm|print swarm network
+      run_once: true
+      ansible.builtin.debug:
+        var: _nets_manager
+
+    - name: docker-network.rm|remove swarm network
+      run_once: true
+      delegate_to: "{{ groups['docker-manager'] | first }}"
+      loop: "{{ _nets_manager }}"
+      loop_control:
+        loop_var: net
+      community.docker.docker_network:
+        state: absent
+        name: "{{ net.name }}"
 
 - name: docker-network.rm|reset _net
   ansible.builtin.set_fact:
     _net: !!null
-    _net_result: !!null
+    _net_scope: !!null
+    _nets_manager: !!null
