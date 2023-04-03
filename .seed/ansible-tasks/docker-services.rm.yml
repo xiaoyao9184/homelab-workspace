@@ -11,12 +11,11 @@
   ansible.builtin.set_fact:
     _services: "{{ services }}"
 
-- include_tasks: docker-service.rm.yml
-  vars:
-    service_prefix: "{{ services_prefix }}"
+- name: docker-services.rm|loop
   loop: "{{ _services }}"
   loop_control:
     loop_var: service
+  include_tasks: docker-service.rm.yml
 
 - name: docker-services.rm|reset _services
   ansible.builtin.set_fact:

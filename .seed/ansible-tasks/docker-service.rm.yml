@@ -5,45 +5,58 @@
   when: service.key is undefined
   block:
 
-    - name: docker-service.rm|set _ser from service
+    - name: docker-service.rm|set _serv from service
       ansible.builtin.set_fact:
-        _ser: "{{ service }}"
+        _serv: "{{ service }}"
+        # BUG? When different variable in loop include_tasks, run_once set_fact will set all host fact
+        _servs_manager: []
 
 - name: docker-service.rm|in loop
   when: service.key is defined
   block:
 
-    - name: docker-service.rm|set _ser from service.value
+    - name: docker-service.rm|set _serv from service.value
       ansible.builtin.set_fact:
-        _ser: "{{ service.value | default({},true) }}"
+        _serv: "{{ service.value | default({},true) }}"
+        # BUG? When different variable in loop include_tasks, run_once set_fact will set all host fact
+        _servs_manager: []
 
-    - name: docker-service.rm|combine _ser.name form service.key
-      when: _ser.name is undefined
-      ansible.builtin.set_fact:
-        _ser: "{{ _ser | combine(_ser_update, recursive=True) }}"
+    - name: docker-service.rm|combine _serv.name form service.key
+      when: _serv.name is undefined
       vars:
-        _ser_update:
+        update:
           name: "{{ service.key }}"
+      ansible.builtin.set_fact:
+        _serv: "{{ _serv | combine(update, recursive=True) }}"
 
-- name: docker-service.rm|print service
+# Merge multiple docker nodes '_serv' variables when is swarm service
+- name: docker-service.rm|append swarm _servs_manager from each docker host
+  run_once: true
+  loop: "{{ groups['docker'] }}"
+  loop_control:
+    loop_var: hostitem
+  vars:
+    list: "{{ _servs_manager | default([],true) }}"
+    append: "{{ [hostvars[hostitem]._serv] if (hostvars[hostitem]._serv | default(None,true) != None) else [] }}"
+  ansible.builtin.set_fact:
+    _servs_manager: "{{ (list + append) | unique }}"
+
+- name: docker-service.add|print service
+  run_once: true
   ansible.builtin.debug:
-    verbosity: 3
-    msg: 
-      - "{{ service_prefix }}"
-      - "{{ _ser }}"
+    var: _servs_manager
 
 - name: docker-service.rm|remove service
+  run_once: true
+  delegate_to: "{{ groups['docker-manager'] | first }}"
+  loop: "{{ _servs_manager }}"
+  loop_control:
+    loop_var: service
   community.docker.docker_swarm_service:
     state: absent
-    name: "{{ service_prefix }}_{{ _ser.name }}"
-  register: _ser_result
-  until: 
-    - _ser_result is not failed
-  retries: 5
-  delay: 10
+    name: "{{ service.name }}"
 
-
-- name: docker-service.rm|reset _ser
+- name: docker-service.rm|reset _serv
   ansible.builtin.set_fact:
-    _ser: !!null
-    _ser_result: !!null
+    _serv: !!null
+    _servs_manager: !!null
