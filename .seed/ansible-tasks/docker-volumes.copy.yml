@@ -11,10 +11,11 @@
   ansible.builtin.set_fact:
     _volumes: "{{ volumes }}"
 
-- include_tasks: docker-volume.copy.yml
+- name: docker-volumes.copy|loop
   loop: "{{ _volumes }}"
   loop_control:
     loop_var: volume
+  include_tasks: docker-volume.copy.yml
 
 - name: docker-volumes.copy|reset _volumes
   ansible.builtin.set_fact:

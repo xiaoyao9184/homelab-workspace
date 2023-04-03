@@ -19,28 +19,21 @@
 
     - name: docker-volume.rm|combine _vol.name form volume.key
       when: _vol.name is undefined
-      ansible.builtin.set_fact:
-        _vol: "{{ _vol | combine(_vol_update, recursive=True) }}"
       vars:
-        _vol_update:
+        update:
           name: "{{ volume.key }}"
+      ansible.builtin.set_fact:
+        _vol: "{{ _vol | combine(update, recursive=True) }}"
 
 - name: docker-volume.rm|print volume
   ansible.builtin.debug:
-    verbosity: 3
     var: _vol
 
 - name: docker-volume.rm|remove volume
   community.docker.docker_volume:
     state: absent
-    name: "{{ volume_prefix }}_{{ _vol.name }}"
-  register: _vol_result
-  until: 
-    - _vol_result is not failed
-  retries: 5
-  delay: 10
+    name: "{{ _vol.name }}"
 
 - name: docker-volume.rm|reset _vol
   ansible.builtin.set_fact:
     _vol: !!null
-    _vol_result: !!null

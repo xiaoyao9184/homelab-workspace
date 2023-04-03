@@ -11,12 +11,11 @@
   ansible.builtin.set_fact:
     _volumes: "{{ volumes }}"
 
-- include_tasks: docker-volume.rm.yml
-  vars:
-    volume_prefix: "{{ volumes_prefix }}"
+- name: docker-volumes.rm|loop
   loop: "{{ _volumes }}"
   loop_control:
     loop_var: volume
+  include_tasks: docker-volume.rm.yml
 
 - name: docker-volumes.rm|reset _volumes
   ansible.builtin.set_fact:

@@ -12,15 +12,17 @@
     _volumes: "{{ volumes }}"
 
 # docker-volume.bind mkdir for bind volume
-- include_tasks: docker-volume.mkdir.yml
+- name: docker-volumes.add|loop mkdir
   loop: "{{ _volumes }}"
   loop_control:
     loop_var: volume
-  
-- include_tasks: docker-volume.add.yml
+  include_tasks: docker-volume.mkdir.yml
+
+- name: docker-volumes.add|loop
   loop: "{{ _volumes }}"
   loop_control:
     loop_var: volume
+  include_tasks: docker-volume.add.yml
 
 - name: docker-volumes.add|reset _volumes
   ansible.builtin.set_fact:

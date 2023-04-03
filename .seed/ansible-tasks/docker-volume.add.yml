@@ -19,21 +19,21 @@
 
     - name: docker-volume.add|combine _vol.name form volume.key
       when: _vol.name is undefined
-      ansible.builtin.set_fact:
-        _vol: "{{ _vol | combine(_vol_update, recursive=True) }}"
       vars:
-        _vol_update:
+        update:
           name: "{{ volume.key }}"
+      ansible.builtin.set_fact:
+        _vol: "{{ _vol | combine(update, recursive=True) }}"
 
 - name: docker-volume.add|combine _vol.labels form default
-  ansible.builtin.set_fact:
-    _vol: "{{ _vol | combine(_vol_update, recursive=True) }}"
   vars:
-    _vol_update:
+    update:
       labels:
         "com.docker.stack.namespace": seed
         "com.github.xiaoyao9184.docker-seed.type": "docker-volume.add"
         "com.github.xiaoyao9184.docker-seed.creator": "{{ lookup('ansible.builtin.env', 'SEED_NAME') | default('docker-volume.add',true) }}"
+  ansible.builtin.set_fact:
+    _vol: "{{ _vol | combine(update, recursive=True) }}"
 
 - name: docker-volume.add|print volume
   ansible.builtin.debug:
