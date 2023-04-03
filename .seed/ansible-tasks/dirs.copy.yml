@@ -1,0 +1,33 @@
+---
+
+
+- name: dirs.copy|init _dirs_copy
+  ansible.builtin.set_fact:
+    _dirs_copy: "{{ dirs.cp | default([]) }}"
+
+- name: dirs.copy|init _dirs_sync
+  when:
+    - not (dir.synchronized | default(false))
+  vars:
+    sync_default:
+      - src: "{{ dir.local | default(playbook_dir,true) }}/"
+        dest: "{{ dir.remote | default(playbook_dir,true) }}"
+    sync_copy: "{{ dirs.sync | default(sync_default) }}"
+  ansible.builtin.set_fact:
+    _dirs_sync: "{{ [] if (dir.synchronized | default(false)) else sync_copy }}"
+
+- name: dirs.copy|append _dirs_sync
+  vars:
+    append: "{{ _dirs_sync | default([],true) }}"
+  ansible.builtin.set_fact:
+    _dirs_copy: "{{ append + _dirs_copy }}"
+
+- name: dirs.copy|loop
+  loop: "{{ _dirs_copy }}"
+  loop_control:
+    loop_var: dir_copy
+  include_tasks: dir.copy.yml
+
+- name: dirs.copy|reset _copy
+  ansible.builtin.set_fact:
+    _dirs_copy: !!null
