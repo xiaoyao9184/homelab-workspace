@@ -4,43 +4,65 @@
 - name: docker-compose.create|set _compose
   ansible.builtin.set_fact:
     _compose: "{{ compose }}"
+    # BUG? When different variable in loop include_tasks, run_once set_fact will set all host fact
+    _composes_manager: []
 
 - name: docker-compose.create|print _compose
-  when: 
-    - _compose.data is defined 
+  when:
+    - _compose.data is defined
     - _compose.data.keys() | length == 0
   vars:
-    _update:
+    update:
       data:
         version: "{{ _compose.version }}"
   ansible.builtin.set_fact:
-    _compose: "{{ _compose | combine(_update, recursive=True) }}"
+    _compose: "{{ _compose | combine(update, recursive=True) }}"
 
 - name: docker-compose.create|print _compose
   ansible.builtin.debug:
     var: _compose
 
-- name: docker-compose.create|create temporary file
-  ansible.builtin.tempfile:
-    state: file
-    suffix: docker-compose.create
-  register: tempfile
+- name: docker-compose.create|set _compose_type
+  ansible.builtin.set_fact:
+    _compose_type: "{{ compose.type | default('compose',true) }}"
 
-- name: docker-compose.create|write compose file
-  ansible.builtin.copy:
-    content: "{{ _compose.data | to_nice_yaml(indent=2, width=8000) }}"
-    dest: "{{ tempfile.path }}"
+- when: _compose_type == "stack"
+  block:
 
-- name: docker-compose.create|copy to compose.dest
-  when: compose.dest is defined
-  ansible.builtin.copy:
-    src: "{{ tempfile.path }}"
-    dest: "{{ compose.dest }}"
-    remote_src: true
-    # owner: root
-    # group: root
-    mode: '0777'
+    # Merge multiple docker nodes '_compose' variables when is swarm compose
+    - name: docker-compose.create|append swarm _composes_manager from each docker host
+      run_once: true
+      loop: "{{ groups['docker'] }}"
+      loop_control:
+        loop_var: hostitem
+      vars:
+        list: "{{ _composes_manager | default([],true) }}"
+        append: "{{ [hostvars[hostitem]._compose] if (hostvars[hostitem]._compose | default(None,true) != None) else [] }}"
+      ansible.builtin.set_fact:
+        _composes_manager: "{{ (list + append) | unique }}"
+
+    - name: docker-compose.create|write to _composes_manager.dest
+      run_once: true
+      delegate_to: "{{ groups['docker-manager'] | first }}"
+      loop: "{{ _composes_manager }}"
+      loop_control:
+        loop_var: _compose_manager
+      ansible.builtin.copy:
+        content: "{{ _compose_manager.data | to_nice_yaml(indent=2, width=8000) }}"
+        dest: "{{ _compose_manager.dest }}"
+        mode: '0777'
+
+- when: _compose_type == "compose"
+  block:
+
+    - name: docker-compose.create|write compose file
+      ansible.builtin.copy:
+        content: "{{ _compose.data | to_nice_yaml(indent=2, width=8000) }}"
+        dest: "{{ _compose.dest }}"
+        mode: '0777'
 
 - name: docker-compose.create|reset _compose
   ansible.builtin.set_fact:
     _compose: !!null
+    _compose_type: !!null
+    _composes_manager: !!null

@@ -1,0 +1,26 @@
+---
+
+
+- name: docker-composes.create|dict
+  when:
+    - composes is defined
+    - composes | type_debug == "dict"
+  ansible.builtin.set_fact:
+    _composes: "{{ [ composes ] }}"
+
+- name: docker-composes.create|list
+  when:
+    - composes is defined
+    - composes | type_debug == "list"
+  ansible.builtin.set_fact:
+    _composes: "{{ composes }}"
+
+- name: docker-composes.create|loop
+  loop: "{{ _composes }}"
+  loop_control:
+    loop_var: compose
+  include_tasks: docker-compose.create.yml
+
+- name: docker-composes.add|reset _composes
+  ansible.builtin.set_fact:
+    _composes: !!null
