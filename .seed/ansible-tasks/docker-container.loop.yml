@@ -1,44 +1,82 @@
 ---
 
 
-- name: docker-container.loop|loop container
-  block:
+- block:
 
-    - name: docker-container.loop|get loop container info
+    - when: _container_loop | default(None,true) == None
+      block:
+
+        - name: docker-container.loop|sleep for first
+          ansible.builtin.pause:
+            seconds: "{{ container.delay | default(10) | int }}"
+
+        - name: docker-container.loop|init _container_loop
+          vars:
+            default_until:
+              - container_loop_info.exists
+              - container_loop_info.container.State.Running
+            default_fail:
+              # exists not fail
+              - container_loop_info.exists and container_loop_info.container.State.ExitCode != 0
+          ansible.builtin.set_fact:
+            _container_loop:
+              name: "{{ container.name }}"
+              retries: "{{ container.retries | default(1000) }}"
+              delay: "{{ container.delay | default(10) }}"
+              until: "{{ container.until | default(default_until) }}"
+              fail: "{{ container.fail | default(default_fail) }}"
+
+    - name: docker-container.loop|get container info
       community.docker.docker_container_info:
-        name: "{{ container_name }}"
-      register: loop_docker_result
-    
-    - name: docker-container.loop|print loop_docker_result
-      debug:
-        var: loop_docker_result.container.State
+        name: "{{ _container_loop.name }}"
+      register: container_loop_info
+      ignore_errors: true
 
-    - name: docker-container.loop|fail loop container is running
-      when: 
-        - loop_docker_result.exists
-        - loop_docker_result.container.State.Running
-      ansible.builtin.fail:
-        msg: "still loop container {{ container_name }}"
+    - name: docker-container.loop|print container_loop_info
+      ansible.builtin.debug:
+        var: container_loop_info
 
-    - name: docker-container.loop|fail loop container exit error
-      when: 
-        - loop_docker_result.exists
-        - loop_docker_result.container.State.ExitCode != 0
+    - name: docker-container.loop|until check
+      loop: "{{ _container_loop.until }}"
+      loop_control:
+        loop_var: check
+      when: "not ( {{ check }} )"
       ansible.builtin.fail:
-        msg: "error exit container {{ container_name }}"
+        msg: "beak loop container {{ _container_loop.name }}: {{ check }}"
+
+    - name: docker-container.loop|reset _container_retry
+      ansible.builtin.set_fact:
+        _container_retry: !!null
+        _container_loop: !!null
 
   rescue:
-    
-    - name: docker-container.loop|fail loop container error
-      when: 
-        - not loop_docker_result.container.State.Running
-        - loop_docker_result.container.State.ExitCode != 0
+
+    - name: docker-container.loop|fail check
+      loop: "{{ _container_loop.fail }}"
+      loop_control:
+        loop_var: check
+      when: "{{ check }}"
       ansible.builtin.fail:
-        msg: "fail loop container {{ container_name }}"
-    
-    - name: docker-container.loop|sleep 15 seconds loop container
-      pause:
-        seconds: 15
+        msg: "fail loop container {{ _container_loop.name }}: {{ check }}"
+
+    - name: docker-container.loop|init _container_retry
+      when: _container_retry | default(None,true) == None
+      ansible.builtin.set_fact:
+        _container_retry: "{{ _container_loop.retries | int }}"
+
+    - name: docker-container.loop|all retry fail
+      when:
+        - (_container_retry | int) == 0
+      ansible.builtin.fail:
+        msg: "tired out loop container {{ _container_loop.name }}"
+
+    - name: docker-container.loop|sleep for next loop
+      ansible.builtin.pause:
+        seconds: "{{ _container_loop.delay | int }}"
+        prompt: "retries {{ _container_retry }}/{{ _container_loop.retries }}"
+
+    - name: docker-container.loop|reduce _container_retry
+      ansible.builtin.set_fact:
+        _container_retry: "{{ _container_retry | int - 1 }}"
 
     - include_tasks: docker-container.loop.yml
-

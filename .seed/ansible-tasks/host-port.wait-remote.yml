@@ -61,3 +61,16 @@
   include_tasks: docker-container.loop.yml
   vars:
     container_name: "{{ remote_docker.name }}"
+
+- name: host-port.wait-remote|wait container stop
+  include_tasks: docker-container.wait.yml
+  vars:
+    containers:
+      test_container_wait:
+        retries: -1
+        delay: 10
+        until:
+          - loop_container_info.exists
+          - not (loop_container_info.container.State.Running)
+          - loop_container_info.container.State.Status == 'exited'
+          - loop_container_info.container.State.ExitCode == 0

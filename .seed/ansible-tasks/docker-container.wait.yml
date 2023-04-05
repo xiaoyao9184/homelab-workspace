@@ -1,0 +1,48 @@
+---
+
+
+- name: docker-container.wait|append list _containers
+  loop: "{{ containers if (containers | type_debug == 'list') else [] }}"
+  loop_control:
+    loop_var: container
+  vars:
+    list: "{{ _containers | default([],true) }}"
+    item:
+      name: "{{ container.name }}"
+      project: "{{ container.project | default(omit) }}"
+      retries: "{{ container.retries | default(1000) }}"
+      delay: "{{ container.delay | default(10) }}"
+      until: "{{ container.until | default(omit) }}"
+  ansible.builtin.set_fact:
+    _containers: "{{ list + [item] }}"
+
+- name: docker-container.wait|append dict _containers
+  loop: "{{ (containers | dict2items) if (containers | type_debug == 'dict') else [] }}"
+  loop_control:
+    loop_var: kv
+  vars:
+    list: "{{ _containers | default([],true) }}"
+    name: "{{ kv.key }}"
+    container: "{{ kv.value }}"
+    item:
+      name: "{{ name }}"
+      project: "{{ container.project | default(omit) }}"
+      retries: "{{ container.retries | default(1000) }}"
+      delay: "{{ container.delay | default(10) }}"
+      until: "{{ container.until | default(omit) }}"
+  ansible.builtin.set_fact:
+    _containers: "{{ list + [item] }}"
+
+- name: docker-container.wait|print _containers
+  ansible.builtin.debug:
+    var: _containers
+
+- name: docker-container.wait|loop container
+  loop: "{{ _containers }}"
+  loop_control:
+    loop_var: container
+  include_tasks: docker-container.loop.yml
+
+- name: docker-container.wait|reset _containers
+  ansible.builtin.set_fact:
+    _containers: !!null
