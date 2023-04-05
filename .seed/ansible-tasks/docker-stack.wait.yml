@@ -1,0 +1,53 @@
+---
+
+
+- name: docker-stack.wait|append list _stacks
+  run_once: true
+  loop: "{{ stacks if (stacks | type_debug == 'list') else [] }}"
+  loop_control:
+    loop_var: stack
+  vars:
+    list: "{{ _stacks | default([],true) }}"
+    item:
+      name: "{{ stack.name | default(omit) }}"
+      task: "{{ stack.task | default(omit) }}"
+      retries: "{{ stack.retries | default(1000) }}"
+      delay: "{{ stack.delay | default(10) }}"
+      until: "{{ stack.until | default(omit) }}"
+  ansible.builtin.set_fact:
+    _stacks: "{{ list + [item] }}"
+
+- name: docker-stack.wait|append dict _stacks
+  run_once: true
+  loop: "{{ (stacks | dict2items) if (stacks | type_debug == 'dict') else [] }}"
+  loop_control:
+    loop_var: kv
+  vars:
+    list: "{{ _stacks | default([],true) }}"
+    name: "{{ kv.key }}"
+    stack: "{{ kv.value }}"
+    item:
+      name: "{{ name | default(omit) }}"
+      task: "{{ stack.task | default(omit) }}"
+      retries: "{{ stack.retries | default(1000) }}"
+      delay: "{{ stack.delay | default(10) }}"
+      until: "{{ stack.until | default(omit) }}"
+  ansible.builtin.set_fact:
+    _stacks: "{{ list + [item] }}"
+
+- name: docker-stack.wait|print _stacks
+  run_once: true
+  ansible.builtin.debug:
+    var: _stacks
+
+- name: docker-stack.wait|loop stack
+  run_once: true
+  loop: "{{ _stacks }}"
+  loop_control:
+    loop_var: stack
+  include_tasks: docker-stack.loop.yml
+
+- name: docker-stack.wait|reset _stacks
+  run_once: true
+  ansible.builtin.set_fact:
+    _stacks: !!null
