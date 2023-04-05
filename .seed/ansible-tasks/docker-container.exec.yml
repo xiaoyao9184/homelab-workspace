@@ -1,0 +1,85 @@
+---
+
+
+- name: docker-container.exec|set _container
+  ansible.builtin.set_fact:
+    _container:
+      name: "{{ container.name }}"
+      project: "{{ container.project | default(omit) }}"
+      command: "{{ container.command | default([],true) }}"
+      result: "{{ container.result | default(omit) }}"
+
+- name: docker-container.exec|set _container.container_id by name
+  vars:
+    update:
+      container_id: "{{ _container.name }}"
+  ansible.builtin.set_fact:
+    _container: "{{ _container | combine(update, recursive=True) }}"
+
+- when: _container.project is defined
+  block:
+
+    - name: docker-container.exec|set compose _container_filter
+      ansible.builtin.set_fact:
+        _container_filter:
+          - "label=com.docker.compose.project={{ _container.project }}"
+          - "label=com.docker.compose.service={{ _container.name }}"
+
+    - name: docker-container.exec|get container by ps
+      shell: "docker ps -q -f {{ _container_filter | join(' -f ') }} | head -1"
+      register: _container_ps
+
+    - name: docker-container.exec|set _container.container_id
+      when: _container_ps.stdout is defined
+      vars:
+        update:
+          container_id: "{{ _container_ps.stdout }}"
+      ansible.builtin.set_fact:
+        _container: "{{ _container | combine(update, recursive=True) }}"
+        _container_ps: !!null
+        _container_filter: !!null
+
+- name: docker-container.exec|print _container
+  debug:
+    var: _container
+
+# maybe is AnsibleUnsafeText
+- when: _container.command | type_debug != "list"
+  block:
+
+    - name: docker-container.exec|exec container command
+      vars:
+        comannd: "{{ _container.command | regex_replace('\\\\\\\n') }}"
+      community.docker.docker_container_exec:
+        container: "{{ _container.container_id }}"
+        command: "{{ comannd }}"
+      register: _container_result
+
+    # since _container_result has already been initialized
+    - name: docker-container.exec|set _container.result
+      when: _container.result is defined
+      ansible.builtin.set_fact:
+        "{{ _container.result }}": "{{ _container_result }}"
+        _container_result: !!null
+
+- when: _container.command | type_debug == "list"
+  block:
+
+    - name: docker-container.exec|exec container command list
+      loop: "{{ _container.command if (_container.command | type_debug == 'list') else [] }}"
+      vars:
+        comannd: "{{ item | regex_replace('\\\\\\\n') }}"
+      community.docker.docker_container_exec:
+        container: "{{ _container.container_id }}"
+        command: "{{ comannd }}"
+      register: _container_result
+
+    - name: docker-container.exec|set _container.result
+      when: _container.result is defined
+      ansible.builtin.set_fact:
+        "{{ _container.result }}": "{{ _container_result }}"
+        _container_result: !!null
+
+- name: docker-container.exec|reset _container
+  ansible.builtin.set_fact:
+    _container: !!null
