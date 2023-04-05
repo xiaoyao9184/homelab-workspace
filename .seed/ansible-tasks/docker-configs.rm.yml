@@ -11,12 +11,11 @@
   ansible.builtin.set_fact:
     _configs: "{{ configs }}"
 
-- include_tasks: docker-config.rm.yml
-  vars:
-    config_prefix: "{{ configs_prefix }}"
+- name: docker-configs.rm|loop
   loop: "{{ _configs }}"
   loop_control:
     loop_var: config
+  include_tasks: docker-config.rm.yml
 
 - name: docker-configs.rm|reset _configs
   ansible.builtin.set_fact:
