@@ -2,153 +2,224 @@
 
 
 - name: docker-compose.rm|set _compose
+  vars:
+    default_path: "{{ dir.remote }}"
   ansible.builtin.set_fact:
-    _compose: 
+    _compose:
       name: "{{ compose.name }}"
-      type: "{{ compose.type }}"
-      path: "{{ compose.path | default(None) }}"
+      path: "{{ compose.path | default('',true) }}"
       files: "{{ compose.files | default([]) }}"
 
-- name: docker-compose.rm|use template
-  when: 
-    - compose.template is defined
+- name: docker-compose.rm|set _compose.type
+  vars:
+    update:
+      type: "{{ compose.type | default('compose',true) }}"
+  ansible.builtin.set_fact:
+    _compose: "{{ _compose | combine(update, recursive=True) }}"
+
+- when: compose.template is defined
   block:
+
+    - name: docker-compose.rm|stack template option
+      when: _compose.type == 'stack'
+      ansible.builtin.set_fact:
+        _template_opt:
+          run_once: true
+          delegate_to: "{{ groups['docker-manager'] | first }}"
 
     - name: docker-compose.rm|one template
       when: compose.template | type_debug == "dict"
       ansible.builtin.set_fact:
-        _template: "{{ [ compose.template ] }}"
-      
+        _template_list: "{{ [ compose.template ] }}"
+
     - name: docker-compose.rm|multiple template
-      when: 
-        - compose.template | type_debug == "list" 
+      when: compose.template | type_debug == "list"
       ansible.builtin.set_fact:
-        _template: "{{ compose.template }}"
+        _template_list: "{{ compose.template }}"
 
     - name: docker-compose.rm|template file
-      ansible.builtin.template: "{{ _template_item.opt }}"
-      vars: 
+      run_once: "{{ _template_opt.run_once | default(false) }}"
+      delegate_to: "{{ _template_opt.delegate_to | default(omit) }}"
+      loop: "{{ _template_list }}"
+      loop_control:
+        loop_var: _template_item
+      vars:
         # why see https://stackoverflow.com/questions/50477012/how-to-use-a-dictionary-of-registered-ansible-variables-in-vars
         VARS: "{{ _template_item.vars }}"
-      loop: "{{ _template }}"
-      loop_control:
-        loop_var: _template_item
+      ansible.builtin.template: "{{ _template_item.opt }}"
 
-    - name: docker-compose.rm|set _files
+    - name: docker-compose.rm|set _template_files
       ansible.builtin.set_fact:
-        _files: []
+        _template_files: []
 
     - name: docker-compose.rm|add template file
-      ansible.builtin.set_fact:
-        _files: "{{ _files + [file] }}"
-      vars:
-        file: "{{ _template_item.name }}.yml"
-      loop: "{{ _template }}"
+      loop: "{{ _template_list }}"
       loop_control:
         loop_var: _template_item
-      
-    - name: docker-compose.rm|combine _compose.files
-      ansible.builtin.set_fact:
-        _compose: "{{ _compose | combine(_update, recursive=True) }}"
       vars:
-        _update:
-          files: "{{ _compose.files + _files }}"
-          
-    - name: docker-compose.rm|reset _files
+        file: "{{ _template_item.name }}.yml"
       ansible.builtin.set_fact:
-        _files: !!null
+        _template_files: "{{ _template_files + [file] }}"
 
-- name: docker-compose.rm|print _compose
-  ansible.builtin.debug:
-    var: _compose
+    - name: docker-compose.rm|combine _compose.files
+      vars:
+        update:
+          files: "{{ _compose.files + _template_files }}"
+      ansible.builtin.set_fact:
+        _compose: "{{ _compose | combine(update, recursive=True) }}"
 
-- name: docker-compose.rm|stack
-  when: 
-    - _compose.type == 'stack'
+    - name: docker-compose.rm|reset _template
+      ansible.builtin.set_fact:
+        _template_files: !!null
+        _template_list: !!null
+        _template_opt: !!null
+
+- when: _compose.type == 'stack'
   block:
 
-    - name: docker-compose.rm|stack no path
-      when: 
-        - _compose.path == ''
+    - name: docker-compose.rm|print _compose
+      run_once: true
+      delegate_to: "{{ groups['docker-manager'] | first }}"
+      ansible.builtin.debug:
+        var: _compose
+
+    - name: docker-compose.rm|remove stack without path
+      run_once: true
+      delegate_to: "{{ groups['docker-manager'] | first }}"
+      when: _compose.path == ''
       community.docker.docker_stack:
         state: absent
         name: "{{ _compose.name }}"
 
-    - name: docker-compose.rm|stack have path
-      when: 
-        - _compose.path != ''
+    - when: _compose.path != ''
       block:
 
-        - include_tasks: file-content.read.yml
+        - name: docker-compose.rm|read compose content
           vars:
-            content: 
+            content:
               files: "{{ [_compose.path] | product(_compose.files) | map('join', '/') }}"
               result_var: _contents
+          include_tasks: file-content.read.yml
 
         - name: docker-compose.rm|set content list
           ansible.builtin.set_fact:
+            _content_services: []
+            _content_secrets: []
+            _content_configs: []
+            _content_networks: []
+            _content_volumes: []
+            _services: []
+            _secrets: []
             _configs: []
             _networks: []
-            _secrets: []
-            _services: []
             _volumes: []
 
         - name: docker-compose.rm|read content item
-          ansible.builtin.set_fact:
-            _configs: "{{ _configs + configs }}"
-            _networks: "{{ _networks + networks }}"
-            _secrets: "{{ _secrets + secrets }}"
-            _services: "{{ _services + services }}"
-            _volumes: "{{ _volumes + volumes }}"
-          vars:
-            query_internal: "[? value.external!=`true`]"
-            configs: "{{ content.configs | default({}) | dict2items | json_query(query_internal) }}"
-            networks: "{{ content.networks | default({}) | dict2items | json_query(query_internal) }}"
-            secrets: "{{ content.secrets | default({}) | dict2items | json_query(query_internal) }}" 
-            services: "{{ content.services | default({}) | dict2items | json_query(query_internal) }}" 
-            volumes: "{{ content.volumes | default({}) | dict2items | json_query(query_internal) }}"
           loop: "{{ _contents }}"
           loop_control:
             loop_var: content
+          vars:
+            query_internal: "[? value.external!=`true`]"
+            services: "{{ content.services | default({}) | dict2items | json_query(query_internal) }}"
+            secrets: "{{ content.secrets | default({}) | dict2items | json_query(query_internal) }}"
+            configs: "{{ content.configs | default({}) | dict2items | json_query(query_internal) }}"
+            networks: "{{ content.networks | default({}) | dict2items | json_query(query_internal) }}"
+            volumes: "{{ content.volumes | default({}) | dict2items | json_query(query_internal) }}"
+          ansible.builtin.set_fact:
+            _content_services: "{{ _content_services + services }}"
+            _content_secrets: "{{ _content_secrets + secrets }}"
+            _content_configs: "{{ _content_configs + configs }}"
+            _content_networks: "{{ _content_networks + networks }}"
+            _content_volumes: "{{ _content_volumes + volumes }}"
 
-        - name: docker-compose.rm|print content list
-          ansible.builtin.debug:
-            verbosity: 3
-            msg: 
-              - "{{ _contents }}"
-              - "{{ _configs }}"
-              - "{{ _networks }}"
-              - "{{ _secrets }}"
-              - "{{ _services }}"
-              - "{{ _volumes }}"
+        - name: docker-compose.rm|append service
+          loop: "{{ _content_services }}"
+          loop_control:
+            loop_var: service_kv
+          vars:
+            service:
+              name: "{{ _compose.name }}_{{ service_kv.key }}"
+          ansible.builtin.set_fact:
+            _services: "{{ _services + [service] }}"
 
-        - include_tasks: docker-services.rm.yml
-          vars: 
+        - name: docker-compose.rm|remove service
+          vars:
             services: "{{ _services }}"
-            services_prefix: "{{ _compose.name }}"
+          include_tasks: docker-services.rm.yml
 
-        - include_tasks: docker-networks.rm.yml
-          vars: 
-            networks: "{{ _networks }}"
-            networks_prefix: "{{ _compose.name }}"
+        - name: docker-compose.rm|append secret
+          loop: "{{ _content_secrets }}"
+          loop_control:
+            loop_var: secret_kv
+          vars:
+            name_anonymous: "{{ _compose.name }}_{{ secret_kv.key }}"
+            secret:
+              name: "{{ secret_kv.value.name if (secret_kv.value.name is defined) else name_anonymous }}"
+          ansible.builtin.set_fact:
+            _secrets: "{{ _secrets + [secret] }}"
 
-        - include_tasks: docker-volumes.rm.yml
-          vars: 
-            volumes: "{{ _volumes }}"
-            volumes_prefix: "{{ _compose.name }}"
-
-        - include_tasks: docker-configs.rm.yml
-          vars: 
-            configs: "{{ _configs }}"
-            configs_prefix: "{{ _compose.name }}"
-
-        - include_tasks: docker-secrets.rm.yml
-          vars: 
+        - name: docker-compose.rm|remove secret
+          vars:
             secrets: "{{ _secrets }}"
-            secrets_prefix: "{{ _compose.name }}"
-              
+          include_tasks: docker-secrets.rm.yml
+
+        - name: docker-compose.rm|append config
+          loop: "{{ _content_configs }}"
+          loop_control:
+            loop_var: config_kv
+          vars:
+            name_anonymous: "{{ _compose.name }}_{{ config_kv.key }}"
+            config:
+              name: "{{ config_kv.value.name if (config_kv.value.name is defined) else name_anonymous }}"
+          ansible.builtin.set_fact:
+            _configs: "{{ _configs + [config] }}"
+
+        - name: docker-compose.rm|remove config
+          vars:
+            configs: "{{ _configs }}"
+          include_tasks: docker-configs.rm.yml
+
+        - name: docker-compose.rm|append network
+          loop: "{{ _content_networks }}"
+          loop_control:
+            loop_var: network_kv
+          vars:
+            name_anonymous: "{{ _compose.name }}_{{ network_kv.key }}"
+            network:
+              name: "{{ network_kv.value.name if (network_kv.value.name is defined) else name_anonymous }}"
+              driver: "{{ network_kv.value.driver if (network_kv.value.driver is defined) else 'overlay' }}"
+          ansible.builtin.set_fact:
+            _networks: "{{ _networks + [network] }}"
+
+        - name: docker-compose.rm|remove network
+          vars:
+            networks: "{{ _networks }}"
+          include_tasks: docker-networks.rm.yml
+
+        - name: docker-compose.rm|append volume
+          loop: "{{ _content_volumes }}"
+          loop_control:
+            loop_var: volume_kv
+          vars:
+            name_anonymous: "{{ _compose.name }}_{{ volume_kv.key }}"
+            volume:
+              name: "{{ volume_kv.value.name if (volume_kv.value.name is defined) else name_anonymous }}"
+              driver: "{{ volume_kv.value.driver if (volume_kv.value.driver is defined) else 'overlay' }}"
+          ansible.builtin.set_fact:
+            _volumes: "{{ _volumes + [volume] }}"
+
+        - name: docker-compose.rm|remove volume
+          vars:
+            volumes: "{{ _volumes }}"
+          include_tasks: docker-volumes.rm.yml
+
         - name: docker-compose.rm|reset content list
           ansible.builtin.set_fact:
+            _content_services: !!null
+            _content_secrets: !!null
+            _content_configs: !!null
+            _content_networks: !!null
+            _content_volumes: !!null
             _contents: !!null
             _configs: !!null
             _networks: !!null
@@ -157,15 +228,20 @@
             _volumes: !!null
 
 # will remove all services in compose
-- name: docker-compose.rm|compose
-  when: 
-    - _compose.type == 'compose'
-    - _compose.path != ''
-  community.docker.docker_compose:
-    state: absent
-    project_name: "{{ _compose.name }}"
-    project_src: "{{ _compose.path }}"
-    files: "{{ _compose.files }}"
+- when: _compose.type == 'compose'
+  block:
+
+    - name: docker-compose.rm|print _compose
+      ansible.builtin.debug:
+        var: _compose
+
+    - name: docker-compose.rm|compose
+      community.docker.docker_compose:
+        state: absent
+        project_name: "{{ _compose.name }}"
+        project_src: "{{ _compose.path | default(omit) }}"
+        files: "{{ _compose.files }}"
+      ignore_errors: true
 
 - name: docker-compose.rm|reset _compose
   ansible.builtin.set_fact:
