@@ -1,0 +1,47 @@
+# All labels must delegate_to to run on docker-manager
+---
+
+- name: docker-labels.add|dict
+  when:
+    - labels is defined
+    - labels | type_debug == "dict"
+  ansible.builtin.set_fact:
+    _labels: "{{ [ labels ] }}"
+    # BUG? When different variable in loop include_tasks, run_once set_fact will set all host fact
+    _labels_manager: []
+
+- name: docker-labels.add|list
+  when:
+    - labels is defined
+    - labels | type_debug == "list"
+  ansible.builtin.set_fact:
+    _labels: "{{ labels }}"
+    # BUG? When different variable in loop include_tasks, run_once set_fact will set all host fact
+    _labels_manager: []
+
+# Merge multiple docker nodes use different '_labels' variables
+- name: docker-labels.add|append swarm _labels_manager from each docker host
+  run_once: true
+  loop: "{{ groups['docker'] }}"
+  loop_control:
+    loop_var: hostitem
+  vars:
+    list: "{{ _labels_manager | default([],true) }}"
+    append: "{{ hostvars[hostitem]._labels if (hostvars[hostitem]._labels | default(None,true) != None) else [] }}"
+  ansible.builtin.set_fact:
+    _labels_manager: "{{ (list + append) | unique }}"
+
+- name: docker-labels.add|add label for node
+  run_once: true
+  delegate_to: "{{ groups['docker-manager'] | first }}"
+  loop: "{{ _labels_manager }}"
+  loop_control:
+    loop_var: label
+  community.docker.docker_node:
+    hostname: "{{ label.hostname }}"
+    labels: "{{ label.labels }}"
+
+- name: docker-labels.add|reset _labels
+  ansible.builtin.set_fact:
+    _labels: !!null
+    _labels_manager: !!null
