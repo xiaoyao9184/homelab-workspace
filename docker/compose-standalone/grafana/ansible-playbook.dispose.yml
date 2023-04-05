@@ -17,6 +17,13 @@
     - name: set dir
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.set.yml"
 
+    - name: copy to dir
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dirs.copy.yml"
+      vars:
+        dirs:
+          sync:
+            - dest: "{{ dir.remote }}"
+
     - name: build compose_file
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-compose.create.yml"
       vars:

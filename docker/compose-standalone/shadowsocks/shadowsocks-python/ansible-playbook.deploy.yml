@@ -20,14 +20,15 @@
         length: 2
 
     - name: copy to dir
-      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.copy.yml"
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dirs.copy.yml"
       vars:
-        sync:
-          - src: "{{ dir.local }}/../config/python.json"
-            dest: "{{ dir.remote }}/../config/python.json"
-          - src: "{{ dir.local }}/docker-compose.yml"
-            dest: "{{ dir.remote }}/docker-compose.yml"
-        copys: "{{ shadowsocks.python.dir_copy | default([],true) }}"
+        dirs:
+          sync:
+            - src: "{{ dir.local }}/../config/python.json"
+              dest: "{{ dir.remote }}/../config/python.json"
+            - src: "{{ dir.local }}/docker-compose.yml"
+              dest: "{{ dir.remote }}/docker-compose.yml"
+          cp: "{{ shadowsocks.python.dir_copy | default([],true) }}"
 
     - name: build env_file
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-env.create.yml"

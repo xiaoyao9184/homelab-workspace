@@ -24,11 +24,15 @@
         apply:
           run_once: true
 
-    # - name: copy to dir
-    #   include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.copy.yml"
-    #   vars:
-    #     sync: []
-    #     copys: []
+    - name: copy to dir
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dirs.copy.yml"
+      vars:
+        dirs:
+          sync:
+            - src: "{{ dir.remote }}/docker-compose-swarm.yml"
+              dest: "{{ dir.remote }}/docker-compose-swarm.yml"
+              delegate_to: "{{ groups['docker-manager'] | first }}"
+              run_once: true
 
     # - name: add external_vol
     #   include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-volumes.add.yml"
@@ -57,14 +61,6 @@
 
     - name: set dir
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.set.yml"
-
-    - name: copy to dir
-      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.copy.yml"
-      vars:
-        sync:
-          - src: "{{ dir.local }}/docker-compose-swarm.yml"
-            dest: "{{ dir.remote }}/docker-compose-swarm.yml"
-        copys: []
 
     - name: add swarm label
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-label.add.yml"

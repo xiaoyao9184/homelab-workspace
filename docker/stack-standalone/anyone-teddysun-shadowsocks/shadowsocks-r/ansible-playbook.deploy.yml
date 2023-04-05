@@ -20,14 +20,19 @@
         length: 2
 
     - name: copy to dir
-      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.copy.yml"
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dirs.copy.yml"
       vars:
-        sync:
-          - src: "{{ dir.local }}/../config/r.json"
-            dest: "{{ dir.remote }}/../config/r.json"
-          - src: "{{ dir.local }}/docker-compose-swarm.yml"
-            dest: "{{ dir.remote }}/docker-compose-swarm.yml"
-        copys: "{{ shadowsocks.r.dir_copy | default([],true) }}"
+        dirs:
+          sync:
+            - src: "{{ dir.local }}/../config/r.json"
+              dest: "{{ dir.remote }}/../config/r.json"
+              delegate_to: "{{ groups['docker-manager'] | first }}"
+              run_once: true
+            - src: "{{ dir.local }}/docker-compose-swarm.yml"
+              dest: "{{ dir.remote }}/docker-compose-swarm.yml"
+              delegate_to: "{{ groups['docker-manager'] | first }}"
+              run_once: true
+          cp: "{{ shadowsocks.r.dir_copy | default([],true) }}"
 
     - name: add external_cfg
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-configs.add.yml"

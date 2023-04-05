@@ -34,13 +34,17 @@
         length: 2
 
     - name: copy to dir
-      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.copy.yml"
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dirs.copy.yml"
       vars:
-        default:
-          - src: "{{ dir.remote }}/data/"
-            dest: "{{ dir.remote }}/data"
-        sync: []
-        copys: "{{ nfs.dir_copy | default(default,true) }}"
+        dirs:
+          sync:
+            - src: "{{ dir.remote }}/data/"
+              dest: "{{ dir.remote }}/data"
+            - src: "{{ dir.local }}/exports/exports"
+              dest: "{{ dir.remote }}/exports/exports"
+              delegate_to: "{{ groups['docker-manager'] | first }}"
+              run_once: true
+          cp: "{{ nfs.dir_copy | default(default,true) }}"
 
     - name: add external_vol
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-volumes.add.yml"
@@ -89,14 +93,6 @@
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.set.yml"
       vars:
         length: 2
-
-    - name: copy to dir
-      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.copy.yml"
-      vars:
-        sync:
-          - src: "{{ dir.local }}/exports/exports"
-            dest: "{{ dir.remote }}/exports/exports"
-        copys: "{{ nfs.dir_copy | default([],true) }}"
 
     - name: add swarm label
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-label.add.yml"

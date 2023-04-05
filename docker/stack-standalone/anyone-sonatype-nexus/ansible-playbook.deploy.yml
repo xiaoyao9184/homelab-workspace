@@ -25,10 +25,15 @@
           run_once: true
 
     - name: copy to dir
-      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.copy.yml"
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dirs.copy.yml"
       vars:
-        sync: []
-        copys: "{{ nexus.dir_copy | default([],true) }}"
+        dirs:
+          sync:
+            - src: "{{ dir.remote }}/docker-compose-swarm.yml"
+              dest: "{{ dir.remote }}/docker-compose-swarm.yml"
+              delegate_to: "{{ groups['docker-manager'] | first }}"
+              run_once: true
+          cp: "{{ nexus.dir_copy | default([],true) }}"
 
     - name: wait nfs mount
       when: 
@@ -77,14 +82,6 @@
     - name: set dir
       when: dir is undefined
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.set.yml"
-
-    - name: copy to dir
-      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.copy.yml"
-      vars:
-        sync:
-          - src: "{{ dir.local }}/docker-compose-swarm.yml"
-            dest: "{{ dir.remote }}/docker-compose-swarm.yml"
-        copys: "{{ nexus.dir_copy | default([],true) }}"
 
     - name: add swarm label
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-label.add.yml"

@@ -72,11 +72,12 @@
           register: services_dir_copy
 
     - name: copy to dir
-      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.copy.yml"
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dirs.copy.yml"
       vars:
-        append:
-          - dest: "{{ dir.remote }}/docker-compose"
-        copys: "{{ services_dir_copy + append }}"
+        dirs:
+          sync:
+            - dest: "{{ dir.remote }}/docker-compose"
+          cp: "{{ services_dir_copy }}"
 
     - name: init services_vol
       ansible.builtin.set_fact:

@@ -23,10 +23,13 @@
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.set.yml"
 
     - name: copy to dir
-      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.copy.yml"
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dirs.copy.yml"
       vars:
-        copys:
-          - dest: "{{ dir.remote }}/docker-compose-swarm"
+        dirs:
+          sync:
+            - dest: "{{ dir.remote }}/docker-compose-swarm"
+              delegate_to: "{{ groups['docker-manager'] | first }}"
+              run_once: true
 
     - name: default service_names
       when: service_names == ''

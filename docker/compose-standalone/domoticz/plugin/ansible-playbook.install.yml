@@ -28,10 +28,11 @@
       ansible.builtin.git: "{{ item }}"
 
     - name: copy to dir
-      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.copy.yml"
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dirs.copy.yml"
       vars:
-        sync: []
-        copys: "{{ domoticz.plugin.dir_copy | default([],true) }}"
+        dirs:
+          sync: []
+          cp: "{{ domoticz.plugin.dir_copy | default([],true) }}"
 
     - name: install plugin
       include_tasks: "{{ dir.local }}/plugin/ansible-tasks.install.yml"

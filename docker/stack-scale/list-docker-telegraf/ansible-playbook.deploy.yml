@@ -59,11 +59,14 @@
           register: services_dir_copy
 
     - name: copy to dir
-      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.copy.yml"
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dirs.copy.yml"
       vars:
-        append:
-          - dest: "{{ dir.remote }}/docker-compose-swarm"
-        copys: "{{ services_dir_copy + append }}"
+        dirs:
+          sync:
+            - dest: "{{ dir.remote }}/docker-compose-swarm"
+              delegate_to: "{{ groups['docker-manager'] | first }}"
+              run_once: true
+          cp: "{{ services_dir_copy }}"
 
     - name: init services_net
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/var-mixed.flatten.yml"

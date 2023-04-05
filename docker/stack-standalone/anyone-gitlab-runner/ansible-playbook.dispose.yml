@@ -18,14 +18,6 @@
     - name: set dir
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.set.yml"
 
-    - name: copy to dir
-      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.copy.yml"
-      vars:
-        sync:
-          - src: "{{ dir.local }}/docker-compose-swarm.yml"
-            dest: "{{ dir.remote }}/docker-compose-swarm.yml"
-        copys: []
-
     - name: exec unregister runner
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-service.exec.yml"
       vars:
@@ -37,19 +29,15 @@
               --all-runners
           result: "runner_unregister"
 
-
-- name: dispose
-  environment:
-    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
-  hosts: docker-manager
-  run_once: true
-  tasks: 
-
-    - name: set ws
-      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/ws.set.yml"
-
-    - name: set dir
-      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.set.yml"
+    - name: copy to dir
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dirs.copy.yml"
+      vars:
+        dirs:
+          sync:
+            - src: "{{ dir.local }}/docker-compose-swarm.yml"
+              dest: "{{ dir.remote }}/docker-compose-swarm.yml"
+              delegate_to: "{{ groups['docker-manager'] | first }}"
+              run_once: true
 
     - name: remove stack service
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-compose.rm.yml"

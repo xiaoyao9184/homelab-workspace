@@ -21,14 +21,19 @@
         length: 2
 
     - name: copy to dir
-      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.copy.yml"
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dirs.copy.yml"
       vars:
-        sync:
-          - src: "{{ dir.local }}/../config/frpc.ini"
-            dest: "{{ dir.remote }}/../config/frpc.ini"
-          - src: "{{ dir.local }}/docker-compose-swarm.yml"
-            dest: "{{ dir.remote }}/docker-compose-swarm.yml"
-        copys: "{{ frp.client.dir_copy | default([],true) }}"
+        dirs:
+          sync:
+            - src: "{{ dir.local }}/../config/frpc.ini"
+              dest: "{{ dir.remote }}/../config/frpc.ini"
+              delegate_to: "{{ groups['docker-manager'] | first }}"
+              run_once: true
+            - src: "{{ dir.local }}/docker-compose-swarm.yml"
+              dest: "{{ dir.remote }}/docker-compose-swarm.yml"
+              delegate_to: "{{ groups['docker-manager'] | first }}"
+              run_once: true
+          cp: "{{ frp.client.dir_copy | default([],true) }}"
 
     - name: wait host port
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/host-port.wait.yml"

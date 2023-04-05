@@ -25,10 +25,14 @@
           run_once: true
 
     - name: copy to dir
-      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.copy.yml"
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dirs.copy.yml"
       vars:
-        sync: []
-        copys: "{{ transmission.dir_copy | default([],true) }}"
+        dirs:
+          sync:
+            - dest: "{{ dir.remote }}"
+              delegate_to: "{{ groups['docker-manager'] | first }}"
+              run_once: true
+          cp: "{{ transmission.dir_copy | default([],true) }}"
 
     - name: wait nfs mount
       when: 
@@ -102,12 +106,6 @@
     - name: set dir
       when: dir is undefined
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.set.yml"
-
-    - name: copy to dir
-      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.copy.yml"
-      vars:
-        sync: []
-        copys: "{{ transmission.dir_copy | default([],true) }}"
 
     - name: add swarm label
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-label.add.yml"

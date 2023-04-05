@@ -19,12 +19,12 @@
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.set.yml"
 
     - name: copy to dir
-      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.copy.yml"
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dirs.copy.yml"
       vars:
-        sync:
-          - src: "{{ dir.local }}/docker-compose.yml"
-            dest: "{{ dir.remote }}/docker-compose.yml"
-        copys: []
+        dirs:
+          sync:
+            - src: "{{ dir.local }}/docker-compose.yml"
+              dest: "{{ dir.remote }}/docker-compose.yml"
 
     - name: remove compose service
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-compose.rm.yml"

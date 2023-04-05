@@ -18,6 +18,15 @@
     - name: set dir
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.set.yml"
 
+    - name: copy to dir
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dirs.copy.yml"
+      vars:
+        dirs:
+          sync:
+            - dest: "{{ dir.remote }}"
+              delegate_to: "{{ groups['docker-manager'] | first }}"
+              run_once: true
+
     - name: remove stack service
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-compose.rm.yml"
       vars:
