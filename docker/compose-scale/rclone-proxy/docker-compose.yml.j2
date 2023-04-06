@@ -8,7 +8,7 @@ volumes:
 services:
   rclone-{{ VARS.SERIVCE_NAME }}:
     image: gqbre/docker-rclone-proxy:latest
-    env_file: external_env-all.env
+    env_file: external_env-{{ VARS.SERIVCE_NAME }}.env
     environment:
       - "RemotePath={{ VARS.SERIVCE_NAME }}:"
     security_opt:
@@ -17,7 +17,6 @@ services:
       - SYS_ADMIN
     devices:
       - /dev/fuse
-    env_file: external_env-{{ VARS.SERIVCE_NAME }}.env
     volumes:
       - config:/config
       # - {{ VARS.BIND_DATA }}:/mnt/mediaefs:shared

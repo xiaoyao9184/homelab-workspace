@@ -16,8 +16,8 @@ networks:
 services:
   headscale:
     image: headscale/headscale:0.20.0-debug
-    command: headscale serve
     env_file: external_env-all.env
+    command: headscale serve
     volumes:
       - config:/etc/headscale/
       - data:/var/lib/headscale

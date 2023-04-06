@@ -17,7 +17,7 @@ services:
   syncthing:
     image: syncthing/syncthing:latest
     env_file: external_env-all.env
-    # environment: 
+    # environment:
     #   - PUID=0
     #   - PGID=0
     volumes:

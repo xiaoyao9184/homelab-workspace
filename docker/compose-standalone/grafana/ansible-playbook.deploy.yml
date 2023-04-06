@@ -56,13 +56,6 @@
         wait_network: "{{ grafana.port_wait.network | default([],true) }}"
         wait_port: "{{ grafana.port_wait.port | default({},true) }}"
 
-    - name: build env_file
-      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-env.create.yml"
-      vars:
-        env: 
-          dest: "{{ dir.remote }}/external_env-all.env"
-          data: "{{ grafana.env | default([],true) }}"
-
     # # grafana init will remove provisioning and recreate
     # # https://medium.com/@jonsbun/why-need-to-be-careful-when-mounting-single-files-into-a-docker-container-4f929340834
     # - name: overwrite bind dashboard
@@ -71,6 +64,13 @@
     # # https://medium.com/@jonsbun/why-need-to-be-careful-when-mounting-single-files-into-a-docker-container-4f929340834
     # - name: overwrite bind conf
     #   ansible.builtin.shell: "cat {{ dir.remote }}/config/datasource.yml > {{ dir.remote }}/bind_file-datasource"
+
+    - name: build env_file
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-envs.create.yml"
+      vars:
+        envs:
+          - dest: "{{ dir.remote }}/external_env-all.env"
+            data: "{{ grafana.env | default([],true) }}"
 
     - name: build compose_file
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-compose.create.yml"

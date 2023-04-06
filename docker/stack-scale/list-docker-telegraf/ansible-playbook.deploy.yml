@@ -117,10 +117,11 @@
       loop_control:
         loop_var: name
       vars:
-        config: "{{ telegraf.services[name] }}"
+        service: "{{ telegraf.services[name] }}"
         env:
           dest: "{{ dir.remote }}/docker-compose-swarm/external_env-{{ name }}.env"
-          data: "{{ config.env | default([],true) }}"
+          data: "{{ service.env | default([],true) }}"
+          mode: stack
       ansible.builtin.set_fact:
         services_env: "{{ services_env + [env] }}"
 

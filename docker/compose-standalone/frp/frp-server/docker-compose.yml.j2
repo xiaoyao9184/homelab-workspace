@@ -8,11 +8,11 @@ networks:
 services:
   frp-server:
     image: fatedier/frps:v0.44.0
-    entrypoint: 
+    env_file: external_env-all.env
+    entrypoint:
       - "/usr/bin/frps"
       - "-c"
       - "/app/frps.ini"
-    env_file: external_env-all.env
     volumes:
       - {{ VARS.BIND_INI }}:/app/frps.ini
     networks:

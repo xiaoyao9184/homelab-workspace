@@ -3,8 +3,8 @@ version: "3.8"
 services:
   tailscale:
     image: tailscale/tailscale:latest
-    command: tailscaled
     env_file: external_env-all.env
+    command: tailscaled
     environment:
       - TS_SOCKET=/var/run/tailscale/tailscaled.sock
     volumes:

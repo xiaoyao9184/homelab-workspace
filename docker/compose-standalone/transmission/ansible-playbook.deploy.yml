@@ -41,11 +41,11 @@
         volumes: "{{ transmission.vol | default(default,true) }}"
 
     - name: build env_file
-      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-env.create.yml"
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-envs.create.yml"
       vars:
-        env: 
-          dest: "{{ dir.remote }}/external_env-all.env"
-          data: "{{ transmission.env | default([],true) }}"
+        envs:
+          - dest: "{{ dir.remote }}/external_env-all.env"
+            data: "{{ transmission.env | default([],true) }}"
 
     - name: add compose service
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-compose.add.yml"

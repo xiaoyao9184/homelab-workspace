@@ -43,17 +43,17 @@
     - name: overwrite bind conf
       ansible.builtin.shell: "cat {{ dir.remote }}/config/telegraf.conf > {{ dir.remote }}/bind_file-conf"
 
-    - name: build env_file
-      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-env.create.yml"
-      vars:
-        env: 
-          dest: "{{ dir.remote }}/external_env-all.env"
-          data: "{{ telegraf.env | default([],true) }}"
-
     - name: stat docker group
       ansible.builtin.stat:
         path: /var/run/docker.sock
       register: docker_stat
+
+    - name: build env_file
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-envs.create.yml"
+      vars:
+        envs:
+          - dest: "{{ dir.remote }}/external_env-all.env"
+            data: "{{ telegraf.env | default([],true) }}"
 
     - name: build compose_file
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-compose.create.yml"

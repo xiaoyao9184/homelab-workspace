@@ -138,7 +138,7 @@
       vars:
         service: "{{ rclone_proxy.services[name] }}"
         env:
-          dest: "{{ dir.remote }}/docker-compose-swarm/external_env-{{ name }}.env"
+          dest: "{{ dir.remote }}/docker-compose/external_env-{{ name }}.env"
           data: "{{ service.env | default(rclone_proxy.env,true) }}"
       ansible.builtin.set_fact:
         services_env: "{{ services_env + [env] }}"

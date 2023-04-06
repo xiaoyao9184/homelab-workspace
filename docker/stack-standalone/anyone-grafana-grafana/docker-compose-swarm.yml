@@ -10,7 +10,7 @@ volumes:
   provisioning:
     name: external_vol-grafana-provisioning
     external: true
- 
+
 networks:
   grafana:
     name: external_net-grafana
@@ -22,6 +22,7 @@ networks:
 services:
   grafana:
     image: grafana/grafana:latest
+    env_file: external_env-all.env
     volumes:
       - data:/var/lib/grafana
       - dashboards:/var/lib/grafana/dashboards

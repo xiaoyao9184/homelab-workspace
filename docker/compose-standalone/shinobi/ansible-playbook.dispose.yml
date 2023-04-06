@@ -26,6 +26,15 @@
             - src: "{{ dir.local }}/docker-compose.yml"
               dest: "{{ dir.remote }}/docker-compose.yml"
 
+    - name: build env_file
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-envs.create.yml"
+      vars:
+        envs:
+          - dest: "{{ dir.remote }}/external_env-shinobi.env"
+            data: []
+          # - dest: "{{ dir.remote }}/external_env-tf.env"
+          #   data: []
+
     - name: remove compose service
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-compose.rm.yml"
       vars:

@@ -8,6 +8,7 @@ volumes:
 services:
   rclone-{{ VARS.SERIVCE_NAME }}:
     image: rclone/rclone:latest
+    env_file: external_env-{{ VARS.SERIVCE_NAME }}.env
     command: mount "{{ VARS.SERIVCE_NAME }}:" "/data" --allow-other --allow-non-empty --buffer-size 32M --vfs-read-chunk-size=32M --vfs-read-chunk-size-limit 2048M --vfs-cache-mode writes --dir-cache-time 96h
     security_opt:
       - apparmor:unconfined
@@ -15,7 +16,6 @@ services:
       - SYS_ADMIN
     devices:
       - /dev/fuse
-    env_file: external_env-{{ VARS.SERIVCE_NAME }}.env
     volumes:
       - config:/config/rclone
       - {{ VARS.BIND_DATA }}:/data:shared

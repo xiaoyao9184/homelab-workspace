@@ -13,11 +13,11 @@ configs:
 services:
   frp-client:
     image: fatedier/frpc:v0.44.0
-    entrypoint: 
+    env_file: external_env-all.env
+    entrypoint:
       - "/usr/bin/frpc"
       - "-c"
       - "/app/frpc.ini"
-    env_file: external_env-all.env
     configs:
       - source: client_config
         target: /app/frpc.ini

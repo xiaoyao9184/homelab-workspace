@@ -8,6 +8,7 @@ networks:
 services:
   headscale-ui:
     image: ghcr.io/gurucomputing/headscale-ui:2023.01.30-beta-1
+    env_file: external_env-all.env
     environment:
       - HTTP_PORT=80
       - HTTPS_PORT=443

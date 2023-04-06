@@ -137,7 +137,7 @@
       vars:
         serivce: "{{ rclone.services[name] }}"
         env:
-          dest: "{{ dir.remote }}/docker-compose-swarm/external_env-{{ name }}.env"
+          dest: "{{ dir.remote }}/docker-compose/external_env-{{ name }}.env"
           data: "{{ serivce.env | default(rclone.env,true) }}"
       ansible.builtin.set_fact:
         services_env: "{{ services_env + [env] }}"

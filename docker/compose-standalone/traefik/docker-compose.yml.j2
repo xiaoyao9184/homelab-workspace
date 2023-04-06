@@ -5,8 +5,9 @@ networks:
 
 services:
   traefik-proxy:
-    hostname: traefik
     image: traefik:v2.8
+    hostname: traefik
+    env_file: external_env-all.env
     command:
       # Enable Hub communication (open the port 9900 and 9901 by default)
       - --experimental.hub=true
@@ -27,8 +28,9 @@ services:
       start_period: 10m
 
   hub-agent:
-    hostname: hub-agent
     image: ghcr.io/traefik/hub-agent-traefik:v1.0.0
+    hostname: hub-agent
+    env_file: external_env-all.env
     command:
       - run
       - --hub.token={{ VARS.TOKEN }}

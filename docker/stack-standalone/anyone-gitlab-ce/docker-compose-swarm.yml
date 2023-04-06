@@ -28,7 +28,7 @@ networks:
 
 services:
   gitlab-ce:
-    image: 'gitlab/gitlab-ce:13.12.15-ce.0'
+    image: gitlab/gitlab-ce:13.12.15-ce.0
     env_file: external_env-all.env
     environment:
       GITLAB_HOME: /home/gitlab/

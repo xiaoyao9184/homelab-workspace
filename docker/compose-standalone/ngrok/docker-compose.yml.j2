@@ -3,8 +3,8 @@ version: "3.8"
 services:
   ngrok:
     image: ngrok/ngrok:latest
-    command: start --all
     env_file: external_env-all.env
+    command: start --all
     environment:
       - NGROK_CONFIG=/etc/ngrok.yml
     #   - NGROK_AUTHTOKEN=?

@@ -38,16 +38,16 @@
             driver: local
         volumes: "{{ gitlab.vol | default(default,true) }}"
 
-    - name: build env_file
-      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-env.create.yml"
-      vars:
-        env: 
-          dest: "{{ dir.remote }}/external_env-all.env"
-          data: "{{ gitlab.env | default([],true) }}"
-
     # https://medium.com/@jonsbun/why-need-to-be-careful-when-mounting-single-files-into-a-docker-container-4f929340834
     - name: overwrite bind conf
       ansible.builtin.shell: "cat {{ dir.remote }}/config/omnibus.rb > {{ dir.remote }}/bind_file-omnibus"
+
+    - name: build env_file
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-envs.create.yml"
+      vars:
+        envs:
+          - dest: "{{ dir.remote }}/external_env-all.env"
+            data: "{{ gitlab.env | default([],true) }}"
 
     - name: add compose service
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-compose.add.yml"

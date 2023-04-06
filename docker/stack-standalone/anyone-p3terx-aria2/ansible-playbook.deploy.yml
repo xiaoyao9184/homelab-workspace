@@ -98,6 +98,14 @@
       vars:
         labels: "{{ aria2.lab | default([],true) }}"
 
+    - name: build env_file
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-envs.create.yml"
+      vars:
+        envs:
+          - dest: "{{ dir.remote }}/external_env-all.env"
+            data: "{{ aria2.env | default([],true) }}"
+            mode: stack
+
 
 - name: deploy
   hosts: docker-manager
@@ -111,13 +119,6 @@
     - name: set dir
       when: dir is undefined
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.set.yml"
-
-    - name: build env_file
-      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-env.create.yml"
-      vars:
-        env:
-          dest: "{{ dir.remote }}/external_env-all.env"
-          data: "{{ aria2.env | default([],true) }}"
 
     - name: add stack service
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-compose.add.yml"

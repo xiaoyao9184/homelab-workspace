@@ -48,9 +48,11 @@
     - name: build env_file
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-envs.create.yml"
       vars:
-        envs: 
+        envs:
           - dest: "{{ dir.remote }}/external_env-shinobi.env"
             data: "{{ shinobi.env | default([],true) }}"
+          # - dest: "{{ dir.remote }}/external_env-tf.env"
+          #   data: "{{ shinobi.tf.env | default([],true) }}"
 
     - name: add compose service
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-compose.add.yml"
