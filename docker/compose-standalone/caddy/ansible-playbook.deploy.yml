@@ -54,12 +54,12 @@
             data: "{{ caddy.env | default([],true) }}"
 
     - name: build compose_file
-      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-compose.create.yml"
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-composes.create.yml"
       vars:
-        compose:
-          version: "3.8"
-          dest: "{{ dir.remote }}/docker-compose.networks.yml"
-          data: "{{ caddy.compose | default({},true) }}"
+        composes:
+          - version: "3.8"
+            dest: "{{ dir.remote }}/docker-compose.networks.yml"
+            data: "{{ caddy.compose | default({},true) }}"
 
     - name: add compose service
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-compose.add.yml"

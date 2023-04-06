@@ -35,12 +35,12 @@
             data: []
 
     - name: build compose_file
-      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-compose.create.yml"
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-composes.create.yml"
       vars:
-        compose:
-          version: "3.8"
-          dest: "{{ dir.remote }}/docker-compose.networks.yml"
-          data: "{{ frp.client.compose | default({},true) }}"
+        composes:
+          - version: "3.8"
+            dest: "{{ dir.remote }}/docker-compose.networks.yml"
+            data: "{{ frp.client.compose | default({},true) }}"
 
     # TODO Found orphan containers
     - name: remove compose service
