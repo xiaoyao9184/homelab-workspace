@@ -45,10 +45,10 @@
     - name: add external_cfg
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-configs.add.yml"
       vars:
-        _default:
+        default:
           external_cfg-frp-client:
             file: "{{ dir.remote }}/config/frpc.ini"
-        configs: "{{ frp.client.cfg | default(_default,true) }}"
+        configs: "{{ frp.client.cfg | default(default,true) }}"
 
     - name: add swarm label
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-label.add.yml"

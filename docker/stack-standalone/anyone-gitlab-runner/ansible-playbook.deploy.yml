@@ -51,6 +51,11 @@
             driver: overlay
             attachable: true
 
+    # - name: add external_cfg
+    #   include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-configs.add.yml"
+    #   vars:
+    #     configs: "{{ gitlab.runner.cfg | default([],true) }}"
+
     - name: add swarm label
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-label.add.yml"
       vars:

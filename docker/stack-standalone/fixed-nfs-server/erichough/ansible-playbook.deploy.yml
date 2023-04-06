@@ -74,6 +74,11 @@
             attachable: true
         networks: "{{ nfs.net | default(default,true) }}"
 
+    # - name: add external_cfg
+    #   include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-configs.add.yml"
+    #   vars:
+    #     configs: "{{ nfs.cfg | default([],true)}}"
+
     # https://medium.com/@jonsbun/why-need-to-be-careful-when-mounting-single-files-into-a-docker-container-4f929340834
     - name: overwrite bind exports
       ansible.builtin.shell: "cat {{ dir.remote }}/exports/exports > {{ dir.remote }}/bind_file-exports"

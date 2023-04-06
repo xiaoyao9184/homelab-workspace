@@ -83,6 +83,11 @@
             attachable: true
         networks: "{{ aria2.net | default(default,true) }}"
 
+    # - name: add external_cfg
+    #   include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-configs.add.yml"
+    #   vars:
+    #     configs: "{{ aria2.cfg | default([],true) }}"
+
 
 - name: deploy
   hosts: docker-manager
@@ -106,11 +111,6 @@
     #   include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-secrets.add.yml"
     #   vars:
     #     secrets: "{{ aria2.sec | default([],true) }}"
-
-    # - name: add swarm config
-    #   include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-configs.add.yml"
-    #   vars:
-    #     configs: "{{ aria2.cfg | default([],true) }}"
 
     - name: build env_file
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-env.create.yml"

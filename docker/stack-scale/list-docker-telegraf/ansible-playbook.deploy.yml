@@ -84,18 +84,6 @@
       vars:
         networks: "{{ services_net }}"
 
-    - name: init services_lab
-      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/var-mixed.flatten.yml"
-      vars:
-        mixed:
-          list: "{{ services_var | selectattr('lab', 'defined') | map(attribute='lab') }}"
-          register: services_lab
-
-    - name: add swarm label
-      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-label.add.yml"
-      vars:
-        labels: "{{ services_lab }}"
-
     - name: init services_cfg
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/var-mixed.flatten.yml"
       vars:
@@ -107,6 +95,18 @@
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-configs.add.yml"
       vars:
         configs: "{{ services_cfg }}"
+
+    - name: init services_lab
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/var-mixed.flatten.yml"
+      vars:
+        mixed:
+          list: "{{ services_var | selectattr('lab', 'defined') | map(attribute='lab') }}"
+          register: services_lab
+
+    - name: add swarm label
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-label.add.yml"
+      vars:
+        labels: "{{ services_lab }}"
 
     - name: init services_env
       ansible.builtin.set_fact:
