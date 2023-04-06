@@ -70,7 +70,7 @@
     - name: copy webui to volume
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-volumes.copy.yml"
       vars:
-        volumes: 
+        volumes:
           external_vol-transmission-config:
             remote_src: "{{ true if (transmission.combustion.delegate | default(None) == None) else false }}"
             src: "{{ combustion.webui }}/combustion-release/"

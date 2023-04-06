@@ -30,12 +30,12 @@
     - name: add external_vol
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-volumes.add.yml"
       vars:
-        _default:
+        default:
           external_vol-caddy-data:
             driver: local
           external_vol-caddy-config:
             driver: local
-        volumes: "{{ caddy.vol | default(_default,true) }}"
+        volumes: "{{ caddy.vol | default(default,true) }}"
 
     - name: add external_net
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-networks.add.yml"

@@ -37,7 +37,8 @@
     # - name: add external_vol
     #   include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-volumes.add.yml"
     #   vars:
-    #     volumes: "{{ gitlab.runner.vol | default([],true) }}"
+    #     default: []
+    #     volumes: "{{ gitlab.runner.vol | default(default,true) }}"
 
     - name: add external_net
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-networks.add.yml"

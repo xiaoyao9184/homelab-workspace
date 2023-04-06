@@ -31,12 +31,12 @@
     - name: add external_vol
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-volumes.add.yml"
       vars:
-        _default:
+        default:
           external_vol-influxdb-data:
             driver: local
           external_vol-influxdb-collectd:
             driver: local
-        volumes: "{{ influxdb.vol | default(_default,true) }}"
+        volumes: "{{ influxdb.vol | default(default,true) }}"
 
     # https://medium.com/@jonsbun/why-need-to-be-careful-when-mounting-single-files-into-a-docker-container-4f929340834
     - name: overwrite bind conf

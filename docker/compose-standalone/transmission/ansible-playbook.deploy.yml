@@ -29,7 +29,7 @@
     - name: add external_vol
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-volumes.add.yml"
       vars:
-        _default:
+        default:
           external_vol-transmission-config:
             driver: local
           external_vol-transmission-watch:
@@ -38,7 +38,7 @@
             driver: local
           external_vol-transmission-complete:
             driver: local
-        volumes: "{{ transmission.vol | default(_default,true) }}"
+        volumes: "{{ transmission.vol | default(default,true) }}"
 
     - name: build env_file
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-env.create.yml"

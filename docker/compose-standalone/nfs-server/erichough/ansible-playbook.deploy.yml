@@ -35,21 +35,21 @@
     - name: add external_vol
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-volumes.add.yml"
       vars:
-        _default:
+        default:
           external_vol-nfs-server-data:
             driver: local
-        volumes: "{{ nfs.vol | default(_default,true) }}"
+        volumes: "{{ nfs.vol | default(default,true) }}"
 
     - name: copy to volume
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-volumes.copy.yml"
       vars:
-        _default:
+        default:
           external_vol-nfs-server-data:
             remote_src: true
             src: "{{ dir.remote }}/data/"
             dest: "./"
             directory_mode: '0777'
-        volumes: "{{ nfs.vol_copy | default(_default,true) }}"
+        volumes: "{{ nfs.vol_copy | default(default,true) }}"
 
     # https://medium.com/@jonsbun/why-need-to-be-careful-when-mounting-single-files-into-a-docker-container-4f929340834
     - name: overwrite bind exports

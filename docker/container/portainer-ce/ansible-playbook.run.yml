@@ -18,7 +18,7 @@
     - name: add vol
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-volumes.add.yml"
       vars:
-        volumes: 
+        volumes:
           portainer_data:
             driver: local
 

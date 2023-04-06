@@ -65,14 +65,14 @@
     - name: add external_vol
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-volumes.add.yml"
       vars:
-        _default:
+        default:
           external_vol-aria2-config:
             driver: local
           external_vol-aria2-downloads:
             driver: local
           external_vol-aria2-completed:
             driver: local
-        volumes: "{{ aria2.vol | default(_default,true) }}"
+        volumes: "{{ aria2.vol | default(default,true) }}"
 
     - name: add external_net
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-networks.add.yml"

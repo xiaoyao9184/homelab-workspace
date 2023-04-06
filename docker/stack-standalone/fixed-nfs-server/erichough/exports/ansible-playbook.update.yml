@@ -41,13 +41,13 @@
     - name: copy to volume
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-volumes.copy.yml"
       vars:
-        _default:
+        default:
           external_vol-nfs-server-data:
             remote_src: true
             src: "{{ dir.remote }}/../data/"
             dest: "./"
             directory_mode: '0777'
-        volumes: "{{ nfs.exports.vol_copy | default(_default) }}"
+        volumes: "{{ nfs.exports.vol_copy | default(default,true) }}"
 
 
 - name: deploy

@@ -29,14 +29,14 @@
     - name: add external_vol
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-volumes.add.yml"
       vars:
-        _default:
+        default:
           external_vol-gitlab-config:
             driver: local
           external_vol-gitlab-log:
             driver: local
           external_vol-gitlab-data:
             driver: local
-        volumes: "{{ gitlab.vol | default(_default,true) }}"
+        volumes: "{{ gitlab.vol | default(default,true) }}"
 
     - name: build env_file
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-env.create.yml"

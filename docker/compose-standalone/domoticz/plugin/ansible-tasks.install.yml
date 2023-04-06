@@ -28,8 +28,8 @@
 - name: plugin.install|copy to volume
   include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-volumes.copy.yml"
   vars:
-    _default: []
-    volumes: "{{ _plugin.vol_copy | default(_default,true) }}"
+    default: []
+    volumes: "{{ _plugin.vol_copy | default(default,true) }}"
 
 - name: plugin.install|exec
   when:

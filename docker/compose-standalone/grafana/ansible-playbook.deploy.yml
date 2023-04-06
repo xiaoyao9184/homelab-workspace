@@ -28,20 +28,20 @@
     - name: add external_vol
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-volumes.add.yml"
       vars:
-        _default:
+        default:
           external_vol-grafana-data:
             driver: local
           external_vol-grafana-dashboards:
             driver: local
           external_vol-grafana-provisioning:
             driver: local
-        volumes: "{{ grafana.vol | default(_default,true) }}"
+        volumes: "{{ grafana.vol | default(default,true) }}"
 
     - name: copy to volume
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-volumes.copy.yml"
       vars:
-        _default: {}
-        volumes: "{{ grafana.vol_copy | default(_default,true) }}"
+        default: []
+        volumes: "{{ grafana.vol_copy | default(default,true) }}"
 
     - name: add external_net
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-networks.add.yml"
