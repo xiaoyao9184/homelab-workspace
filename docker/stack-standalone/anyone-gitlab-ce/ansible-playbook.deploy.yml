@@ -96,6 +96,14 @@
             file: "{{ dir.remote }}/config/omnibus.rb"
         configs: "{{ gitlab.cfg | default(default,true) }}"
 
+    - name: add external_sec
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-secrets.add.yml"
+      vars:
+        default:
+          external_sec-gitlab-password:
+            data: gitlab.123
+        secrets: "{{ gitlab.sec | default(default,true) }}"
+
 
 - name: deploy
   environment:
@@ -111,14 +119,6 @@
     - name: set dir
       when: dir is undefined
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.set.yml"
-
-    - name: add external_sec
-      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-secrets.add.yml"
-      vars:
-        _default:
-          external_sec-gitlab-password:
-            data: gitlab.123
-        secrets: "{{ gitlab.sec | default(_default,true) }}"
 
     - name: build env_file
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-env.create.yml"

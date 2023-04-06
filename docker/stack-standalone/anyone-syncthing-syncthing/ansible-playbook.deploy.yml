@@ -90,6 +90,11 @@
     #   vars:
     #     configs: "{{ syncthing.cfg | default([],true) }}"
 
+    # - name: add external_sec
+    #   include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-secrets.add.yml"
+    #   vars:
+    #     secrets: "{{ syncthing.sec | default([],true) }}"
+
 
 - name: deploy
   environment:
@@ -110,11 +115,6 @@
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-label.add.yml"
       vars:
         labels: "{{ syncthing.lab | default([],true) }}"
-
-    # - name: add swarm secret
-    #   include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-secrets.add.yml"
-    #   vars:
-    #     secrets: "{{ syncthing.sec | default([],true) }}"
 
     - name: build env_file
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-env.create.yml"

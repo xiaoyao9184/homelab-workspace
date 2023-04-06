@@ -87,6 +87,11 @@
     #   vars:
     #     configs: "{{ headscale.cfg | default([],true) }}"
 
+    # - name: add external_sec
+    #   include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-secrets.add.yml"
+    #   vars:
+    #     secrets: "{{ headscale.sec | default([],true) }}"
+
 
 - name: deploy
   hosts: docker-manager
@@ -107,11 +112,6 @@
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-label.add.yml"
       vars:
         labels: "{{ headscale.lab | default([],true) }}"
-
-    # - name: add swarm secret
-    #   include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-secrets.add.yml"
-    #   vars:
-    #     secrets: "{{ headscale.sec | default([],true) }}"
 
     - name: build env_file
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-env.create.yml"

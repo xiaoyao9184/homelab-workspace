@@ -79,6 +79,11 @@
     #   vars:
     #     configs: "{{ nfs.cfg | default([],true)}}"
 
+    # - name: add external_sec
+    #   include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-secrets.add.yml"
+    #   vars:
+    #     secrets: "{{ nfs.sec | default([],true) }}"
+
     # https://medium.com/@jonsbun/why-need-to-be-careful-when-mounting-single-files-into-a-docker-container-4f929340834
     - name: overwrite bind exports
       ansible.builtin.shell: "cat {{ dir.remote }}/exports/exports > {{ dir.remote }}/bind_file-exports"

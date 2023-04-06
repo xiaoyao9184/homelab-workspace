@@ -43,6 +43,11 @@
             file: "{{ dir.remote }}/config/frps.ini"
         configs: "{{ frp.server.cfg | default(default,true)}}"
 
+    # - name: add external_sec
+    #   include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-secrets.add.yml"
+    #   vars:
+    #     secrets: "{{ frp.server.sec | default([],true) }}"
+
     - name: add swarm label
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-label.add.yml"
       vars:

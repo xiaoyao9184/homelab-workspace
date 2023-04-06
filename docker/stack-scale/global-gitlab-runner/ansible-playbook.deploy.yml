@@ -54,6 +54,11 @@
     #   vars:
     #     configs: "{{ gitlab.runner.cfg | default([],true) }}"
 
+    # - name: add external_sec
+    #   include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-secrets.add.yml"
+    #   vars:
+    #     secrets: "{{ gitlab.runner.sec | default([],true) }}"
+
 
 - name: deploy
   environment:
