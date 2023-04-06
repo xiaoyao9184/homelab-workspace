@@ -62,11 +62,11 @@
     - name: add external_net
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-networks.add.yml"
       vars:
-        _default:
+        default:
           external_net-nexus:
             driver: overlay
             attachable: true
-        networks: "{{ nexus.net | default(_default,true) }}"
+        networks: "{{ nexus.net | default(default,true) }}"
 
 
 - name: deploy

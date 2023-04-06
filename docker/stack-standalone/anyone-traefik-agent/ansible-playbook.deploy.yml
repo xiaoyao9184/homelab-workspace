@@ -31,11 +31,11 @@
     - name: add external_net
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-networks.add.yml"
       vars:
-        _default:
+        default:
           external_net-traefik:
             driver: overlay
             attachable: true
-        networks: "{{ traefik.net | default(_default,true) }}"
+        networks: "{{ traefik.net | default(default,true) }}"
 
     - name: build compose_file
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-compose.create.yml"

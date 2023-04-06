@@ -29,6 +29,15 @@
               run_once: true
           cp: "{{ telegraf.dir_copy | default([],true) }}"
 
+    - name: add external_net
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-networks.add.yml"
+      vars:
+        default:
+          external_net-influxdb:
+            driver: overlay
+            attachable: true
+        networks: "{{ telegraf.net | default(default,true) }}"
+
     - name: add swarm label
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-label.add.yml"
       vars:
@@ -41,14 +50,6 @@
           external_cfg-telegraf-conf:
             file: "{{ dir.remote }}/config/telegraf.conf"
         configs: "{{ telegraf.cfg | default(_default,true) }}"
-
-    - name: add external_net
-      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-networks.add.yml"
-      vars:
-        networks: 
-          external_net-influxdb:
-            driver: overlay
-            attachable: true
 
     - name: build env_file
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-env.create.yml"

@@ -65,18 +65,18 @@
             directory_mode: '0777'
         volumes: "{{ nfs.vol_copy | default(default,true) }}"
 
-    # https://medium.com/@jonsbun/why-need-to-be-careful-when-mounting-single-files-into-a-docker-container-4f929340834
-    - name: overwrite bind exports
-      ansible.builtin.shell: "cat {{ dir.remote }}/exports/exports > {{ dir.remote }}/bind_file-exports"
-
     - name: add external_net
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-networks.add.yml"
       vars:
-        _default:
+        default:
           external_net-nfs:
             driver: overlay
             attachable: true
-        networks: "{{ nfs.net | default(_default,true) }}"
+        networks: "{{ nfs.net | default(default,true) }}"
+
+    # https://medium.com/@jonsbun/why-need-to-be-careful-when-mounting-single-files-into-a-docker-container-4f929340834
+    - name: overwrite bind exports
+      ansible.builtin.shell: "cat {{ dir.remote }}/exports/exports > {{ dir.remote }}/bind_file-exports"
 
 
 - name: deploy

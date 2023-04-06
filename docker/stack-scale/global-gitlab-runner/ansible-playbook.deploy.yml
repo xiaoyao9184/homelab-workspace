@@ -43,11 +43,11 @@
     - name: add external_net
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-networks.add.yml"
       vars:
-        _default:
+        default:
           external_net-gitlab:
             driver: overlay
             attachable: true
-        networks: "{{ gitlab.runner.net | default(_default,true) }}"
+        networks: "{{ gitlab.runner.net | default(default,true) }}"
 
 
 - name: deploy

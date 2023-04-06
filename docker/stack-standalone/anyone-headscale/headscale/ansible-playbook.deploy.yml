@@ -76,11 +76,11 @@
     - name: add external_net
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-networks.add.yml"
       vars:
-        _default:
+        default:
           external_net-headscale:
             driver: overlay
             attachable: true
-        networks: "{{ headscale.net | default(_default,true) }}"
+        networks: "{{ headscale.net | default(default,true) }}"
 
 
 - name: deploy

@@ -82,11 +82,11 @@
     - name: add external_net
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-networks.add.yml"
       vars:
-        _default:
+        default:
           external_net-gitlab:
             driver: overlay
             attachable: true
-        networks: "{{ gitlab.net | default(_default,true) }}"
+        networks: "{{ gitlab.net | default(default,true) }}"
 
 
 

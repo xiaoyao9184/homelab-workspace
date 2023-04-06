@@ -70,11 +70,11 @@
     - name: add external_net
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-networks.add.yml"
       vars:
-        _default:
+        default:
           external_net-influxdb:
             driver: overlay
             attachable: true
-        networks: "{{ influxdb.net | default(_default,true) }}"
+        networks: "{{ influxdb.net | default(default,true) }}"
 
 
 - name: deploy

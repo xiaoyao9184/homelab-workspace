@@ -104,6 +104,29 @@
       vars:
         volumes: "{{ services_vol }}"
 
+    # - name: init services_net
+    #   ansible.builtin.set_fact:
+    #     services_net:
+    #       - name: external_net-rclone
+    #         driver: local
+
+    # - name: append services_net
+    #   loop: "{{ services_name }}"
+    #   loop_control:
+    #     loop_var: name
+    #   vars:
+    #     service: "{{ rclone_proxy.services[name] }}"
+    #     net:
+    #       - name: "external_net-rclone-{{ name }}"
+    #         driver: local
+    #   ansible.builtin.set_fact:
+    #     services_net: "{{ services_net + [net] }}"
+
+    # - name: add external_net
+    #   include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-networks.add.yml"
+    #   vars:
+    #     networks: "{{ services_net }}"
+
     - name: init services_env
       ansible.builtin.set_fact:
         services_env: []

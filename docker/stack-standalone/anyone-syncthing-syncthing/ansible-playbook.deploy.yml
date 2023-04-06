@@ -79,11 +79,11 @@
     - name: add external_net
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-networks.add.yml"
       vars:
-        _default:
+        default:
           external_net-syncthing:
             driver: overlay
             attachable: true
-        networks: "{{ syncthing.net | default(_default,true) }}"
+        networks: "{{ syncthing.net | default(default,true) }}"
 
 
 - name: deploy

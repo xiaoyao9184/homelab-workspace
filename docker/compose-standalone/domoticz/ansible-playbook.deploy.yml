@@ -37,8 +37,7 @@
     - name: add external_net
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-networks.add.yml"
       vars:
-        _default: {}
-        networks: "{{ domoticz.net | default(_default,true) }}"
+        networks: "{{ domoticz.net | default([],true) }}"
 
     - name: build compose_file
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-compose.create.yml"

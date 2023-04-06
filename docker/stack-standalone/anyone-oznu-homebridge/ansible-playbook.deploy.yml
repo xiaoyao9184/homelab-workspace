@@ -62,11 +62,11 @@
     # - name: add external_net
     #   include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-networks.add.yml"
     #   vars:
-    #     _default:
+    #     default:
     #       external_net-homebridge:
     #         driver: overlay
     #         attachable: true
-    #     networks: "{{ homebridge.net | default(_default,true) }}"
+    #     networks: "{{ homebridge.net | default(default,true) }}"
 
 
 - name: deploy

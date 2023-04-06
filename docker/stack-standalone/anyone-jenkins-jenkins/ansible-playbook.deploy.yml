@@ -70,11 +70,11 @@
     - name: add external_net
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-networks.add.yml"
       vars:
-        _default:
+        default:
           external_net-jenkins:
             driver: overlay
             attachable: true
-        networks: "{{ jenkins.net | default(_default,true) }}"
+        networks: "{{ jenkins.net | default(default,true) }}"
 
 
 - name: deploy
