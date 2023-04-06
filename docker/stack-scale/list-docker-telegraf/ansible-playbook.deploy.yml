@@ -104,14 +104,14 @@
           register: services_lab
 
     - name: add swarm label
-      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-label.add.yml"
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-labels.add.yml"
       vars:
         labels: "{{ services_lab }}"
 
     - name: init services_env
       ansible.builtin.set_fact:
         services_env: []
-    
+
     - name: append services_env
       loop: "{{ services_name }}"
       loop_control:

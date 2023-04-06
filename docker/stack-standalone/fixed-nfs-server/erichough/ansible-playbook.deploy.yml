@@ -84,6 +84,11 @@
     #   vars:
     #     secrets: "{{ nfs.sec | default([],true) }}"
 
+    - name: add swarm label
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-labels.add.yml"
+      vars:
+        labels: "{{ nfs.lab | default([],true) }}"
+
     # https://medium.com/@jonsbun/why-need-to-be-careful-when-mounting-single-files-into-a-docker-container-4f929340834
     - name: overwrite bind exports
       ansible.builtin.shell: "cat {{ dir.remote }}/exports/exports > {{ dir.remote }}/bind_file-exports"
@@ -103,11 +108,6 @@
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.set.yml"
       vars:
         length: 2
-
-    - name: add swarm label
-      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-label.add.yml"
-      vars:
-        labels: "{{ nfs.lab | default([],true) }}"
 
     - name: build env_file
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-envs.create.yml"

@@ -97,6 +97,11 @@
     #   vars:
     #     secrets: "{{ grafana.sec | default([],true) }}"
 
+    - name: add swarm label
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-labels.add.yml"
+      vars:
+        labels: "{{ grafana.lab | default([],true) }}"
+
 
 - name: deploy
   environment:
@@ -112,11 +117,6 @@
     - name: set dir
       when: dir is undefined
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.set.yml"
-
-    - name: add swarm label
-      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-label.add.yml"
-      vars:
-        labels: "{{ grafana.lab | default([],true) }}"
 
     - name: build env_file
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-env.create.yml"

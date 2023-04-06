@@ -52,7 +52,7 @@
     #     secrets: "{{ telegraf.sec | default([],true) }}"
 
     - name: add swarm label
-      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-label.add.yml"
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-labels.add.yml"
       vars:
         labels: "{{ telegraf.lab | default([],true) }}"
 
