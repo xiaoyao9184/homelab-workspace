@@ -50,13 +50,3 @@
         compose:
           type: stack
           name: "{{ dir.names[0] }}"
-          path: "{{ dir.remote }}"
-          # files: 
-          #   - "docker-compose-swarm.yml"
-          template: 
-            name: "docker-compose-swarm"
-            opt:
-              src: "{{ dir.local }}/docker-compose-swarm.yml.j2"
-              dest: "{{ dir.remote }}/docker-compose-swarm.yml"
-            vars:
-              BIND_EXPORTS: "{{ dir.remote }}/bind_exports"

@@ -63,7 +63,6 @@
           path: "{{ dir.remote }}"
           files:
             - "docker-compose.networks.yml"
-          # files:
           #   - "docker-compose.yml"
           template:
             name: "docker-compose"

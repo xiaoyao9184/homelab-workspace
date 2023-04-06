@@ -42,7 +42,7 @@
           type: stack
           name: "{{ dir.names[0] }}"
           path: "{{ dir.remote }}/{{ dir.names[-1] }}"
-          files: 
+          files:
             - "docker-compose-swarm.yml"
 
     - name: add external_net
@@ -69,5 +69,5 @@
           type: stack
           name: "{{ dir.names[0] }}"
           path: "{{ dir.remote }}/{{ dir.names[-1] }}"
-          files: 
+          files:
             - "docker-compose-swarm.yml"

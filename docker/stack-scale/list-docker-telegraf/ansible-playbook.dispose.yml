@@ -99,13 +99,13 @@
       ansible.builtin.set_fact:
         services_template: "{{ services_template + [template] }}"
 
-    - name: remove compose service
+    - name: remove stack service
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-compose.rm.yml"
       vars:
         compose:
           type: stack
           name: "{{ dir.names[0] }}"
           path: "{{ dir.remote }}/docker-compose-swarm"
-          # files: 
+          # files:
           #   - "docker-compose-swarm.yml"
           template: "{{ services_template }}"

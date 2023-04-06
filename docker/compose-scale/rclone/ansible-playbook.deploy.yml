@@ -175,6 +175,6 @@
           type: compose
           name: "{{ dir.names[0] }}"
           path: "{{ dir.remote }}/docker-compose"
-          # files: 
+          # files:
           #   - "docker-compose.yml"
           template: "{{ services_template }}"

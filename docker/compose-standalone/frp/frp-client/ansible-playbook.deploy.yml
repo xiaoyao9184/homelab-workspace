@@ -68,11 +68,10 @@
           type: compose
           name: "{{ dir.names[0] }}"
           path: "{{ dir.remote }}"
-          files: 
+          files:
             - "docker-compose.networks.yml"
-          # files: 
           #   - "docker-compose.yml"
-          template: 
+          template:
             name: "docker-compose"
             opt:
               src: "{{ dir.local }}/docker-compose.yml.j2"

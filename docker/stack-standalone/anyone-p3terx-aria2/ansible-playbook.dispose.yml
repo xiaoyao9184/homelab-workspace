@@ -41,14 +41,3 @@
         compose:
           type: stack
           name: "{{ dir.names[0] }}"
-          path: "{{ dir.remote }}"
-          # files:
-          #   - "docker-compose-swarm.yml"
-          template:
-            name: docker-compose-swarm
-            opt:
-              src: "{{ dir.local }}/docker-compose-swarm.yml.j2"
-              dest: "{{ dir.remote }}/docker-compose-swarm.yml"
-            vars:
-              PROPAGATION_DOWNLOAD: "{{ aria2.tmp.bind_download_share_propagation | default(false) }}"
-              BIND_DOWNLOAD: "{{ aria2.tmp.bind_download_volume | default('downloads') }}"

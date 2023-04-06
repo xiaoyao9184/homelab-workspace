@@ -108,22 +108,6 @@
             data: "{{ syncthing.env | default([],true) }}"
             mode: stack
 
-
-- name: deploy
-  environment:
-    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
-  hosts: docker-manager
-  run_once: true
-  tasks:
-  
-    - name: set ws
-      when: ws is undefined
-      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/ws.set.yml"
-
-    - name: set dir
-      when: dir is undefined
-      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.set.yml"
-
     - name: add stack service
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-compose.add.yml"
       vars:

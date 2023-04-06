@@ -37,5 +37,5 @@
           type: stack
           name: "{{ dir.names[0] }}"
           path: "{{ dir.remote }}"
-          files: 
+          files:
             - "docker-compose-swarm.yml"

@@ -42,5 +42,5 @@
           type: compose
           name: "{{ dir.names[0] }}"
           path: "{{ dir.remote }}"
-          files: 
+          files:
             - "docker-compose.yml"

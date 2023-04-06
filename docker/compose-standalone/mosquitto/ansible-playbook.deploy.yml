@@ -49,16 +49,16 @@
           - dest: "{{ dir.remote }}/external_env-all.env"
             data: "{{ mosquitto.env | default([],true) }}"
 
-    - name: add stack service
+    - name: add compose service
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-compose.add.yml"
       vars:
         compose:
           type: compose
           name: "{{ dir.names[0] }}"
           path: "{{ dir.remote }}"
-          # files: 
+          # files:
           #   - "docker-compose.yml"
-          template: 
+          template:
             name: "docker-compose"
             opt:
               src: "{{ dir.local }}/docker-compose.yml.j2"
