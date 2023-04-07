@@ -8,8 +8,7 @@
         $PWD/../../../docker/stack-scale/global-gitlab-runner/ansible-playbook.dispose.yml
   environment:
     PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
-  hosts: "{{ 'docker:&docker-gitlab-node' if (groups['docker-gitlab-node'] is defined) else 'docker' }}"
-  run_once: true
+  hosts: "{{ 'docker:&docker-gitlab-runner' if (groups['docker-gitlab-runner'] is defined) else 'docker' }}"
   tasks: 
 
     - name: set ws
@@ -22,26 +21,9 @@
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-service.exec.yml"
       vars:
         service:
-          name: "gitlab-runner"
-          namespace: "{{ dir.names | join('_') }}"
-          command: |
-            gitlab-runner unregister \
-              --all-runners
+          name: "{{ dir.names | join('_') }}_gitlab-runner"
+          command: "gitlab-runner unregister --all-runners"
           result: "runner_unregister"
-
-
-- name: dispose
-  environment:
-    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
-  hosts: docker-manager
-  run_once: true
-  tasks: 
-
-    - name: set ws
-      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/ws.set.yml"
-
-    - name: set dir
-      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.set.yml"
 
     - name: copy to dir
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dirs.copy.yml"

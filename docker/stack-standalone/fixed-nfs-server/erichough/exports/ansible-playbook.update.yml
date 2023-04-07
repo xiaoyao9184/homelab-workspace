@@ -49,36 +49,16 @@
             directory_mode: '0777'
         volumes: "{{ nfs.exports.vol_copy | default(default,true) }}"
 
-
-- name: deploy
-  hosts: docker-manager
-  run_once: true
-  tasks: 
-
-    - name: set ws
-      when: ws is undefined
-      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/ws.set.yml"
-
-    - name: set dir
-      when: dir is undefined
-      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.set.yml"
-      vars:
-        length: 2
-
     # https://medium.com/@jonsbun/why-need-to-be-careful-when-mounting-single-files-into-a-docker-container-4f929340834
     - name: overwrite bind exports
+      delegate_to: "{{ groups['docker-manager'] | first }}"
+      run_once: true
       ansible.builtin.shell: "cat {{ dir.remote }}/../exports/exports > {{ dir.remote }}/../bind_file-exports"
 
     - name: exportfs on service
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-service.exec.yml"
       vars:
         service:
-          type: stack
-          name: "nfs-server"
-          namespace: "{{ dir.names[0] }}"
+          name: "{{ dir.names[0] }}_nfs-server"
           command: "exportfs"
           result: exportfs_result
-
-    - name: print exportfs result
-      ansible.builtin.debug:
-        msg: "{{ exportfs_result }}"

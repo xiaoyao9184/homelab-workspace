@@ -8,11 +8,18 @@
       retries: -1
       delay: 10
     wait_update: "{{ apikey.wait | default({}) }}"
+    exec_default:
+      name: anyone-headscale_headscale
+      command: []
+      result: exec_result
+    exec_update: "{{ apikey.exec | default({}) }}"
   ansible.builtin.set_fact:
     _apikey:
       ws: "{{ apikey.ws }}"
       wait: "{{ wait_default | combine(wait_update, recursive=True) }}"
+      list_command: "headscale apikey list -o json"
       prefix: "{{ apikey.prefix | default([]) }}"
+      exec: "{{ exec_default | combine(exec_update, recursive=True) }}"
       result: "{{ apikey.result | default('expire_result') }}"
 
 - name: apikey.create|wait service
@@ -24,11 +31,13 @@
 - when: _apikey.prefix | length == 0
   block:
 
-    - name: apikey.expire|list apikey
-      community.docker.docker_container_exec:
-        container: "{{ lookup_result.container_id }}"
-        command: "headscale apikey list -o json"
-      register: list_result
+    - name: apikey.expire|exec service
+      include_tasks: "{{ _apikey.ws.local }}/.seed/ansible-tasks/docker-service.exec.yml"
+      vars:
+        service:
+          name: "{{ _apikey.exec.name }}"
+          command: "{{ _apikey.list_command }}"
+          result: list_result
 
     - name: apikey.expire|set _apikey.prefix
       vars:
@@ -36,19 +45,26 @@
           prefix: "{{ list_result.stdout | from_json | json_query('[].prefix') | default([],true) }}"
       ansible.builtin.set_fact:
         _apikey: "{{ _apikey | combine(update, recursive=True) }}"
-      
+
+- name: apikey.expire|append _apikey.exec
+  loop: "{{ _apikey.prefix }}"
+  vars:
+    command_list: "{{ _apikey.exec.command | default([],true) }}"
+    command_item: "headscale apikey expire --prefix {{ item }}"
+    update:
+      exec:
+        command: "{{ command_list + [command_item] }}"
+  ansible.builtin.set_fact:
+    _apikey: "{{ _apikey | combine(update, recursive=True) }}"
+
 - name: apikey.expire|print _apikey
   debug:
     var: _apikey
 
-- name: apikey.expire|expire apikey
-  loop: "{{ _apikey.prefix }}"
-  when:
-    - lookup_result.exists
-  community.docker.docker_container_exec:
-    container: "{{ lookup_result.container_id }}"
-    command: "headscale apikey expire --prefix {{ item }}"
-  register: exec_result
+- name: apikey.expire|exec service
+  include_tasks: "{{ _apikey.ws.local }}/.seed/ansible-tasks/docker-service.exec.yml"
+  vars:
+    service: "{{ _apikey.exec }}"
 
 - name: apikey.expire|set _apikey.result
   when:

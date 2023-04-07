@@ -7,6 +7,11 @@
       retries: -1
       delay: 10
     wait_update: "{{ password.wait | default({}) }}"
+    exec_default:
+      name: anyone-jenkins-jenkins_jenkins
+      command: "bash -c '[ -f /var/jenkins_home/secrets/initialAdminPassword ] && cat /var/jenkins_home/secrets/initialAdminPassword"
+      result: exec_result
+    exec_update: "{{ config.exec | default({}) }}"
   ansible.builtin.set_fact:
     _password:
       ws: "{{ password.ws }}"
@@ -23,13 +28,10 @@
   debug:
     var: _password
 
-- name: admin-password.print|exec print
-  when:
-    - lookup_result.exists
-  community.docker.docker_container_exec:
-    container: "{{ lookup_result.container_id }}"
-    command: "bash -c '[ -f /var/jenkins_home/secrets/initialAdminPassword ] && cat /var/jenkins_home/secrets/initialAdminPassword"
-  register: exec_result
+- name: admin-password.print|exec service
+  include_tasks: "{{ _password.ws.local }}/.seed/ansible-tasks/docker-service.exec.yml"
+  vars:
+    service: "{{ _password.exec }}"
 
 - name: admin-password.print|set _password.result
   when:

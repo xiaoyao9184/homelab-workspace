@@ -8,7 +8,7 @@
         $PWD/../../../docker/stack-standalone/anyone-headscale/headscale/ansible-playbook.dispose.yml
   environment:
     PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
-  hosts: docker-manager
+  hosts: "{{ 'docker:&docker-headscale-node' if (groups['docker-headscale-node'] is defined) else 'docker' }}"
   run_once: true
   tasks: 
 
@@ -19,24 +19,6 @@
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.set.yml"
       vars:
         length: 2
-
-    - name: copy to dir
-      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dirs.copy.yml"
-      vars:
-        dirs:
-          sync:
-            - src: "{{ dir.local }}/docker-compose-swarm.yml"
-              dest: "{{ dir.remote }}/docker-compose-swarm.yml"
-              delegate_to: "{{ groups['docker-manager'] | first }}"
-              run_once: true
-
-    - name: build env_file
-      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-envs.create.yml"
-      vars:
-        envs:
-          - dest: "{{ dir.remote }}/external_env-all.env"
-            data: []
-            mode: stack
 
     - name: expire headscale preauthkey
       include_tasks: "{{ dir.local }}/ansible-tasks/preauthkey.expire.yml"
@@ -65,6 +47,24 @@
         apikey:
           ws: "{{ ws }}"
           result: apikey_result
+
+    - name: copy to dir
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dirs.copy.yml"
+      vars:
+        dirs:
+          sync:
+            - src: "{{ dir.local }}/docker-compose-swarm.yml"
+              dest: "{{ dir.remote }}/docker-compose-swarm.yml"
+              delegate_to: "{{ groups['docker-manager'] | first }}"
+              run_once: true
+
+    - name: build env_file
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-envs.create.yml"
+      vars:
+        envs:
+          - dest: "{{ dir.remote }}/external_env-all.env"
+            data: []
+            mode: stack
 
     - name: remove stack service
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-compose.rm.yml"

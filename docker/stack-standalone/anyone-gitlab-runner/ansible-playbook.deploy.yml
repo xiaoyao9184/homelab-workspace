@@ -1,5 +1,6 @@
 ---
 
+
 - name: deploy
   vars:
     run_wsl: |
@@ -8,7 +9,46 @@
         $PWD/../../../docker/stack-standalone/anyone-gitlab-runner/ansible-playbook.deploy.yml
   environment:
     PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
-  hosts: docker-manager
+  hosts: "{{ 'docker:&docker-gitlab-node' if (groups['docker-gitlab-node'] is defined) else 'docker' }}"
+  tasks:
+
+    - name: set ws
+      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/ws.set.yml"
+
+    - name: set dir
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.set.yml"
+
+    - name: wait host port
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/host-port.wait.yml"
+      vars:
+        wait_name: "{{ dir.names | join('_') }}"
+        wait_network:
+          - external_net-gitlab
+        wait_port: 
+          gitlab-ce: 80
+
+    - name: wait swarm service
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-service.wait.yml"
+      vars:
+        services:
+          - name: "{{ gitlab.runner.exec.ser_token | default('anyone-gitlab-runner_gitlab-ce',true) }}"
+            retries: -1
+            delay: 10
+
+    - name: exec get runner token
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-service.exec.yml"
+      vars:
+        service:
+          name: "{{ gitlab.runner.exec.ser_token | default('anyone-gitlab-runner_gitlab-ce',true) }}"
+          # https://stackoverflow.com/questions/59701804/obtain-shared-runners-token-gitlab-api
+          command: |
+            gitlab-rails runner -e production "puts Gitlab::CurrentSettings.current_application_settings.runners_registration_token"
+          result: "runner_token"
+
+- name: deploy
+  environment:
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
+  hosts: "{{ 'docker:&docker-gitlab-runner' if (groups['docker-gitlab-runner'] is defined) else 'docker' }}"
   run_once: true
   tasks: 
 
@@ -84,49 +124,6 @@
           files:
             - "docker-compose-swarm.yml"
 
-
-- name: deploy
-  environment:
-    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
-  hosts: "{{ 'docker:&docker-gitlab-node' if (groups['docker-gitlab-node'] is defined) else 'docker' }}"
-  tasks:
-
-    - name: wait host port
-      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/host-port.wait.yml"
-      vars:
-        wait_name: "{{ dir.names | join('_') }}"
-        wait_network:
-          - external_net-gitlab
-        wait_port: 
-          gitlab-ce: 80
-
-    - name: wait swarm service
-      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-service.wait.yml"
-      vars:
-        services:
-          - name: "{{ gitlab.runner.exec_target.service | default('gitlab-ce',true) }}"
-            namespace: "{{ gitlab.runner.exec_target.stack | default('anyone-gitlab-runner',true) }}"
-            retries: -1
-            delay: 10
-
-    - name: exec get runner token
-      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-service.exec.yml"
-      vars:
-        service:
-          name: "{{ gitlab.runner.exec_target.service | default('gitlab-ce',true) }}"
-          namespace: "{{ gitlab.runner.exec_target.stack | default('anyone-gitlab-runner',true) }}"
-          # https://stackoverflow.com/questions/59701804/obtain-shared-runners-token-gitlab-api
-          command: |
-            gitlab-rails runner -e production "puts Gitlab::CurrentSettings.current_application_settings.runners_registration_token"
-          result: "runner_token"
-
-
-- name: deploy
-  environment:
-    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
-  hosts: "{{ 'docker:&docker-gitlab-runner' if (groups['docker-gitlab-runner'] is defined) else 'docker' }}"
-  tasks:
-
     - name: wait swarm service
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-service.wait.yml"
       vars:
@@ -140,8 +137,7 @@
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-service.exec.yml"
       vars:
         service:
-          name: "gitlab-runner"
-          namespace: "{{ dir.names | join('_') }}"
+          name: "{{ dir.names | join('_') }}_gitlab-runner"
           command: |
             gitlab-runner register \
               --non-interactive \

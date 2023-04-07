@@ -8,11 +8,17 @@
       retries: -1
       delay: 10
     wait_update: "{{ preauthkey.wait | default({}) }}"
+    exec_default:
+      name: anyone-headscale_headscale
+      command: []
+      result: exec_result
+    exec_update: "{{ preauthkey.exec | default({}) }}"
   ansible.builtin.set_fact:
     _preauthkey:
       ws: "{{ preauthkey.ws }}"
       wait: "{{ wait_default | combine(wait_update, recursive=True) }}"
-      expire_user: "{{ preauthkey.expire_user | default([{'expire':'240h','user':'default'}]) }}" 
+      expire_user: "{{ preauthkey.expire_user | default([{'expire':'240h','user':'default'}]) }}"
+      exec: "{{ exec_default | combine(exec_update, recursive=True) }}"
       result: "{{ preauthkey.result | default('create_result') }}"
 
 - name: preauthkey.create|wait service
@@ -21,19 +27,25 @@
     services:
       - "{{ _preauthkey.wait }}"
 
+- name: preauthkey.create|append _preauthkey.exec
+  loop: "{{ _preauthkey.expire_user }}"
+  vars:
+    command_list: "{{ _preauthkey.exec.command | default([],true) }}"
+    command_item: "headscale preauthkey create -e {{ item.expire }} -u {{ item.user }} --reusable"
+    update:
+      exec:
+        command: "{{ command_list + [command_item] }}"
+  ansible.builtin.set_fact:
+    _preauthkey: "{{ _preauthkey | combine(update, recursive=True) }}"
+
 - name: preauthkey.create|print _preauthkey
   debug:
     var: _preauthkey
 
-- name: preauthkey.create|create preauthkey
-  loop: "{{ _preauthkey.expire_user }}"
-  when:
-    - lookup_result.exists
-    - item.expire | default(None,true) != None
-  community.docker.docker_container_exec:
-    container: "{{ lookup_result.container_id }}"
-    command: "headscale preauthkey create -e {{ item.expire }} -u {{ item.user }} --reusable"
-  register: exec_result
+- name: preauthkey.create|exec service
+  include_tasks: "{{ _preauthkey.ws.local }}/.seed/ansible-tasks/docker-service.exec.yml"
+  vars:
+    service: "{{ _preauthkey.exec }}"
 
 - name: preauthkey.create|set _preauthkey.result
   when:

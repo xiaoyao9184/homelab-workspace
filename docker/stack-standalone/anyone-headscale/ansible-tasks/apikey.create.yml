@@ -8,11 +8,17 @@
       retries: -1
       delay: 10
     wait_update: "{{ apikey.wait | default({}) }}"
+    exec_default:
+      name: anyone-headscale_headscale
+      command: []
+      result: exec_result
+    exec_update: "{{ apikey.exec | default({}) }}"
   ansible.builtin.set_fact:
     _apikey:
       ws: "{{ apikey.ws }}"
       wait: "{{ wait_default | combine(wait_update, recursive=True) }}"
       count: "{{ apikey.count | default(1) }}"
+      exec: "{{ exec_default | combine(exec_update, recursive=True) }}"
       result: "{{ apikey.result | default('create_result') }}"
 
 - name: apikey.create|wait service
@@ -21,18 +27,25 @@
     services:
       - "{{ _apikey.wait }}"
 
+- name: apikey.create|append _apikey.exec
+  loop: "{{ range(0, (_apikey.count | int), 1) | list }}"
+  vars:
+    command_list: "{{ _apikey.exec.command | default([],true) }}"
+    command_item: "headscale apikey create"
+    update:
+      exec:
+        command: "{{ command_list + [command_item] }}"
+  ansible.builtin.set_fact:
+    _apikey: "{{ _apikey | combine(update, recursive=True) }}"
+
 - name: apikey.create|print _apikey
   debug:
     var: _apikey
 
-- name: apikey.create|create apikey
-  loop: "{{ range(0, (_apikey.count | int), 1) | list }}"
-  when:
-    - lookup_result.exists
-  community.docker.docker_container_exec:
-    container: "{{ lookup_result.container_id }}"
-    command: "headscale apikey create"
-  register: exec_result
+- name: apikey.create|exec service
+  include_tasks: "{{ _apikey.ws.local }}/.seed/ansible-tasks/docker-service.exec.yml"
+  vars:
+    service: "{{ _apikey.exec }}"
 
 - name: apikey.create|set _apikey.result
   when:

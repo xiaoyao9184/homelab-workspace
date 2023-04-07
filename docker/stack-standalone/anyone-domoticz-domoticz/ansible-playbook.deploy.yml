@@ -129,8 +129,7 @@
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-service.exec.yml"
       vars:
         service:
-          name: "domoticz"
-          namespace: "{{ dir.names | join('_') }}"
+          name: "{{ dir.names | join('_') }}_domoticz"
           # https://stackoverflow.com/questions/59701804/obtain-shared-runners-token-gitlab-api
           command: "{{ item }}"
           result: "domoticz_exec"

@@ -8,7 +8,7 @@
         $PWD/../../../docker/stack-standalone/anyone-gitlab-runner/ansible-playbook.dispose.yml
   environment:
     PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
-  hosts: "{{ 'docker:&docker-gitlab-node' if (groups['docker-gitlab-node'] is defined) else 'docker' }}"
+  hosts: "{{ 'docker:&docker-gitlab-runner' if (groups['docker-gitlab-runner'] is defined) else 'docker' }}"
   run_once: true
   tasks: 
 
@@ -22,11 +22,8 @@
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-service.exec.yml"
       vars:
         service:
-          name: "{{ dir.names[1] }}"
-          namespace: "{{ dir.names[0] }}"
-          command: |
-            gitlab-runner unregister \
-              --all-runners
+          name: "{{ dir.names | join('_') }}"
+          command: gitlab-runner unregister --all-runners
           result: "runner_unregister"
 
     - name: copy to dir

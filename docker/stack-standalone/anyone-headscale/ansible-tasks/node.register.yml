@@ -8,11 +8,17 @@
       retries: -1
       delay: 10
     wait_update: "{{ node.wait | default({}) }}"
+    exec_default:
+      name: anyone-headscale_headscale
+      command: []
+      result: exec_result
+    exec_update: "{{ node.exec | default({}) }}"
   ansible.builtin.set_fact:
     _node:
       ws: "{{ node.ws }}"
       wait: "{{ wait_default | combine(wait_update, recursive=True) }}"
       key_user: "{{ node.key_user }}"
+      exec: "{{ exec_default | combine(exec_update, recursive=True) }}"
       result: "{{ node.result | default('register_result') }}"
 
 - name: node.register|wait service
@@ -21,19 +27,25 @@
     services:
       - "{{ _node.wait }}"
 
+- name: node.register|append _node.exec
+  loop: "{{ _node.key_user }}"
+  vars:
+    command_list: "{{ _node.exec.command | default([],true) }}"
+    command_item: "headscale node register --key {{ item.key }} -u {{ item.user }}"
+    update:
+      exec:
+        command: "{{ command_list + [command_item] }}"
+  ansible.builtin.set_fact:
+    _node: "{{ _node | combine(update, recursive=True) }}"
+
 - name: node.register|print _node
   debug:
     var: _node
 
-- name: node.register|register node
-  loop: "{{ _node.key_user }}"
-  when:
-    - lookup_result.exists
-    - item.key | default(None,true) != None
-  community.docker.docker_container_exec:
-    container: "{{ lookup_result.container_id }}"
-    command: "headscale node register --key {{ item.key }} -u {{ item.user }}"
-  register: exec_result
+- name: node.register|exec service
+  include_tasks: "{{ _node.ws.local }}/.seed/ansible-tasks/docker-service.exec.yml"
+  vars:
+    service: "{{ _node.exec }}"
 
 - name: node.register|set _node.result
   when:

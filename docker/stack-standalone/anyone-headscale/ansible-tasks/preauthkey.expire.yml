@@ -8,12 +8,19 @@
       retries: -1
       delay: 10
     wait_update: "{{ preauthkey.wait | default({}) }}"
+    exec_default:
+      name: anyone-headscale_headscale
+      command: []
+      result: exec_result
+    exec_update: "{{ preauthkey.exec | default({}) }}"
   ansible.builtin.set_fact:
     _preauthkey:
       ws: "{{ preauthkey.ws }}"
       wait: "{{ wait_default | combine(wait_update, recursive=True) }}"
-      key: "{{ preauthkey.key | default([]) }}"
       user: "{{ preauthkey.user | default([]) }}"
+      list_command: []
+      key: "{{ preauthkey.key | default([]) }}"
+      exec: "{{ exec_default | combine(exec_update, recursive=True) }}"
       result: "{{ preauthkey.result | default('expire_result') }}"
 
 - name: preauthkey.expire|wait service
@@ -22,16 +29,18 @@
     services:
       - "{{ _preauthkey.wait }}"
 
-- when: 
+- when:
     - _preauthkey.key | length == 0
     - _preauthkey.user | length == 0
   block:
 
     - name: preauthkey.expire|list user
-      community.docker.docker_container_exec:
-        container: "{{ lookup_result.container_id }}"
-        command: "headscale user list -o json"
-      register: list_result
+      include_tasks: "{{ _preauthkey.ws.local }}/.seed/ansible-tasks/docker-service.exec.yml"
+      vars:
+        service:
+          name: "{{ _preauthkey.exec.name }}"
+          command: "headscale user list -o json"
+          result: list_result
 
     - name: preauthkey.expire|set _preauthkey.user
       vars:
@@ -44,12 +53,23 @@
 - when: _preauthkey.user | length > 0
   block:
 
-    - name: preauthkey.expire|list preauthkey
+    - name: preauthkey.expire|append _preauthkey.list_command
       loop: "{{ _preauthkey.user }}"
-      community.docker.docker_container_exec:
-        container: "{{ lookup_result.container_id }}"
-        command: "headscale preauthkey list -u {{ item }} -o json"
-      register: list_result
+      vars:
+        command_list: "{{ _preauthkey.list_command | default([],true) }}"
+        command_item: "headscale preauthkey list -u {{ item }} -o json"
+        update:
+          list_command: "{{ command_list + [command_item] }}"
+      ansible.builtin.set_fact:
+        _preauthkey: "{{ _preauthkey | combine(update, recursive=True) }}"
+
+    - name: preauthkey.expire|list preauthkey
+      include_tasks: "{{ _preauthkey.ws.local }}/.seed/ansible-tasks/docker-service.exec.yml"
+      vars:
+        service:
+          name: "{{ _preauthkey.exec.name }}"
+          command: "{{ _preauthkey.list_command }}"
+          result: list_result
 
     - name: preauthkey.expire|add _preauthkey.key
       loop: "{{ list_result.results }}"
@@ -61,18 +81,25 @@
       ansible.builtin.set_fact:
         _preauthkey: "{{ _preauthkey | combine(update, recursive=True) }}"
 
+- name: preauthkey.expire|append _preauthkey.exec
+  loop: "{{ _preauthkey.key }}"
+  vars:
+    command_list: "{{ _preauthkey.exec.command | default([],true) }}"
+    command_item: "headscale preauthkey destroy {{ item }} --force"
+    update:
+      exec:
+        command: "{{ command_list + [command_item] }}"
+  ansible.builtin.set_fact:
+    _preauthkey: "{{ _preauthkey | combine(update, recursive=True) }}"
+
 - name: preauthkey.expire|print _preauthkey
   debug:
     var: _preauthkey
 
-- name: preauthkey.expire|expire preauthkey
-  loop: "{{ _preauthkey.key }}"
-  when:
-    - lookup_result.exists
-  community.docker.docker_container_exec:
-    container: "{{ lookup_result.container_id }}"
-    command: "headscale preauthkey destroy {{ item }} --force"
-  register: exec_result
+- name: preauthkey.expire|exec service
+  include_tasks: "{{ _preauthkey.ws.local }}/.seed/ansible-tasks/docker-service.exec.yml"
+  vars:
+    service: "{{ _preauthkey.exec }}"
 
 - name: preauthkey.expire|set _preauthkey.result
   when:
