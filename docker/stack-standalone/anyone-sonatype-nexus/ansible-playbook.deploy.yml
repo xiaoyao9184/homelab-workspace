@@ -123,10 +123,6 @@
     - name: print admin password
       include_tasks: "{{ dir.local }}/ansible-tasks.print.yml"
       vars:
-        nexus:
-          service:
-            type: stack
-            name: "nexus3"
-            namespace: "{{ dir.names | join('_') }}"
+        password:
           ws: "{{ ws }}"
           result: admin_password

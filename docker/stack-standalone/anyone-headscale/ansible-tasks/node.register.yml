@@ -3,24 +3,23 @@
 
 - name: node.register|set _node
   vars:
-    lookup_default:
-      name: "headscale"
-      namespace: "headscale"
-      retries: 1
-      delay: 0
-      result: "lookup_result"
-    lookup_update: "{{ node.service.lookup | default({}) }}"
+    wait_default:
+      name: anyone-headscale_headscale
+      retries: -1
+      delay: 10
+    wait_update: "{{ node.wait | default({}) }}"
   ansible.builtin.set_fact:
     _node:
+      ws: "{{ node.ws }}"
+      wait: "{{ wait_default | combine(wait_update, recursive=True) }}"
       key_user: "{{ node.key_user }}"
       result: "{{ node.result | default('register_result') }}"
-      ws: "{{ node.ws }}"
-      lookup: "{{ lookup_default | combine(lookup_update, recursive=True) }}"
 
-- name: node.register|lookup service
-  include_tasks: "{{ _node.ws.local }}/.seed/ansible-tasks/docker-service.lookup.yml"
+- name: node.register|wait service
+  include_tasks: "{{ _node.ws.local }}/.seed/ansible-tasks/docker-service.wait.yml"
   vars:
-    service: "{{ _node.lookup }}"
+    services:
+      - "{{ _node.wait }}"
 
 - name: node.register|print _node
   debug:

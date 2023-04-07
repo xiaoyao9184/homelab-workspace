@@ -42,10 +42,6 @@
     - name: print admin password
       include_tasks: "{{ dir.local }}/ansible-tasks.print.yml"
       vars:
-        jenkins:
-          service:
-            type: stack
-            name: "jenkins"
-            namespace: "{{ dir.names[0] }}"
+        password:
           ws: "{{ ws }}"
           result: admin_password

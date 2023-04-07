@@ -98,19 +98,16 @@
         wait_port: 
           gitlab-ce: 80
 
-    - name: lookup service
-      include_tasks: "{{ _apikey.ws.local }}/.seed/ansible-tasks/docker-service.lookup.yml"
+    - name: wait swarm service
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-service.wait.yml"
       vars:
-        service: 
-          name: "{{ gitlab.runner.exec_target.service | default('gitlab-ce',true) }}"
-          namespace: "{{ gitlab.runner.exec_target.stack | default('anyone-gitlab-runner',true) }}"
-          retries: 1
-          delay: 0
-          result: "lookup_result"
+        services:
+          - name: "{{ gitlab.runner.exec_target.service | default('gitlab-ce',true) }}"
+            namespace: "{{ gitlab.runner.exec_target.stack | default('anyone-gitlab-runner',true) }}"
+            retries: -1
+            delay: 10
 
     - name: exec get runner token
-      when:
-        - lookup_result.exists
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-service.exec.yml"
       vars:
         service:
@@ -126,7 +123,15 @@
   environment:
     PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
   hosts: "{{ 'docker:&docker-gitlab-runner' if (groups['docker-gitlab-runner'] is defined) else 'docker' }}"
-  tasks: 
+  tasks:
+
+    - name: wait swarm service
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-service.wait.yml"
+      vars:
+        services:
+          - name: "{{ dir.names | join('_') }}_gitlab-runner"
+            retries: -1
+            delay: 10
 
     # TODO In swarm multi-node mode, cant know which node it is running on
     - name: exec register runner

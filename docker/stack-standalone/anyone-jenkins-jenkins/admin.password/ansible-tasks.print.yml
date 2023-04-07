@@ -2,23 +2,22 @@
 
 - name: admin-password.print|set _password
   vars:
-    lookup_default:
-      name: "jenkins"
-      namespace: "jenkins"
-      retries: 1
-      delay: 0
-      result: "lookup_result"
-    lookup_update: "{{ jenkins.service | default({}) }}"
+    wait_default:
+      name: anyone-jenkins-jenkins_jenkins
+      retries: -1
+      delay: 10
+    wait_update: "{{ password.wait | default({}) }}"
   ansible.builtin.set_fact:
     _password:
-      result: "{{ jenkins.result | default('create_result') }}"
-      ws: "{{ jenkins.ws }}"
-      lookup: "{{ lookup_default | combine(lookup_update, recursive=True) }}"
+      ws: "{{ password.ws }}"
+      wait: "{{ wait_default | combine(wait_update, recursive=True) }}"
+      result: "{{ password.result | default('create_result') }}"
 
-- name: admin-password.print|lookup service
-  include_tasks: "{{ _password.ws.local }}/.seed/ansible-tasks/docker-service.lookup.yml"
+- name: admin-password.print|wait service
+  include_tasks: "{{ _password.ws.local }}/.seed/ansible-tasks/docker-service.wait.yml"
   vars:
-    service: "{{ _password.lookup }}"
+    services:
+      - "{{ _password.wait }}"
 
 - name: admin-password.print|print _password
   debug:

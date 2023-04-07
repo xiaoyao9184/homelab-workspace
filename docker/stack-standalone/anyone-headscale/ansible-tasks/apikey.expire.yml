@@ -3,24 +3,23 @@
 
 - name: apikey.expire|set _apikey
   vars:
-    lookup_default:
-      name: "headscale"
-      namespace: "headscale"
-      retries: 1
-      delay: 0
-      result: "lookup_result"
-    lookup_update: "{{ apikey.service.lookup | default({}) }}"
+    wait_default:
+      name: anyone-headscale_headscale
+      retries: -1
+      delay: 10
+    wait_update: "{{ apikey.wait | default({}) }}"
   ansible.builtin.set_fact:
     _apikey:
+      ws: "{{ apikey.ws }}"
+      wait: "{{ wait_default | combine(wait_update, recursive=True) }}"
       prefix: "{{ apikey.prefix | default([]) }}"
       result: "{{ apikey.result | default('expire_result') }}"
-      ws: "{{ apikey.ws }}"
-      lookup: "{{ lookup_default | combine(lookup_update, recursive=True) }}"
 
-- name: apikey.create|lookup service
-  include_tasks: "{{ _apikey.ws.local }}/.seed/ansible-tasks/docker-service.lookup.yml"
+- name: apikey.create|wait service
+  include_tasks: "{{ _apikey.ws.local }}/.seed/ansible-tasks/docker-service.wait.yml"
   vars:
-    service: "{{ _apikey.lookup }}"
+    services:
+      - "{{ _apikey.wait }}"
 
 - when: _apikey.prefix | length == 0
   block:

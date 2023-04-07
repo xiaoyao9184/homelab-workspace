@@ -116,20 +116,16 @@
         wait_port: 
           domoticz: 80
 
-    - name: lookup service
-      include_tasks: "{{ _apikey.ws.local }}/.seed/ansible-tasks/docker-service.lookup.yml"
+    - name: wait swarm service
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-service.wait.yml"
       vars:
-        service: 
-          name: "domoticz"
-          namespace: "{{ dir.names | join('_') }}"
-          retries: 1
-          delay: 0
-          result: "lookup_result"
+        services:
+          - name: "{{ dir.names | join('_') }}_domoticz"
+            retries: -1
+            delay: 10
 
     - name: exec in domoticz
       loop: "{{ domoticz.exec | default([],true) }}"
-      when:
-        - lookup_result.exists
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-service.exec.yml"
       vars:
         service:

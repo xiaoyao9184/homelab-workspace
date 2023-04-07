@@ -3,24 +3,23 @@
 
 - name: user.destroy|set _user
   vars:
-    lookup_default:
-      name: "headscale"
-      namespace: "headscale"
-      retries: 1
-      delay: 0
-      result: "lookup_result"
-    lookup_update: "{{ user.service.lookup | default({}) }}"
+    wait_default:
+      name: anyone-headscale_headscale
+      retries: -1
+      delay: 10
+    wait_update: "{{ user.wait | default({}) }}"
   ansible.builtin.set_fact:
     _user:
+      ws: "{{ user.ws }}"
+      wait: "{{ wait_default | combine(wait_update, recursive=True) }}"
       name: "{{ user.name | default([]) }}"
       result: "{{ user.result | default('expire_result') }}"
-      ws: "{{ user.ws }}"
-      lookup: "{{ lookup_default | combine(lookup_update, recursive=True) }}"
 
-- name: user.create|lookup service
-  include_tasks: "{{ _user.ws.local }}/.seed/ansible-tasks/docker-service.lookup.yml"
+- name: user.create|wait service
+  include_tasks: "{{ _user.ws.local }}/.seed/ansible-tasks/docker-service.wait.yml"
   vars:
-    service: "{{ _user.lookup }}"
+    services:
+      - "{{ _user.wait }}"
 
 - when: _user.name | length == 0
   block:
