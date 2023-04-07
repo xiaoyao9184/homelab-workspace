@@ -11,14 +11,21 @@
           - container_loop_info.exists
           - container_loop_info.container.State.Running
     wait_update: "{{ user.wait | default({}) }}"
+    exec_default:
+      name: headscale
+      command: []
+      result: exec_result
+    exec_update: "{{ user.exec | default({}) }}"
   ansible.builtin.set_fact:
     _user:
       ws: "{{ user.ws }}"
       wait: "{{ wait_default | combine(wait_update, recursive=True) }}"
+      list_command: "headscale user list -o json"
       name: "{{ user.name | default([]) }}"
+      exec: "{{ exec_default | combine(exec_update, recursive=True) }}"
       result: "{{ user.result | default('expire_result') }}"
 
-- name: user.create|wait container
+- name: user.destroy|wait container
   include_tasks: "{{ _user.ws.local }}/.seed/ansible-tasks/docker-container.wait.yml"
   vars:
     containers: "{{ _user.wait }}"
@@ -27,10 +34,12 @@
   block:
 
     - name: user.destroy|list user
-      community.docker.docker_container_exec:
-        container: "{{ wait_result.container_id }}"
-        command: "headscale user list -o json"
-      register: list_result
+      include_tasks: "{{ _user.ws.local }}/.seed/ansible-tasks/docker-container.exec.yml"
+      vars:
+        container:
+          name: "{{ _user.exec.name }}"
+          command: "{{ _user.list_command }}"
+          result: list_result
 
     - name: user.destroy|set _user.name
       vars:
@@ -39,19 +48,27 @@
       ansible.builtin.set_fact:
         _user: "{{ _user | combine(update, recursive=True) }}"
 
+- name: user.destroy|append _user.exec
+  loop: "{{ _user.name }}"
+  vars:
+    command_list: "{{ _user.exec.command | default([],true) }}"
+    command_item: "headscale user destroy {{ item }} --force"
+    update:
+      exec:
+        command: "{{ command_list + [command_item] }}"
+  ansible.builtin.set_fact:
+    _user: "{{ _user | combine(update, recursive=True) }}"
+
 - name: user.destroy|print _user
   debug:
     var: _user
 
-- name: user.destroy|destroy user
-  loop: "{{ _user.name }}"
-  when:
-    - wait_result.exists
-  community.docker.docker_container_exec:
-    container: "{{ wait_result.container_id }}"
-    command: "headscale user destroy {{ item }} --force"
-  register: exec_result
+- name: user.destroy|exec container
+  include_tasks: "{{ _user.ws.local }}/.seed/ansible-tasks/docker-container.exec.yml"
+  vars:
+    container: "{{ _user.exec }}"
 
+# TODO exec_result results item is command not param
 - name: user.destroy|set _user.result
   when:
     - exec_result is defined

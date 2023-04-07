@@ -11,11 +11,17 @@
           - container_loop_info.exists
           - container_loop_info.container.State.Running
     wait_update: "{{ preauthkey.service.wait | default({}) }}"
+    exec_default:
+      name: headscale
+      command: []
+      result: exec_result
+    exec_update: "{{ preauthkey.exec | default({}) }}"
   ansible.builtin.set_fact:
     _preauthkey:
       ws: "{{ preauthkey.ws }}"
       wait: "{{ wait_default | combine(wait_update, recursive=True) }}"
-      expire_user: "{{ preauthkey.expire_user | default([{'expire':'240h','user':'default'}]) }}" 
+      expire_user: "{{ preauthkey.expire_user | default([{'expire':'240h','user':'default'}]) }}"
+      exec: "{{ exec_default | combine(exec_update, recursive=True) }}"
       result: "{{ preauthkey.result | default('create_result') }}"
 
 - name: preauthkey.create|wait container
@@ -23,20 +29,27 @@
   vars:
     containers: "{{ _preauthkey.wait }}"
 
+- name: preauthkey.create|append _preauthkey.exec
+  loop: "{{ _preauthkey.expire_user }}"
+  vars:
+    command_list: "{{ _preauthkey.exec.command | default([],true) }}"
+    command_item: "headscale preauthkey create -e {{ item.expire }} -u {{ item.user }} --reusable"
+    update:
+      exec:
+        command: "{{ command_list + [command_item] }}"
+  ansible.builtin.set_fact:
+    _preauthkey: "{{ _preauthkey | combine(update, recursive=True) }}"
+
 - name: preauthkey.create|print _preauthkey
   debug:
     var: _preauthkey
 
-- name: preauthkey.create|create preauthkey
-  loop: "{{ _preauthkey.expire_user }}"
-  when:
-    - wait_result.exists
-    - item.expire | default(None,true) != None
-  community.docker.docker_container_exec:
-    container: "{{ wait_result.container_id }}"
-    command: "headscale preauthkey create -e {{ item.expire }} -u {{ item.user }} --reusable"
-  register: exec_result
+- name: preauthkey.create|exec container
+  include_tasks: "{{ _preauthkey.ws.local }}/.seed/ansible-tasks/docker-container.exec.yml"
+  vars:
+    container: "{{ _preauthkey.exec }}"
 
+# TODO exec_result results item is command not param
 - name: preauthkey.create|set _preauthkey.result
   when:
     - exec_result is defined

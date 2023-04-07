@@ -10,11 +10,17 @@
           - container_loop_info.exists
           - container_loop_info.container.State.Running
     wait_update: "{{ rake.wait | default({}) }}"
+    exec_default:
+      name: gitlab-ce
+      command: "gitlab-rake gitlab:backup:create"
+      result: exec_result
+    exec_update: "{{ config.exec | default({}) }}"
   ansible.builtin.set_fact:
     _rake:
       ws: "{{ rake.ws }}"
       dir: "{{ rake.dir }}"
       wait: "{{ wait_default | combine(wait_update, recursive=True) }}"
+      exec: "{{ exec_default | combine(exec_update, recursive=True) }}"
       result: "{{ rake.result | default('create_result') }}"
 
 - name: gitlab-rake.backup|wait container
@@ -26,11 +32,10 @@
   debug:
     var: _rake
 
-- name: gitlab-rake.backup|exec backup
-  community.docker.docker_container_exec:
-    container: "gitlab-ce"
-    command: "gitlab-rake gitlab:backup:create"
-  register: exec_result
+- name: admin-password.print|exec container
+  include_tasks: "{{ _rake.ws.local }}/.seed/ansible-tasks/docker-container.exec.yml"
+  vars:
+    container: "{{ _rake.exec }}"
 
 - name: gitlab-rake.backup|set _rake.result
   when:
@@ -38,7 +43,7 @@
     - exec_result.stdout is defined
   ansible.builtin.set_fact:
     "{{ _rake.result }}": "{{ exec_result.stdout_lines[-1] }}"
-  
+
 - name: gitlab-rake.backup|print _rake.result
   debug:
     var: "{{ _rake.result }}"

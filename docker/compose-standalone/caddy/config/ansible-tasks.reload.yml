@@ -10,11 +10,17 @@
           - container_loop_info.exists
           - container_loop_info.container.State.Running
     wait_update: "{{ config.wait | default({}) }}"
+    exec_default:
+      name: caddy
+      command: "caddy reload --config /etc/caddy/Caddyfile"
+      result: exec_result
+    exec_update: "{{ config.exec | default({}) }}"
   ansible.builtin.set_fact:
     _config:
       ws: "{{ config.ws }}"
       dir: "{{ config.dir }}"
       wait: "{{ wait_default | combine(wait_update, recursive=True) }}"
+      exec: "{{ exec_default | combine(exec_update, recursive=True) }}"
       result: "{{ config.result | default('create_result') }}"
 
 - name: config.reload|wait container
@@ -26,11 +32,10 @@
   debug:
     var: _config
 
-- name: config.reload|exec
-  community.docker.docker_container_exec:
-    container: "caddy"
-    command: "caddy reload --config /etc/caddy/Caddyfile"
-  register: exec_result
+- name: config.reload|exec container
+  include_tasks: "{{ _config.ws.local }}/.seed/ansible-tasks/docker-container.exec.yml"
+  vars:
+    container: "{{ _config.exec }}"
 
 - name: config.reload|set _config.result
   when:

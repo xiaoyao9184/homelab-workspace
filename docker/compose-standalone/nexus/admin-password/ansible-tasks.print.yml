@@ -10,11 +10,17 @@
           - container_loop_info.exists
           - container_loop_info.container.State.Running
     wait_update: "{{ password.wait | default({}) }}"
+    exec_default:
+      name: nexus3
+      command: "bash -c '[ -f /nexus-data/admin.password ] && cat /nexus-data/admin.password || echo passwork already change'"
+      result: exec_result
+    exec_update: "{{ config.exec | default({}) }}"
   ansible.builtin.set_fact:
     _password:
       ws: "{{ password.ws }}"
       dir: "{{ password.dir }}"
       wait: "{{ wait_default | combine(wait_update, recursive=True) }}"
+      exec: "{{ exec_default | combine(exec_update, recursive=True) }}"
       result: "{{ password.result | default('create_result') }}"
 
 - name: admin-password.print|wait container
@@ -26,11 +32,10 @@
   debug:
     var: _password
 
-- name: admin-password.print|exec print
-  community.docker.docker_container_exec:
-    container: "nexus3"
-    command: "bash -c '[ -f /nexus-data/admin.password ] && cat /nexus-data/admin.password || echo passwork already change'"
-  register: exec_result
+- name: admin-password.print|exec container
+  include_tasks: "{{ _password.ws.local }}/.seed/ansible-tasks/docker-container.exec.yml"
+  vars:
+    container: "{{ _password.exec }}"
 
 - name: admin-password.print|set _password.result
   when:
@@ -38,7 +43,7 @@
     - exec_result.stdout is defined
   ansible.builtin.set_fact:
     "{{ _password.result }}": "{{ exec_result.stdout_lines[-1] }}"
-  
+
 - name: admin-password.print|print _password.result
   debug:
     var: "{{ _password.result }}"

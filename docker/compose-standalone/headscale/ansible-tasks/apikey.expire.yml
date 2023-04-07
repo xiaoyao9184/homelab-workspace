@@ -11,14 +11,21 @@
           - container_loop_info.exists
           - container_loop_info.container.State.Running
     wait_update: "{{ apikey.wait | default({}) }}"
+    exec_default:
+      name: headscale
+      command: []
+      result: exec_result
+    exec_update: "{{ apikey.exec | default({}) }}"
   ansible.builtin.set_fact:
     _apikey:
       ws: "{{ apikey.ws }}"
       wait: "{{ wait_default | combine(wait_update, recursive=True) }}"
+      list_command: "headscale apikey list -o json"
       prefix: "{{ apikey.prefix | default([]) }}"
+      exec: "{{ exec_default | combine(exec_update, recursive=True) }}"
       result: "{{ apikey.result | default('expire_result') }}"
 
-- name: apikey.create|wait container
+- name: apikey.expire|wait container
   include_tasks: "{{ _apikey.ws.local }}/.seed/ansible-tasks/docker-container.wait.yml"
   vars:
     containers: "{{ _apikey.wait }}"
@@ -27,10 +34,12 @@
   block:
 
     - name: apikey.expire|list apikey
-      community.docker.docker_container_exec:
-        container: "headscale"
-        command: "headscale apikey list -o json"
-      register: list_result
+      include_tasks: "{{ _apikey.ws.local }}/.seed/ansible-tasks/docker-container.exec.yml"
+      vars:
+        container:
+          name: "{{ _apikey.exec.name }}"
+          command: "{{ _apikey.list_command }}"
+          result: list_result
 
     - name: apikey.expire|set _apikey.prefix
       vars:
@@ -38,18 +47,28 @@
           prefix: "{{ list_result.stdout | from_json | json_query('[].prefix') | default([],true) }}"
       ansible.builtin.set_fact:
         _apikey: "{{ _apikey | combine(update, recursive=True) }}"
-      
+
+- name: apikey.expire|append _apikey.exec
+  loop: "{{ _apikey.prefix }}"
+  vars:
+    command_list: "{{ _apikey.exec.command | default([],true) }}"
+    command_item: "headscale apikey expire --prefix {{ item }}"
+    update:
+      exec:
+        command: "{{ command_list + [command_item] }}"
+  ansible.builtin.set_fact:
+    _apikey: "{{ _apikey | combine(update, recursive=True) }}"
+
 - name: apikey.expire|print _apikey
   debug:
     var: _apikey
 
-- name: apikey.expire|expire apikey
-  loop: "{{ _apikey.prefix }}"
-  community.docker.docker_container_exec:
-    container: "headscale"
-    command: "headscale apikey expire --prefix {{ item }}"
-  register: exec_result
+- name: apikey.expire|exec container
+  include_tasks: "{{ _apikey.ws.local }}/.seed/ansible-tasks/docker-container.exec.yml"
+  vars:
+    container: "{{ _apikey.exec }}"
 
+# TODO exec_result results item is command not param
 - name: apikey.expire|set _apikey.result
   when:
     - exec_result is defined

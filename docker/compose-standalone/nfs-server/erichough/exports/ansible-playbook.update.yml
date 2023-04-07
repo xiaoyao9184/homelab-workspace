@@ -56,16 +56,11 @@
                   - container_loop_info.exists
                   - container_loop_info.container.State.Running
 
-    - name: exportfs on service
-      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-service.exec.yml"
-      vars:
-        service:
-          type: compose
-          name: "nfs-server"
-          project: "{{ dir.names[0] }}"
-          command: "exportfs -ra"
-          result: exportfs_result
-
-    - name: print exportfs result
-      ansible.builtin.debug:
-        msg: "{{ exportfs_result }}"
+        - name: exec container
+          include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-container.exec.yml"
+          vars:
+            container:
+              name: "nfs-server"
+              project: "{{ dir.names[0] }}"
+              command: "exportfs -ra"
+              result: exportfs_result

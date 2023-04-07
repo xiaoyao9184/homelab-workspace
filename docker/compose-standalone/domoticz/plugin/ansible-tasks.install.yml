@@ -10,12 +10,18 @@
           - container_loop_info.exists
           - container_loop_info.container.State.Running
     wait_update: "{{ plugin.wait | default({}) }}"
+    exec_default:
+      name: domoticz
+      command: "ls -l /opt/domoticz/userdata/plugins/"
+      result: exec_result
+    exec_update: "{{ config.exec | default({}) }}"
   ansible.builtin.set_fact:
     _plugin:
       ws: "{{ plugin.ws }}"
       dir: "{{ plugin.dir }}"
       wait: "{{ wait_default | combine(wait_update, recursive=True) }}"
-      vol_copy: "{{ plugin.vol_copy }}"
+      vol_copy: "{{ plugin.vol_copy | default([]) }}"
+      exec: "{{ exec_default | combine(exec_update, recursive=True) }}"
       result: "{{ plugin.result | default('create_result') }}"
 
 - name: plugin.install|wait container
@@ -28,16 +34,14 @@
     var: _plugin
 
 - name: plugin.install|copy to volume
-  include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-volumes.copy.yml"
+  include_tasks: "{{ _plugin.ws.local }}/.seed/ansible-tasks/docker-volumes.copy.yml"
   vars:
-    default: []
-    volumes: "{{ _plugin.vol_copy | default(default,true) }}"
+    volumes: "{{ _plugin.vol_copy }}"
 
-- name: plugin.install|exec
-  community.docker.docker_container_exec:
-    container: "domoticz"
-    command: "ls -l /opt/domoticz/userdata/plugins/"
-  register: exec_result
+- name: plugin.install|exec container
+  include_tasks: "{{ _plugin.ws.local }}/.seed/ansible-tasks/docker-container.exec.yml"
+  vars:
+    container: "{{ _plugin.exec }}"
 
 - name: plugin.install|set _plugin.result
   when:

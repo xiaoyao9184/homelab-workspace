@@ -11,11 +11,17 @@
           - container_loop_info.exists
           - container_loop_info.container.State.Running
     wait_update: "{{ apikey.wait | default({}) }}"
+    exec_default:
+      name: headscale
+      command: []
+      result: exec_result
+    exec_update: "{{ apikey.exec | default({}) }}"
   ansible.builtin.set_fact:
     _apikey:
       ws: "{{ apikey.ws }}"
       wait: "{{ wait_default | combine(wait_update, recursive=True) }}"
       count: "{{ apikey.count | default(1) }}"
+      exec: "{{ exec_default | combine(exec_update, recursive=True) }}"
       result: "{{ apikey.result | default('create_result') }}"
 
 - name: apikey.create|wait container
@@ -23,16 +29,25 @@
   vars:
     containers: "{{ _apikey.wait }}"
 
+- name: apikey.create|append _apikey.exec
+  loop: "{{ range(0, (_apikey.count | int), 1) | list }}"
+  vars:
+    command_list: "{{ _apikey.exec.command | default([],true) }}"
+    command_item: "headscale apikey create"
+    update:
+      exec:
+        command: "{{ command_list + [command_item] }}"
+  ansible.builtin.set_fact:
+    _apikey: "{{ _apikey | combine(update, recursive=True) }}"
+
 - name: apikey.create|print _apikey
   debug:
     var: _apikey
 
-- name: apikey.create|create apikey
-  loop: "{{ range(0, (_apikey.count | int), 1) | list }}"
-  community.docker.docker_container_exec:
-    container: "headscale"
-    command: "headscale apikey create"
-  register: exec_result
+- name: apikey.create|exec container
+  include_tasks: "{{ _apikey.ws.local }}/.seed/ansible-tasks/docker-container.exec.yml"
+  vars:
+    container: "{{ _apikey.exec }}"
 
 - name: apikey.create|set _apikey.result
   when:

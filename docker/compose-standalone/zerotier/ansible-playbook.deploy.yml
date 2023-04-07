@@ -58,12 +58,11 @@
                   - container_loop_info.exists
                   - container_loop_info.container.State.Running
 
-    - name: exec service
-      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-service.exec.yml"
-      vars:
-        service:
-          type: compose
-          name: zerotier
-          project: "{{ dir.names[0] }}"
-          command: "zerotier-cli join {{ zerotier.join }}"
-          result: exe_result
+        - name: exec container
+          include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-container.exec.yml"
+          vars:
+            container:
+              name: zerotier
+              project: "{{ dir.names[0] }}"
+              command: "zerotier-cli join {{ zerotier.join }}"
+              result: exe_result

@@ -10,11 +10,17 @@
           - container_loop_info.exists
           - container_loop_info.container.State.Running
     wait_update: "{{ pgyvisitor.wait | default({}) }}"
+    exec_default:
+      name: pgyvpn
+      command: "pgyvisitor logininfo"
+      result: exec_result
+    exec_update: "{{ config.exec | default({}) }}"
   ansible.builtin.set_fact:
     _pgyvisitor:
       ws: "{{ pgyvisitor.ws }}"
       dir: "{{ pgyvisitor.dir }}"
       wait: "{{ wait_default | combine(wait_update, recursive=True) }}"
+      exec: "{{ exec_default | combine(exec_update, recursive=True) }}"
       result: "{{ pgyvisitor.result | default('create_result') }}"
 
 - name: pgyvisitor.logininfo|wait container
@@ -26,11 +32,10 @@
   debug:
     var: _pgyvisitor
 
-- name: pgyvisitor.logininfo|exec logininfo
-  community.docker.docker_container_exec:
-    container: "pgyvpn"
-    command: "pgyvisitor logininfo"
-  register: exec_result
+- name: pgyvisitor.logininfo|exec container
+  include_tasks: "{{ _pgyvisitor.ws.local }}/.seed/ansible-tasks/docker-container.exec.yml"
+  vars:
+    container: "{{ _pgyvisitor.exec }}"
 
 - name: pgyvisitor.logininfo|set _pgyvisitor.result
   when:
@@ -38,7 +43,7 @@
     - exec_result.stdout is defined
   ansible.builtin.set_fact:
     "{{ _pgyvisitor.result }}": "{{ exec_result.stdout_lines[-1] }}"
-  
+
 - name: pgyvisitor.logininfo|print _pgyvisitor.result
   debug:
     var: "{{ _pgyvisitor.result }}"

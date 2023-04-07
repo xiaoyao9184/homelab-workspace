@@ -65,13 +65,11 @@
                   - container_loop_info.exists
                   - container_loop_info.container.State.Running
 
-    - name: exec service
-      when: tailscale.up.authkey is defined
-      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-service.exec.yml"
-      vars:
-        service:
-          type: compose
-          name: tailscale
-          project: "{{ dir.names[0] }}"
-          command: "tailscale up --authkey={{ tailscale.up.authkey }} --advertise-exit-node"
-          result: exe_result
+        - name: exec container
+          include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-container.exec.yml"
+          vars:
+            container:
+              name: tailscale
+              project: "{{ dir.names[0] }}"
+              command: "tailscale up --authkey={{ tailscale.up.authkey }} --advertise-exit-node"
+              result: exe_result

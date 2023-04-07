@@ -11,11 +11,17 @@
           - container_loop_info.exists
           - container_loop_info.container.State.Running
     wait_update: "{{ node.wait | default({}) }}"
+    exec_default:
+      name: headscale
+      command: []
+      result: exec_result
+    exec_update: "{{ node.exec | default({}) }}"
   ansible.builtin.set_fact:
     _node:
       ws: "{{ node.ws }}"
       wait: "{{ wait_default | combine(wait_update, recursive=True) }}"
       key_user: "{{ node.key_user }}"
+      exec: "{{ exec_default | combine(exec_update, recursive=True) }}"
       result: "{{ node.result | default('register_result') }}"
 
 - name: node.register|wait container
@@ -23,20 +29,27 @@
   vars:
     containers: "{{ _node.wait }}"
 
+- name: node.register|append _node.exec
+  loop: "{{ _node.key_user }}"
+  vars:
+    command_list: "{{ _node.exec.command | default([],true) }}"
+    command_item: "headscale node register --key {{ item.key }} -u {{ item.user }}"
+    update:
+      exec:
+        command: "{{ command_list + [command_item] }}"
+  ansible.builtin.set_fact:
+    _node: "{{ _node | combine(update, recursive=True) }}"
+
 - name: node.register|print _node
   debug:
     var: _node
 
-- name: node.register|register node
-  loop: "{{ _node.key_user }}"
-  when:
-    - wait_result.exists
-    - item.key | default(None,true) != None
-  community.docker.docker_container_exec:
-    container: "{{ wait_result.container_id }}"
-    command: "headscale node register --key {{ item.key }} -u {{ item.user }}"
-  register: exec_result
+- name: node.register|exec container
+  include_tasks: "{{ _node.ws.local }}/.seed/ansible-tasks/docker-container.exec.yml"
+  vars:
+    container: "{{ _node.exec }}"
 
+# TODO exec_result results item is command not param
 - name: node.register|set _node.result
   when:
     - exec_result is defined

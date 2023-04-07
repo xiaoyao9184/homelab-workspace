@@ -88,24 +88,21 @@
                   - container_loop_info.exists
                   - container_loop_info.container.State.Running
 
-    - name: exec service
-      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-service.exec.yml"
-      vars:
-        service:
-          type: compose
-          name: domoticz
-          project: "{{ dir.names[0] }}"
-          command: "{{ command }}"
-          result: exe_result
-      loop: "{{ domoticz.exec | default([],true) }}"
-      loop_control:
-        loop_var: command
+        - name: exec container
+          include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-container.exec.yml"
+          loop: "{{ domoticz.exec | default([],true) }}"
+          loop_control:
+            loop_var: command
+          vars:
+            container:
+              name: domoticz
+              project: "{{ dir.names[0] }}"
+              command: "{{ command }}"
+              result: exe_result
 
-    - name: restart service
-      when: domoticz.restart | default(false) | bool
-      community.docker.docker_compose:
-        state: present
-        restarted: true
-        project_name: "{{ _compose.name }}"
-        project_src: "{{ _compose.path }}"
-        files: "{{ _compose.files }}"
+        - name: restart compose service
+          when: domoticz.restart | default(false) | bool
+          community.docker.docker_compose:
+            project_src: "{{ dir.remote }}"
+            build: false
+            restarted: true

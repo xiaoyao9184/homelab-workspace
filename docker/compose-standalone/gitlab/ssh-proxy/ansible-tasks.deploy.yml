@@ -2,21 +2,9 @@
 
 
 - name: ssh-proxy.deploy|set _proxy
-  vars:
-    wait_default:
-      gitlab-ce:
-        retries: 1
-        delay: 0
-        until:
-          - loop_container_info.exists
-          - loop_container_info.container.State.Running
-    wait_update: "{{ gitlab.service | default({}) }}"
   ansible.builtin.set_fact:
     _proxy:
-      ws: "{{ gitlab.ws }}"
-      dir: "{{ gitlab.dir }}"
-      wait: "{{ wait_default | combine(wait_update, recursive=True) }}"
-      result: "{{ gitlab.result | default('create_result') }}"
+      dir: "{{ proxy.dir }}"
 
 - name: ssh-proxy.deploy|set source_dir
   run_once: true
@@ -42,7 +30,7 @@
   become: true
   environment:
     SE_LINUX: 'no'
-  ansible.builtin.shell: 
+  ansible.builtin.shell:
     cmd: "bash {{ _proxy.dir.remote }}/.gitlab-ssh-proxy/setup.sh install"
     chdir: "{{ _proxy.dir.remote }}/.gitlab-ssh-proxy"
   register: install_result
@@ -106,12 +94,10 @@
   debug:
     var: _proxy
 
-- name: ssh-proxy.deploy|exec append authorized_keys
-  community.docker.docker_container_exec:
-    container: "gitlab-ce"
-    command: "/bin/bash -c 'echo \"{{ public_key['content'] | b64decode }}\" >> /var/opt/gitlab/.ssh/authorized_keys && cat /var/opt/gitlab/.ssh/authorized_keys'"
-    # command: "/bin/bash -c 'echo \"test2\n\n\" >> /var/opt/gitlab/.ssh/authorized_keys'"
-  register: exec_result
+- name: ssh-proxy.deploy|exec container
+  include_tasks: "{{ _proxy.ws.local }}/.seed/ansible-tasks/docker-container.exec.yml"
+  vars:
+    container: "{{ _proxy.exec }}"
 
 - name: ssh-proxy.deploy|set _proxy.result
   when:
@@ -119,7 +105,7 @@
     - exec_result.stdout is defined
   ansible.builtin.set_fact:
     "{{ _proxy.result }}": "{{ exec_result.stdout_lines[-1] }}"
-  
+
 - name: ssh-proxy.deploy|print _proxy.result
   debug:
     var: "{{ _proxy.result }}"

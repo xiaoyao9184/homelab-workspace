@@ -10,12 +10,17 @@
           - container_loop_info.exists
           - container_loop_info.container.State.Running
     wait_update: "{{ cert.wait | default({}) }}"
+    exec_default:
+      name: tailscale
+      command: "tailscale cert {{ cert.domain }}"
+      result: exec_result
+    exec_update: "{{ config.exec | default({}) }}"
   ansible.builtin.set_fact:
     _cert:
       ws: "{{ cert.ws }}"
       dir: "{{ cert.dir }}"
       wait: "{{ wait_default | combine(wait_update, recursive=True) }}"
-      domain: "{{ cert.domain }}"
+      exec: "{{ exec_default | combine(exec_update, recursive=True) }}"
       result: "{{ cert.result | default('create_result') }}"
 
 - name: cert.deploy|wait container
@@ -27,11 +32,10 @@
   debug:
     var: _cert
 
-- name: cert.deploy|exec deploy
-  community.docker.docker_container_exec:
-    container: "tailscale"
-    command: "tailscale cert {{ _cert.domain }}"
-  register: exec_result
+- name: cert.deploy|exec container
+  include_tasks: "{{ _cert.ws.local }}/.seed/ansible-tasks/docker-container.exec.yml"
+  vars:
+    container: "{{ _cert.exec }}"
 
 - name: cert.deploy|set _cert.result
   when:
@@ -39,7 +43,7 @@
     - exec_result.stdout is defined
   ansible.builtin.set_fact:
     "{{ _cert.result }}": "{{ exec_result.stdout_lines[-1] }}"
-  
+
 - name: cert.deploy|print _cert.result
   debug:
     var: "{{ _cert.result }}"

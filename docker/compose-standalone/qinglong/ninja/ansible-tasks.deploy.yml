@@ -10,11 +10,20 @@
           - container_loop_info.exists
           - container_loop_info.container.State.Running
     wait_update: "{{ ninja.wait | default({}) }}"
+    exec_default:
+      name: qinglong
+      command:
+        - "bash -c 'git -C /ql/ninja pull || git clone https://github.com/MoonBegonia/ninja.git /ql/ninja'"
+        - "bash -c 'cd /ql/ninja/backend && pnpm install'"
+        - "bash -c 'cd /ql/ninja/backend && pm2 start'"
+        - "bash -c 'echo \"\ncd /ql/ninja/backend\npm2 start\" >> /ql/data/config/extra.sh'"
+      result: exec_result
   ansible.builtin.set_fact:
     _ninja:
       ws: "{{ ninja.ws }}"
       dir: "{{ ninja.dir }}"
       wait: "{{ wait_default | combine(wait_update, recursive=True) }}"
+      exec: "{{ exec_default | combine(exec_update, recursive=True) }}"
       result: "{{ ninja.result | default('create_result') }}"
 
 - name: ninja.deploy|wait container
@@ -26,16 +35,10 @@
   debug:
     var: _ninja
 
-- name: ninja.deploy|exec deploy
-  loop:
-    - "bash -c 'git -C /ql/ninja pull || git clone https://github.com/MoonBegonia/ninja.git /ql/ninja'"
-    - "bash -c 'cd /ql/ninja/backend && pnpm install'"
-    - "bash -c 'cd /ql/ninja/backend && pm2 start'"
-    - "bash -c 'echo \"\ncd /ql/ninja/backend\npm2 start\" >> /ql/data/config/extra.sh'" 
-  community.docker.docker_container_exec:
-    container: "qinglong"
-    command: "{{ item }}"
-  register: exec_result
+- name: ninja.deploy|exec container
+  include_tasks: "{{ _ninja.ws.local }}/.seed/ansible-tasks/docker-container.exec.yml"
+  vars:
+    container: "{{ _ninja.exec }}"
 
 - name: ninja.deploy|set _ninja.result
   when:
@@ -43,7 +46,7 @@
     - exec_result.results is defined
   ansible.builtin.set_fact:
     "{{ _ninja.result }}": "{{ exec_result | json_query('results[].stdout_lines[-1]') }}"
-  
+
 - name: ninja.deploy|print _ninja.result
   debug:
     var: "{{ _ninja.result }}"
