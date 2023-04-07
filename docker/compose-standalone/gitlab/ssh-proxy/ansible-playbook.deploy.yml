@@ -34,11 +34,7 @@
     - name: deploy ssh proxy
       include_tasks: "{{ dir.local }}/ansible-tasks.deploy.yml"
       vars:
-        gitlab:
-          service:
-            type: compose
-            name: "gitlab-ce"
-            project: "{{ dir.names[0] }}"
+        proxy:
           ws: "{{ ws }}"
           dir: "{{ dir }}"
           result: ssh_proxy

@@ -2,24 +2,26 @@
 
 - name: plugin.install|set _plugin
   vars:
-    lookup_default:
-      name: "domoticz"
-      project: "domoticz"
-      retries: 1
-      delay: 0
-      result: "lookup_result"
-    lookup_update: "{{ plugin.service | default({}) }}"
+    wait_default:
+      domoticz:
+        retries: 1
+        delay: 0
+        until:
+          - container_loop_info.exists
+          - container_loop_info.container.State.Running
+    wait_update: "{{ plugin.wait | default({}) }}"
   ansible.builtin.set_fact:
     _plugin:
-      result: "{{ plugin.result | default('create_result') }}"
       ws: "{{ plugin.ws }}"
-      lookup: "{{ lookup_default | combine(lookup_update, recursive=True) }}"
+      dir: "{{ plugin.dir }}"
+      wait: "{{ wait_default | combine(wait_update, recursive=True) }}"
       vol_copy: "{{ plugin.vol_copy }}"
+      result: "{{ plugin.result | default('create_result') }}"
 
-- name: plugin.install|lookup service
-  include_tasks: "{{ _plugin.ws.local }}/.seed/ansible-tasks/docker-service.lookup.yml"
+- name: plugin.install|wait container
+  include_tasks: "{{ _plugin.ws.local }}/.seed/ansible-tasks/docker-container.wait.yml"
   vars:
-    service: "{{ _plugin.lookup }}"
+    containers: "{{ _plugin.wait }}"
 
 - name: plugin.install|print _plugin
   debug:
@@ -32,10 +34,8 @@
     volumes: "{{ _plugin.vol_copy | default(default,true) }}"
 
 - name: plugin.install|exec
-  when:
-    - lookup_result.exists
   community.docker.docker_container_exec:
-    container: "{{ lookup_result.container_id }}"
+    container: "domoticz"
     command: "ls -l /opt/domoticz/userdata/plugins/"
   register: exec_result
 

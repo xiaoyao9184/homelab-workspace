@@ -35,11 +35,8 @@
     - name: cert deploy
       include_tasks: "{{ dir.local }}/ansible-tasks.deploy.yml"
       vars:
-        tailscale:
-          service:
-            type: compose
-            name: "tailscale"
-            project: "{{ dir.names[0] }}"
+        cert:
           ws: "{{ ws }}"
+          dir: "{{ dir }}"
           result: cert_deploy
           domain: "{{ cert_domain }}"

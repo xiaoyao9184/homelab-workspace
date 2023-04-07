@@ -2,33 +2,33 @@
 
 - name: config.reload|set _config
   vars:
-    lookup_default:
-      name: "caddy"
-      project: "caddy"
-      retries: 1
-      delay: 0
-      result: "lookup_result"
-    lookup_update: "{{ caddy.service | default({}) }}"
+    wait_default:
+      caddy:
+        retries: 1
+        delay: 0
+        until:
+          - container_loop_info.exists
+          - container_loop_info.container.State.Running
+    wait_update: "{{ config.wait | default({}) }}"
   ansible.builtin.set_fact:
     _config:
-      result: "{{ caddy.result | default('create_result') }}"
-      ws: "{{ caddy.ws }}"
-      lookup: "{{ lookup_default | combine(lookup_update, recursive=True) }}"
+      ws: "{{ config.ws }}"
+      dir: "{{ config.dir }}"
+      wait: "{{ wait_default | combine(wait_update, recursive=True) }}"
+      result: "{{ config.result | default('create_result') }}"
 
-- name: config.reload|lookup service
-  include_tasks: "{{ _config.ws.local }}/.seed/ansible-tasks/docker-service.lookup.yml"
+- name: config.reload|wait container
+  include_tasks: "{{ _config.ws.local }}/.seed/ansible-tasks/docker-container.wait.yml"
   vars:
-    service: "{{ _config.lookup }}"
+    containers: "{{ _config.wait }}"
 
 - name: config.reload|print _config
   debug:
     var: _config
 
 - name: config.reload|exec
-  when:
-    - lookup_result.exists
   community.docker.docker_container_exec:
-    container: "{{ lookup_result.container_id }}"
+    container: "caddy"
     command: "caddy reload --config /etc/caddy/Caddyfile"
   register: exec_result
 
@@ -38,7 +38,7 @@
     - exec_result.stdout is defined
   ansible.builtin.set_fact:
     "{{ _config.result }}": "{{ exec_result.stdout_lines[-1] | default(exec_result.stderr) }}"
-  
+
 - name: config.reload|print _config.result
   debug:
     var: "{{ _config.result }}"

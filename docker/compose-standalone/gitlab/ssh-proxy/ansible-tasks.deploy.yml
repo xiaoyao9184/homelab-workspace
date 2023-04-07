@@ -3,19 +3,20 @@
 
 - name: ssh-proxy.deploy|set _proxy
   vars:
-    lookup_default:
-      name: "gitlab"
-      project: "gitlab"
-      retries: 1
-      delay: 0
-      result: "lookup_result"
-    lookup_update: "{{ gitlab.service | default({}) }}"
+    wait_default:
+      gitlab-ce:
+        retries: 1
+        delay: 0
+        until:
+          - loop_container_info.exists
+          - loop_container_info.container.State.Running
+    wait_update: "{{ gitlab.service | default({}) }}"
   ansible.builtin.set_fact:
     _proxy:
-      result: "{{ gitlab.result | default('create_result') }}"
       ws: "{{ gitlab.ws }}"
       dir: "{{ gitlab.dir }}"
-      lookup: "{{ lookup_default | combine(lookup_update, recursive=True) }}"
+      wait: "{{ wait_default | combine(wait_update, recursive=True) }}"
+      result: "{{ gitlab.result | default('create_result') }}"
 
 - name: ssh-proxy.deploy|set source_dir
   run_once: true
@@ -73,20 +74,41 @@
     src: "/home/git/.ssh/id_rsa.pub"
   register: public_key
 
-- name: ssh-proxy.deploy|lookup service
-  include_tasks: "{{ _proxy.ws.local }}/.seed/ansible-tasks/docker-service.lookup.yml"
+- name: ssh-proxy.deploy|set _proxy
   vars:
-    service: "{{ _proxy.lookup }}"
+    wait_default:
+      gitlab-ce:
+        retries: 1
+        delay: 0
+        until:
+          - container_loop_info.exists
+          - container_loop_info.container.State.Running
+    wait_update: "{{ gitlab.service | default({}) }}"
+    exec_default:
+      name: gitlab-ce
+      command: "/bin/bash -c 'echo \"{{ public_key['content'] | b64decode }}\" >> /var/opt/gitlab/.ssh/authorized_keys && cat /var/opt/gitlab/.ssh/authorized_keys'"
+      result: exec_result
+    exec_update: "{{ config.exec | default({}) }}"
+  ansible.builtin.set_fact:
+    _proxy:
+      ws: "{{ proxy.ws }}"
+      dir: "{{ proxy.dir }}"
+      wait: "{{ wait_default | combine(wait_update, recursive=True) }}"
+      exec: "{{ exec_default | combine(exec_update, recursive=True) }}"
+      result: "{{ proxy.result | default('create_result') }}"
+
+- name: ssh-proxy.deploy|wait container
+  include_tasks: "{{ _proxy.ws.local }}/.seed/ansible-tasks/docker-container.wait.yml"
+  vars:
+    containers: "{{ _proxy.wait }}"
 
 - name: ssh-proxy.deploy|print _proxy
   debug:
     var: _proxy
 
 - name: ssh-proxy.deploy|exec append authorized_keys
-  when:
-    - lookup_result.exists
   community.docker.docker_container_exec:
-    container: "{{ lookup_result.container_id }}"
+    container: "gitlab-ce"
     command: "/bin/bash -c 'echo \"{{ public_key['content'] | b64decode }}\" >> /var/opt/gitlab/.ssh/authorized_keys && cat /var/opt/gitlab/.ssh/authorized_keys'"
     # command: "/bin/bash -c 'echo \"test2\n\n\" >> /var/opt/gitlab/.ssh/authorized_keys'"
   register: exec_result

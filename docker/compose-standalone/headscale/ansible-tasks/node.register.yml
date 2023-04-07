@@ -3,25 +3,25 @@
 
 - name: node.register|set _node
   vars:
-    lookup_default:
-      type: "compose"
-      name: "headscale"
-      project: "headscale"
-      retries: 1
-      delay: 0
-      result: "lookup_result"
-    lookup_update: "{{ node.service.lookup | default({}) }}"
+    wait_default:
+      headscale:
+        retries: 1
+        delay: 0
+        until:
+          - container_loop_info.exists
+          - container_loop_info.container.State.Running
+    wait_update: "{{ node.wait | default({}) }}"
   ansible.builtin.set_fact:
     _node:
+      ws: "{{ node.ws }}"
+      wait: "{{ wait_default | combine(wait_update, recursive=True) }}"
       key_user: "{{ node.key_user }}"
       result: "{{ node.result | default('register_result') }}"
-      ws: "{{ node.ws }}"
-      lookup: "{{ lookup_default | combine(lookup_update, recursive=True) }}"
 
-- name: node.register|lookup service
-  include_tasks: "{{ _node.ws.local }}/.seed/ansible-tasks/docker-service.lookup.yml"
+- name: node.register|wait container
+  include_tasks: "{{ _node.ws.local }}/.seed/ansible-tasks/docker-container.wait.yml"
   vars:
-    service: "{{ _node.lookup }}"
+    containers: "{{ _node.wait }}"
 
 - name: node.register|print _node
   debug:
@@ -30,10 +30,10 @@
 - name: node.register|register node
   loop: "{{ _node.key_user }}"
   when:
-    - lookup_result.exists
+    - wait_result.exists
     - item.key | default(None,true) != None
   community.docker.docker_container_exec:
-    container: "{{ lookup_result.container_id }}"
+    container: "{{ wait_result.container_id }}"
     command: "headscale node register --key {{ item.key }} -u {{ item.user }}"
   register: exec_result
 

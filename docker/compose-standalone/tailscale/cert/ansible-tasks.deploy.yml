@@ -2,34 +2,34 @@
 
 - name: cert.deploy|set _cert
   vars:
-    lookup_default:
-      name: "tailscale"
-      project: "tailscale"
-      retries: 1
-      delay: 0
-      result: "lookup_result"
-    lookup_update: "{{ tailscale.service | default({}) }}"
+    wait_default:
+      tailscale:
+        retries: 1
+        delay: 0
+        until:
+          - container_loop_info.exists
+          - container_loop_info.container.State.Running
+    wait_update: "{{ cert.wait | default({}) }}"
   ansible.builtin.set_fact:
     _cert:
-      result: "{{ tailscale.result | default('create_result') }}"
-      ws: "{{ tailscale.ws }}"
-      lookup: "{{ lookup_default | combine(lookup_update, recursive=True) }}"
-      domain: "{{ tailscale.domain }}"
+      ws: "{{ cert.ws }}"
+      dir: "{{ cert.dir }}"
+      wait: "{{ wait_default | combine(wait_update, recursive=True) }}"
+      domain: "{{ cert.domain }}"
+      result: "{{ cert.result | default('create_result') }}"
 
-- name: cert.deploy|lookup service
-  include_tasks: "{{ _cert.ws.local }}/.seed/ansible-tasks/docker-service.lookup.yml"
+- name: cert.deploy|wait container
+  include_tasks: "{{ _cert.ws.local }}/.seed/ansible-tasks/docker-container.wait.yml"
   vars:
-    service: "{{ _cert.lookup }}"
+    containers: "{{ _cert.wait }}"
 
 - name: cert.deploy|print _cert
   debug:
     var: _cert
 
 - name: cert.deploy|exec deploy
-  when:
-    - lookup_result.exists
   community.docker.docker_container_exec:
-    container: "{{ lookup_result.container_id }}"
+    container: "tailscale"
     command: "tailscale cert {{ _cert.domain }}"
   register: exec_result
 

@@ -3,25 +3,25 @@
 
 - name: apikey.create|set _apikey
   vars:
-    lookup_default:
-      type: "compose"
-      name: "headscale"
-      project: "headscale"
-      retries: 1
-      delay: 0
-      result: "lookup_result"
-    lookup_update: "{{ apikey.service.lookup | default({}) }}"
+    wait_default:
+      headscale:
+        retries: 1
+        delay: 0
+        until:
+          - container_loop_info.exists
+          - container_loop_info.container.State.Running
+    wait_update: "{{ apikey.wait | default({}) }}"
   ansible.builtin.set_fact:
     _apikey:
+      ws: "{{ apikey.ws }}"
+      wait: "{{ wait_default | combine(wait_update, recursive=True) }}"
       count: "{{ apikey.count | default(1) }}"
       result: "{{ apikey.result | default('create_result') }}"
-      ws: "{{ apikey.ws }}"
-      lookup: "{{ lookup_default | combine(lookup_update, recursive=True) }}"
 
-- name: apikey.create|lookup service
-  include_tasks: "{{ _apikey.ws.local }}/.seed/ansible-tasks/docker-service.lookup.yml"
+- name: apikey.create|wait container
+  include_tasks: "{{ _apikey.ws.local }}/.seed/ansible-tasks/docker-container.wait.yml"
   vars:
-    service: "{{ _apikey.lookup }}"
+    containers: "{{ _apikey.wait }}"
 
 - name: apikey.create|print _apikey
   debug:
@@ -29,10 +29,8 @@
 
 - name: apikey.create|create apikey
   loop: "{{ range(0, (_apikey.count | int), 1) | list }}"
-  when:
-    - lookup_result.exists
   community.docker.docker_container_exec:
-    container: "{{ lookup_result.container_id }}"
+    container: "headscale"
     command: "headscale apikey create"
   register: exec_result
 

@@ -3,32 +3,32 @@
 
 - name: apikey.expire|set _apikey
   vars:
-    lookup_default:
-      type: "compose"
-      name: "headscale"
-      project: "headscale"
-      retries: 1
-      delay: 0
-      result: "lookup_result"
-    lookup_update: "{{ apikey.service.lookup | default({}) }}"
+    wait_default:
+      headscale:
+        retries: 1
+        delay: 0
+        until:
+          - container_loop_info.exists
+          - container_loop_info.container.State.Running
+    wait_update: "{{ apikey.wait | default({}) }}"
   ansible.builtin.set_fact:
     _apikey:
+      ws: "{{ apikey.ws }}"
+      wait: "{{ wait_default | combine(wait_update, recursive=True) }}"
       prefix: "{{ apikey.prefix | default([]) }}"
       result: "{{ apikey.result | default('expire_result') }}"
-      ws: "{{ apikey.ws }}"
-      lookup: "{{ lookup_default | combine(lookup_update, recursive=True) }}"
 
-- name: apikey.create|lookup service
-  include_tasks: "{{ _apikey.ws.local }}/.seed/ansible-tasks/docker-service.lookup.yml"
+- name: apikey.create|wait container
+  include_tasks: "{{ _apikey.ws.local }}/.seed/ansible-tasks/docker-container.wait.yml"
   vars:
-    service: "{{ _apikey.lookup }}"
+    containers: "{{ _apikey.wait }}"
 
 - when: _apikey.prefix | length == 0
   block:
 
     - name: apikey.expire|list apikey
       community.docker.docker_container_exec:
-        container: "{{ lookup_result.container_id }}"
+        container: "headscale"
         command: "headscale apikey list -o json"
       register: list_result
 
@@ -45,10 +45,8 @@
 
 - name: apikey.expire|expire apikey
   loop: "{{ _apikey.prefix }}"
-  when:
-    - lookup_result.exists
   community.docker.docker_container_exec:
-    container: "{{ lookup_result.container_id }}"
+    container: "headscale"
     command: "headscale apikey expire --prefix {{ item }}"
   register: exec_result
 

@@ -2,33 +2,33 @@
 
 - name: admin-password.print|set _password
   vars:
-    lookup_default:
-      name: "gitlab"
-      project: "gitlab"
-      retries: 1
-      delay: 0
-      result: "lookup_result"
-    lookup_update: "{{ gitlab.service | default({}) }}"
+    wait_default:
+      gitlab-ce:
+        retries: 1
+        delay: 0
+        until:
+          - container_loop_info.exists
+          - container_loop_info.container.State.Running
+    wait_update: "{{ password.wait | default({}) }}"
   ansible.builtin.set_fact:
     _password:
-      result: "{{ gitlab.result | default('create_result') }}"
-      ws: "{{ gitlab.ws }}"
-      lookup: "{{ lookup_default | combine(lookup_update, recursive=True) }}"
+      ws: "{{ password.ws }}"
+      dir: "{{ password.dir }}"
+      wait: "{{ wait_default | combine(wait_update, recursive=True) }}"
+      result: "{{ password.result | default('create_result') }}"
 
-- name: admin-password.print|lookup service
-  include_tasks: "{{ _password.ws.local }}/.seed/ansible-tasks/docker-service.lookup.yml"
+- name: admin-password.print|wait container
+  include_tasks: "{{ _password.ws.local }}/.seed/ansible-tasks/docker-container.wait.yml"
   vars:
-    service: "{{ _password.lookup }}"
+    containers: "{{ _password.wait }}"
 
 - name: admin-password.print|print _password
   debug:
     var: _password
 
 - name: admin-password.print|exe print
-  when:
-    - lookup_result.exists
   community.docker.docker_container_exec:
-    container: "{{ lookup_result.container_id }}"
+    container: "gitlab-ce"
     command: "bash -c \"[ -f /etc/gitlab/initial_root_password ] && cat /etc/gitlab/initial_root_password | grep 'Password:' || echo passwork already change\""
   register: exec_result
 

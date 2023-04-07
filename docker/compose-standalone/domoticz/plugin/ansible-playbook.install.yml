@@ -38,21 +38,14 @@
       include_tasks: "{{ dir.local }}/plugin/ansible-tasks.install.yml"
       vars:
         plugin:
-          service:
-            type: compose
-            name: "domoticz"
-            project: "{{ dir.names[0] }}"
           ws: "{{ ws }}"
+          dir: "{{ dir }}"
           result: plugin_install
           vol_copy: "{{ domoticz.plugin.vol_copy | default([],true) }}"
 
-    - name: restart service
+    - name: restart compose service
       when: domoticz.plugin.restart | default(false) | bool
       community.docker.docker_compose:
-        state: present
-        restarted: true
-        project_name: "{{ dir.names[0] }}"
         project_src: "{{ dir.remote }}"
-        files:
-          - "docker-compose.networks.yml"
-          - "docker-compose.yml"
+        build: false
+        restarted: true

@@ -27,13 +27,10 @@
       vars:
         length: 2
 
-    - name: backup gitlab
+    - name: rake backup gitlab
       include_tasks: "{{ dir.local }}/ansible-tasks.backup.yml"
       vars:
-        gitlab:
-          service:
-            type: compose
-            name: "gitlab-ce"
-            project: "{{ dir.names[0] }}"
+        rake:
           ws: "{{ ws }}"
-          result: gitlab_backup
+          dir: "{{ dir }}"
+          result: rake_backup

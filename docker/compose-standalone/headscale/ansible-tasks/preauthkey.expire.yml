@@ -3,26 +3,26 @@
 
 - name: preauthkey.expire|set _preauthkey
   vars:
-    lookup_default:
-      type: "compose"
-      name: "headscale"
-      project: "headscale"
-      retries: 1
-      delay: 0
-      result: "lookup_result"
-    lookup_update: "{{ preauthkey.service.lookup | default({}) }}"
+    wait_default:
+      headscale:
+        retries: 1
+        delay: 0
+        until:
+          - container_loop_info.exists
+          - container_loop_info.container.State.Running
+    wait_update: "{{ preauthkey.wait | default({}) }}"
   ansible.builtin.set_fact:
     _preauthkey:
+      ws: "{{ preauthkey.ws }}"
+      wait: "{{ wait_default | combine(wait_update, recursive=True) }}"
       key: "{{ preauthkey.key | default([]) }}"
       user: "{{ preauthkey.user | default([]) }}"
       result: "{{ preauthkey.result | default('expire_result') }}"
-      ws: "{{ preauthkey.ws }}"
-      lookup: "{{ lookup_default | combine(lookup_update, recursive=True) }}"
 
-- name: preauthkey.expire|lookup service
-  include_tasks: "{{ _preauthkey.ws.local }}/.seed/ansible-tasks/docker-service.lookup.yml"
+- name: preauthkey.expire|wait container
+  include_tasks: "{{ _preauthkey.ws.local }}/.seed/ansible-tasks/docker-container.wait.yml"
   vars:
-    service: "{{ _preauthkey.lookup }}"
+    containers: "{{ _preauthkey.wait }}"
 
 - when: 
     - _preauthkey.key | length == 0
@@ -31,7 +31,7 @@
 
     - name: preauthkey.expire|list user
       community.docker.docker_container_exec:
-        container: "{{ lookup_result.container_id }}"
+        container: "{{ wait_result.container_id }}"
         command: "headscale user list -o json"
       register: list_result
 
@@ -49,7 +49,7 @@
     - name: preauthkey.expire|list preauthkey
       loop: "{{ _preauthkey.user }}"
       community.docker.docker_container_exec:
-        container: "{{ lookup_result.container_id }}"
+        container: "{{ wait_result.container_id }}"
         command: "headscale preauthkey list -u {{ item }} -o json"
       register: list_result
 
@@ -70,9 +70,9 @@
 - name: preauthkey.expire|expire preauthkey
   loop: "{{ _preauthkey.key }}"
   when:
-    - lookup_result.exists
+    - wait_result.exists
   community.docker.docker_container_exec:
-    container: "{{ lookup_result.container_id }}"
+    container: "{{ wait_result.container_id }}"
     command: "headscale preauthkey destroy {{ item }} --force"
   register: exec_result
 

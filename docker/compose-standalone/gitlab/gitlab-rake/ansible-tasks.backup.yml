@@ -2,33 +2,33 @@
 
 - name: gitlab-rake.backup|set _rake
   vars:
-    lookup_default:
-      name: "gitlab"
-      project: "gitlab"
-      retries: 1
-      delay: 0
-      result: "lookup_result"
-    lookup_update: "{{ gitlab.service | default({}) }}"
+    wait_default:
+      gitlab-ce:
+        retries: 1
+        delay: 0
+        until:
+          - container_loop_info.exists
+          - container_loop_info.container.State.Running
+    wait_update: "{{ rake.wait | default({}) }}"
   ansible.builtin.set_fact:
     _rake:
-      result: "{{ gitlab.result | default('create_result') }}"
-      ws: "{{ gitlab.ws }}"
-      lookup: "{{ lookup_default | combine(lookup_update, recursive=True) }}"
+      ws: "{{ rake.ws }}"
+      dir: "{{ rake.dir }}"
+      wait: "{{ wait_default | combine(wait_update, recursive=True) }}"
+      result: "{{ rake.result | default('create_result') }}"
 
-- name: gitlab-rake.backup|lookup service
-  include_tasks: "{{ _rake.ws.local }}/.seed/ansible-tasks/docker-service.lookup.yml"
+- name: gitlab-rake.backup|wait container
+  include_tasks: "{{ _rake.ws.local }}/.seed/ansible-tasks/docker-container.wait.yml"
   vars:
-    service: "{{ _rake.lookup }}"
+    containers: "{{ _rake.wait }}"
 
 - name: gitlab-rake.backup|print _rake
   debug:
     var: _rake
 
 - name: gitlab-rake.backup|exec backup
-  when:
-    - lookup_result.exists
   community.docker.docker_container_exec:
-    container: "{{ lookup_result.container_id }}"
+    container: "gitlab-ce"
     command: "gitlab-rake gitlab:backup:create"
   register: exec_result
 

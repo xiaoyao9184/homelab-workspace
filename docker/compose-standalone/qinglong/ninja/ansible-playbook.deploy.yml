@@ -30,10 +30,7 @@
     - name: ninja deploy
       include_tasks: "{{ dir.local }}/ansible-tasks.deploy.yml"
       vars:
-        qinglong:
-          service:
-            type: compose
-            name: "qinglong"
-            project: "{{ dir.names[0] }}"
+        ninja:
           ws: "{{ ws }}"
+          dir: "{{ dir }}"
           result: ninja_deploy

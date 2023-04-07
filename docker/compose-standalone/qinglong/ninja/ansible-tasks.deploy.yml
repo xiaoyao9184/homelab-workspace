@@ -2,23 +2,25 @@
 
 - name: ninja.deploy|set _ninja
   vars:
-    lookup_default:
-      name: "qinglong"
-      project: "qinglong"
-      retries: 1
-      delay: 0
-      result: "lookup_result"
-    lookup_update: "{{ qinglong.service | default({}) }}"
+    wait_default:
+      qinglong:
+        retries: 1
+        delay: 0
+        until:
+          - container_loop_info.exists
+          - container_loop_info.container.State.Running
+    wait_update: "{{ ninja.wait | default({}) }}"
   ansible.builtin.set_fact:
     _ninja:
-      result: "{{ qinglong.result | default('create_result') }}"
-      ws: "{{ qinglong.ws }}"
-      lookup: "{{ lookup_default | combine(lookup_update, recursive=True) }}"
+      ws: "{{ ninja.ws }}"
+      dir: "{{ ninja.dir }}"
+      wait: "{{ wait_default | combine(wait_update, recursive=True) }}"
+      result: "{{ ninja.result | default('create_result') }}"
 
-- name: ninja.deploy|lookup service
-  include_tasks: "{{ _ninja.ws.local }}/.seed/ansible-tasks/docker-service.lookup.yml"
+- name: ninja.deploy|wait container
+  include_tasks: "{{ _ninja.ws.local }}/.seed/ansible-tasks/docker-container.wait.yml"
   vars:
-    service: "{{ _ninja.lookup }}"
+    containers: "{{ _ninja.wait }}"
 
 - name: ninja.deploy|print _ninja
   debug:
@@ -30,10 +32,8 @@
     - "bash -c 'cd /ql/ninja/backend && pnpm install'"
     - "bash -c 'cd /ql/ninja/backend && pm2 start'"
     - "bash -c 'echo \"\ncd /ql/ninja/backend\npm2 start\" >> /ql/data/config/extra.sh'" 
-  when:
-    - lookup_result.exists
   community.docker.docker_container_exec:
-    container: "{{ lookup_result.container_id }}"
+    container: "qinglong"
     command: "{{ item }}"
   register: exec_result
 

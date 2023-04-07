@@ -3,26 +3,26 @@
 
 - name: node.delete|set _node
   vars:
-    lookup_default:
-      type: "compose"
-      name: "headscale"
-      project: "headscale"
-      retries: 1
-      delay: 0
-      result: "lookup_result"
-    lookup_update: "{{ node.service.lookup | default({}) }}"
+    wait_default:
+      headscale:
+        retries: 1
+        delay: 0
+        until:
+          - container_loop_info.exists
+          - container_loop_info.container.State.Running
+    wait_update: "{{ node.wait | default({}) }}"
   ansible.builtin.set_fact:
     _node:
+      ws: "{{ node.ws }}"
+      wait: "{{ wait_default | combine(wait_update, recursive=True) }}"
       id: "{{ node.id | default([]) }}"
       user: "{{ node.user | default([]) }}"
       result: "{{ node.result | default('expire_result') }}"
-      ws: "{{ node.ws }}"
-      lookup: "{{ lookup_default | combine(lookup_update, recursive=True) }}"
 
-- name: node.delete|lookup service
-  include_tasks: "{{ _node.ws.local }}/.seed/ansible-tasks/docker-service.lookup.yml"
+- name: node.delete|wait container
+  include_tasks: "{{ _node.ws.local }}/.seed/ansible-tasks/docker-container.wait.yml"
   vars:
-    service: "{{ _node.lookup }}"
+    containers: "{{ _node.wait }}"
 
 - when: 
     - _node.id | length == 0
@@ -31,7 +31,7 @@
 
     - name: node.delete|list user
       community.docker.docker_container_exec:
-        container: "{{ lookup_result.container_id }}"
+        container: "{{ wait_result.container_id }}"
         command: "headscale user list -o json"
       register: list_result
 
@@ -49,7 +49,7 @@
     - name: _node.delete|list node
       loop: "{{ _node.user }}"
       community.docker.docker_container_exec:
-        container: "{{ lookup_result.container_id }}"
+        container: "{{ wait_result.container_id }}"
         command: "headscale node list -u {{ item }} -o json"
       register: list_result
 
@@ -70,9 +70,9 @@
 - name: node.delete|delete node
   loop: "{{ _node.id }}"
   when:
-    - lookup_result.exists
+    - wait_result.exists
   community.docker.docker_container_exec:
-    container: "{{ lookup_result.container_id }}"
+    container: "{{ wait_result.container_id }}"
     command: "headscale node delete --identifier {{ item }} --force"
   register: exec_result
 

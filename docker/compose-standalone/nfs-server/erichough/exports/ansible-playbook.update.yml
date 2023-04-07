@@ -43,6 +43,19 @@
     - name: overwrite bind exports
       ansible.builtin.shell: "cat {{ dir.remote }}/../exports/exports > {{ dir.remote }}/../bind_file-exports"
 
+    - block:
+
+        - name: wait container
+          include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-container.wait.yml"
+          vars:
+            containers:
+              nfs-server:
+                retries: -1
+                delay: 30
+                until:
+                  - container_loop_info.exists
+                  - container_loop_info.container.State.Running
+
     - name: exportfs on service
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-service.exec.yml"
       vars:

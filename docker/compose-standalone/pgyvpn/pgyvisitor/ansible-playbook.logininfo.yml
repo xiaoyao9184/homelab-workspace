@@ -30,10 +30,7 @@
     - name: print logininfo
       include_tasks: "{{ dir.local }}/ansible-tasks.logininfo.yml"
       vars:
-        pgyvpn:
-          service:
-            type: compose
-            name: "pgyvpn"
-            project: "{{ dir.names[0] }}"
+        pgyvisitor:
           ws: "{{ ws }}"
+          dir: "{{ dir }}"
           result: pgyvisitor_logininfo

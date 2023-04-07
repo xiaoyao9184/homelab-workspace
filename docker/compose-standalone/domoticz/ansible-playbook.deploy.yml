@@ -74,6 +74,20 @@
               PORTS: "{{ domoticz.tmp.ports | default([],true) }}"
               DEVICES: "{{ domoticz.tmp.devices | default([],true) }}"
 
+    - when: domoticz.exec is defined
+      block:
+
+        - name: wait container
+          include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-container.wait.yml"
+          vars:
+            containers:
+              domoticz:
+                retries: -1
+                delay: 30
+                until:
+                  - container_loop_info.exists
+                  - container_loop_info.container.State.Running
+
     - name: exec service
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-service.exec.yml"
       vars:

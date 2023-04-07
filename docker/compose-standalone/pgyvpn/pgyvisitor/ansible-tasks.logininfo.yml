@@ -2,33 +2,33 @@
 
 - name: pgyvisitor.logininfo|set _pgyvisitor
   vars:
-    lookup_default:
-      name: "pgyvpn"
-      project: "pgyvpn"
-      retries: 1
-      delay: 0
-      result: "lookup_result"
-    lookup_update: "{{ pgyvpn.service | default({}) }}"
+    wait_default:
+      pgyvpn:
+        retries: 1
+        delay: 0
+        until:
+          - container_loop_info.exists
+          - container_loop_info.container.State.Running
+    wait_update: "{{ pgyvisitor.wait | default({}) }}"
   ansible.builtin.set_fact:
     _pgyvisitor:
-      result: "{{ pgyvpn.result | default('create_result') }}"
-      ws: "{{ pgyvpn.ws }}"
-      lookup: "{{ lookup_default | combine(lookup_update, recursive=True) }}"
+      ws: "{{ pgyvisitor.ws }}"
+      dir: "{{ pgyvisitor.dir }}"
+      wait: "{{ wait_default | combine(wait_update, recursive=True) }}"
+      result: "{{ pgyvisitor.result | default('create_result') }}"
 
-- name: pgyvisitor.logininfo|lookup service
-  include_tasks: "{{ _pgyvisitor.ws.local }}/.seed/ansible-tasks/docker-service.lookup.yml"
+- name: pgyvisitor.logininfo|wait container
+  include_tasks: "{{ _pgyvisitor.ws.local }}/.seed/ansible-tasks/docker-container.wait.yml"
   vars:
-    service: "{{ _pgyvisitor.lookup }}"
+    containers: "{{ _pgyvisitor.wait }}"
 
 - name: pgyvisitor.logininfo|print _pgyvisitor
   debug:
     var: _pgyvisitor
 
 - name: pgyvisitor.logininfo|exec logininfo
-  when:
-    - lookup_result.exists
   community.docker.docker_container_exec:
-    container: "{{ lookup_result.container_id }}"
+    container: "pgyvpn"
     command: "pgyvisitor logininfo"
   register: exec_result
 

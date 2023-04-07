@@ -37,10 +37,6 @@
     - name: reload config
       include_tasks: "{{ dir.local }}/ansible-tasks.reload.yml"
       vars:
-        caddy:
-          service:
-            type: compose
-            name: "caddy"
-            project: "{{ dir.names[0] }}"
+        config:
           ws: "{{ ws }}"
           result: config_reload

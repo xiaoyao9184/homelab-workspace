@@ -3,25 +3,25 @@
 
 - name: user.create|set _user
   vars:
-    lookup_default:
-      type: "compose"
-      name: "headscale"
-      project: "headscale"
-      retries: 1
-      delay: 0
-      result: "lookup_result"
-    lookup_update: "{{ user.service.lookup | default({}) }}"
+    wait_default:
+      headscale:
+        retries: 1
+        delay: 0
+        until:
+          - container_loop_info.exists
+          - container_loop_info.container.State.Running
+    wait_update: "{{ user.wait | default({}) }}"
   ansible.builtin.set_fact:
     _user:
+      ws: "{{ user.ws }}"
+      wait: "{{ wait_default | combine(wait_update, recursive=True) }}"
       name: "{{ user.name | default(['default']) }}"
       result: "{{ user.result | default('create_result') }}"
-      ws: "{{ user.ws }}"
-      lookup: "{{ lookup_default | combine(lookup_update, recursive=True) }}"
 
-- name: user.create|lookup service
-  include_tasks: "{{ _user.ws.local }}/.seed/ansible-tasks/docker-service.lookup.yml"
+- name: user.create|wait container
+  include_tasks: "{{ _user.ws.local }}/.seed/ansible-tasks/docker-container.wait.yml"
   vars:
-    service: "{{ _user.lookup }}"
+    containers: "{{ _user.wait }}"
 
 - name: user.create|print _user
   debug:
@@ -30,9 +30,9 @@
 - name: user.create|create user
   loop: "{{ _user.name }}"
   when:
-    - lookup_result.exists
+    - wait_result.exists
   community.docker.docker_container_exec:
-    container: "{{ lookup_result.container_id }}"
+    container: "{{ wait_result.container_id }}"
     command: "headscale user create {{ item }}"
   register: exec_result
 
