@@ -1,0 +1,98 @@
+# NOTE
+# same as docker stack ps command
+---
+
+
+- block:
+
+    - name: docker-task.loop|set _task_loop
+      run_once: true
+      when: _task_loop | default(None,true) == None
+      vars:
+        default_until:
+          - task_loop_info | length > 0
+        default_fail: []
+      ansible.builtin.set_fact:
+        _task_loop:
+          # stack name
+          name: "{{ task.name }}"
+          search: "{{ task.search | default('.*',true) }}"
+          retries: "{{ task.retries | default(1000) }}"
+          delay: "{{ task.delay | default(10) }}"
+          until: "{{ task.until | default(default_until) }}"
+          fail: "{{ task.fail | default(default_fail) }}"
+
+    - name: docker-stack.loop|sleep for first
+      when: _task_loop | default(None,true) == None
+      ansible.builtin.pause:
+        seconds: "{{ _task_loop.delay | int }}"
+
+    - name: docker-task.loop|get task info
+      run_once: true
+      delegate_to: "{{ groups['docker-manager'] | first }}"
+      community.docker.docker_stack_task_info:
+        name: "{{ _task_loop.name }}"
+      register: task_all_info
+      ignore_errors: true
+
+    - name: docker-task.loop|filter task info
+      run_once: true
+      ansible.builtin.set_fact:
+        task_loop_info: "{{ task_all_info.results | default ([],true) | selectattr('Name','search',_task_loop.search) }}"
+        task_all_info: !!null
+
+    - name: docker-task.loop|print task_loop_info
+      run_once: true
+      ansible.builtin.debug:
+        var: task_loop_info
+
+    - name: docker-task.loop|until check
+      run_once: true
+      loop: "{{ _task_loop.until }}"
+      loop_control:
+        loop_var: check
+      when: "not ( {{ check }} )"
+      ansible.builtin.fail:
+        msg: "beak loop task {{ _task_loop.name }}: {{ check }}"
+
+    - name: docker-task.loop|reset _task_retry
+      run_once: true
+      ansible.builtin.set_fact:
+        _task_retry: !!null
+        _task_loop: !!null
+
+  rescue:
+
+    - name: docker-task.loop|fail check
+      run_once: true
+      loop: "{{ _task_loop.fail }}"
+      loop_control:
+        loop_var: check
+      when: "{{ check }}"
+      ansible.builtin.fail:
+        msg: "fail loop task {{ _task_loop.name }}: {{ check }}"
+
+    - name: docker-task.loop|init _task_retry
+      run_once: true
+      when: _task_retry | default(None,true) == None
+      ansible.builtin.set_fact:
+        _task_retry: "{{ _task_loop.retries | int }}"
+
+    - name: docker-task.loop|all retry fail
+      run_once: true
+      when:
+        - (_task_retry | int) == 0
+      ansible.builtin.fail:
+        msg: "tired out loop task {{ _task_loop.name }}"
+
+    - name: docker-task.loop|sleep for next loop
+      ansible.builtin.pause:
+        seconds: "{{ _task_loop.delay | int }}"
+        prompt: "retries {{ _task_retry }}/{{ _task_loop.retries }}"
+
+    - name: docker-task.loop|reduce _task_retry
+      run_once: true
+      ansible.builtin.set_fact:
+        _task_retry: "{{ _task_retry | int - 1 }}"
+
+    - include_tasks: docker-task.loop.yml

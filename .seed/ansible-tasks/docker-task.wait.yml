@@ -1,0 +1,51 @@
+---
+
+
+- name: docker-task.wait|append list _tasks
+  run_once: true
+  loop: "{{ tasks if (tasks | type_debug == 'list') else [] }}"
+  loop_control:
+    loop_var: task
+  vars:
+    list: "{{ _tasks | default([],true) }}"
+    item:
+      name: "{{ task.name | default(omit) }}"
+      retries: "{{ task.retries | default(1000) }}"
+      delay: "{{ task.delay | default(10) }}"
+      until: "{{ task.until | default(omit) }}"
+  ansible.builtin.set_fact:
+    _tasks: "{{ list + [item] }}"
+
+- name: docker-task.wait|append dict _tasks
+  run_once: true
+  loop: "{{ (tasks | dict2items) if (tasks | type_debug == 'dict') else [] }}"
+  loop_control:
+    loop_var: kv
+  vars:
+    list: "{{ _tasks | default([],true) }}"
+    name: "{{ kv.key }}"
+    task: "{{ kv.value }}"
+    item:
+      name: "{{ name | default(omit) }}"
+      retries: "{{ task.retries | default(1000) }}"
+      delay: "{{ task.delay | default(10) }}"
+      until: "{{ task.until | default(omit) }}"
+  ansible.builtin.set_fact:
+    _tasks: "{{ list + [item] }}"
+
+- name: docker-task.wait|print _tasks
+  run_once: true
+  ansible.builtin.debug:
+    var: _tasks
+
+- name: docker-task.wait|loop task
+  run_once: true
+  loop: "{{ _tasks }}"
+  loop_control:
+    loop_var: task
+  include_tasks: docker-task.loop.yml
+
+- name: docker-task.wait|reset _tasks
+  run_once: true
+  ansible.builtin.set_fact:
+    _tasks: !!null
