@@ -10,7 +10,7 @@
     - name: network_id
       prompt: What network id for join?
       private: no
-  hosts: docker-manager
+  hosts: dsm
   tasks: 
 
     - name: read version
