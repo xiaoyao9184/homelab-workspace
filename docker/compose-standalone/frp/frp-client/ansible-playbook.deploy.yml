@@ -35,12 +35,9 @@
         networks: "{{ frp.client.net | default([],true) }}"
 
     - name: wait host port
-      when: frp.client.wait_port is defined
-      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/host-port.wait.yml"
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-port.wait.yml"
       vars:
-        wait_name: "{{ dir.names | join('_') }}"
-        wait_network: "{{ frp.client.wait_port.networks | default([],true) }}"
-        wait_port: "{{ frp.client.wait_port.hosts | default({},true) }}"
+        ports: "{{ frp.client.port_wait | default([],true) }}"
 
     # https://medium.com/@jonsbun/why-need-to-be-careful-when-mounting-single-files-into-a-docker-container-4f929340834
     - name: overwrite bind ini

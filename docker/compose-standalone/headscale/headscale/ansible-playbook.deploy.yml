@@ -66,13 +66,13 @@
               BIND_YAML: "{{ dir.remote }}/bind_file-yaml"
 
     - name: wait host port
-      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/host-port.wait.yml"
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-port.wait.yml"
       vars:
-        wait_name: "{{ dir.names | join('_') }}"
-        wait_network:
-          - headscale_headscale
-        wait_port: 
-          headscale: 8080
+        ports:
+          - name: "{{ dir.names | join('_') }}"
+            network: headscale_headscale
+            hosts:
+              headscale: 8080
 
     - name: create headscale apikey
       include_tasks: "{{ dir.local }}/../ansible-tasks/apikey.create.yml"

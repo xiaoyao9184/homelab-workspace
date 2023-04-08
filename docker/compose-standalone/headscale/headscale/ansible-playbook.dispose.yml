@@ -18,19 +18,14 @@
     - name: set dir
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.set.yml"
 
-    - name: copy to dir
-      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dirs.copy.yml"
+    - name: wait host port
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-port.wait.yml"
       vars:
-        dirs:
-          sync:
-            - dest: "{{ dir.remote }}"
-
-    - name: build env_file
-      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-envs.create.yml"
-      vars:
-        envs:
-          - dest: "{{ dir.remote }}/external_env-all.env"
-            data: []
+        ports:
+          - name: "{{ dir.names | join('_') }}"
+            network: headscale_headscale
+            hosts:
+              headscale: 8080
 
     - name: expire headscale preauthkey
       include_tasks: "{{ dir.local }}/../ansible-tasks/preauthkey.expire.yml"
@@ -59,6 +54,20 @@
         apikey:
           ws: "{{ ws }}"
           result: apikey_result
+
+    - name: copy to dir
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dirs.copy.yml"
+      vars:
+        dirs:
+          sync:
+            - dest: "{{ dir.remote }}"
+
+    - name: build env_file
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-envs.create.yml"
+      vars:
+        envs:
+          - dest: "{{ dir.remote }}/external_env-all.env"
+            data: []
 
     - name: remove compose service
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-compose.rm.yml"

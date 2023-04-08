@@ -5,7 +5,7 @@
     run_wsl: |
       ansible-playbook \
         --inventory $PWD/ansible-inventories \
-        $PWD/../../../docker/stack-standalone/anyone-headscale/headscale/node/ansible-playbook.delete.yml
+        $PWD/../../../docker/compose-standalone/headscale/headscale/node/ansible-playbook.delete.yml
   vars_prompt:
     - name: node_id
       prompt: What is node id(split ',' format {id} | @{user})?
@@ -42,16 +42,16 @@
         length: 2
 
     - name: wait host port
-      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/host-port.wait.yml"
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-port.wait.yml"
       vars:
-        wait_name: "{{ dir.names | join('_') }}"
-        wait_network:
-          - headscale_headscale
-        wait_port: 
-          headscale: 8080
+        ports:
+          - name: "{{ dir.names | join('_') }}"
+            network: headscale_headscale
+            hosts:
+              headscale: 8080
 
     - name: delete headscale node
-      include_tasks: "{{ dir.local }}/../ansible-tasks/node.delete.yml"
+      include_tasks: "{{ dir.local }}/../../ansible-tasks/node.delete.yml"
       vars:
         node:
           ws: "{{ ws }}"

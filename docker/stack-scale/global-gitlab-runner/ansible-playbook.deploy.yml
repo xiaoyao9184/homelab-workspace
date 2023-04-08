@@ -13,13 +13,16 @@
   tasks: 
 
     - name: wait host port
-      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/host-port.wait.yml"
+      include_tasks:
+        file: "{{ ws.local }}/.seed/ansible-tasks/docker-port.wait.yml"
+        apply:
+          run_once: true
       vars:
-        wait_name: "{{ dir.names | join('_') }}"
-        wait_network:
-          - external_net-gitlab
-        wait_port: 
-          gitlab-ce: 80
+        ports:
+          - name: "{{ dir.names | join('_') }}"
+            network: external_net-gitlab
+            hosts:
+              gitlab-ce: 80
 
     - name: wait swarm service
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-service.wait.yml"

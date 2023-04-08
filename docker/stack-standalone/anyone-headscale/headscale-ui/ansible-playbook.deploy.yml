@@ -44,13 +44,13 @@
             attachable: true
 
     - name: wait host port
-      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/host-port.wait.yml"
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-port.wait.yml"
       vars:
-        wait_name: "{{ dir.names | join('_') }}"
-        wait_network:
-          - external_net-headscale
-        wait_port: 
-          headscale: 8080
+        ports:
+          - name: "{{ dir.names | join('_') }}"
+            network: external_net-headscale
+            hosts:
+              headscale: 8080
 
     - name: add stack service
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-compose.add.yml"

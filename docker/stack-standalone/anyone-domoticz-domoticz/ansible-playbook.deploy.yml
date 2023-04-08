@@ -95,24 +95,17 @@
           files:
             - "docker-compose-swarm.yml"
 
-
-- name: deploy
-  environment:
-    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
-  hosts: "{{ 'docker:&docker-domoticz-node' if (groups['docker-domoticz-node'] is defined) else 'docker' }}"
-  tasks: 
-
     - name: wait host port
       include_tasks:
-        file: "{{ ws.local }}/.seed/ansible-tasks/host-port.wait.yml"
+        file: "{{ ws.local }}/.seed/ansible-tasks/docker-port.wait.yml"
         apply:
           run_once: true
       vars:
-        wait_name: "{{ dir.names | join('_') }}"
-        wait_network:
-          - external_net-domoticz
-        wait_port: 
-          domoticz: 80
+        ports:
+          - name: "{{ dir.names | join('_') }}"
+            network: external_net-domoticz
+            hosts:
+              domoticz: 80
 
     - name: wait swarm service
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-service.wait.yml"

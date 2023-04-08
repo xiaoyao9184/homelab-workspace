@@ -32,16 +32,16 @@
         length: 3
 
     - name: wait host port
-      include_tasks: 
-        file: "{{ ws.local }}/.seed/ansible-tasks/host-port.wait.yml"
+      include_tasks:
+        file: "{{ ws.local }}/.seed/ansible-tasks/docker-port.wait.yml"
         apply:
           run_once: true
       vars:
-        wait_name: "{{ dir.names | join('_') }}"
-        wait_network:
-          - external_net-headscale
-        wait_port: 
-          headscale: 8080
+        ports:
+          - name: "{{ dir.names | join('_') }}"
+            network: external_net-headscale
+            hosts:
+              headscale: 8080
 
     - name: create headscale user
       include_tasks: "{{ dir.local }}/ansible-tasks/user.create.yml"

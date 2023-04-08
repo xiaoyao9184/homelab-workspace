@@ -99,24 +99,16 @@
           files:
             - "docker-compose-swarm.yml"
 
-
-- name: deploy
-  environment:
-    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
-  hosts: "{{ 'docker:&docker-nexus-node' if (groups['docker-nexus-node'] is defined) else 'docker' }}"
-  tasks:
-
     - name: wait host port
       include_tasks:
-        file: "{{ ws.local }}/.seed/ansible-tasks/host-port.wait.yml"
+        file: "{{ ws.local }}/.seed/ansible-tasks/docker-port.wait.yml"
         apply:
           run_once: true
       vars:
-        wait_name: "{{ dir.names | join('_') }}"
-        wait_network:
-          - external_net-nexus
-        wait_port: 
-          nexus: 8081
+        ports:
+          - name: "{{ dir.names | join('_') }}"
+            network: external_net-nexus
+            nexus3: 8081
 
     - name: print admin password
       include_tasks: "{{ dir.local }}/ansible-tasks.print.yml"
