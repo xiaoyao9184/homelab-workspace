@@ -4,6 +4,7 @@
   vars:
     run_wsl: |
       ansible-playbook \
+        --ask-become-pass \
         --inventory $PWD/ansible-inventories \
         $PWD/../../../docker/compose-standalone/tailscale/ansible-playbook.deploy.yml
   environment:
@@ -11,6 +12,12 @@
   hosts: "{{ 'docker:&docker-tailscale-node' if (groups['docker-tailscale-node'] is defined) else 'docker' }}"
   run_once: true
   tasks: 
+
+    - name: mkdir tailscaled sock
+      become: true
+      ansible.builtin.file:
+        path: "/var/run/tailscale"
+        state: directory
 
     - name: set ws
       include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/ws.set.yml"
