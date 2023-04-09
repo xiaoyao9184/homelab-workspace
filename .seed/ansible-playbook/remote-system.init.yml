@@ -45,8 +45,9 @@
   # become: true
   # disable gather_facts for miss python on target
   gather_facts: false
-  environment:
-    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
+  # env not work with disable gather_facts
+  # environment:
+  #   PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
   pre_tasks:
 
     - name: set task_path
