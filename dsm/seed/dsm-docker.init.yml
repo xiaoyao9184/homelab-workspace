@@ -18,11 +18,6 @@
       pip: "{{ system_pip | default(default_pip,true) }}"
       pip_install: "{{ pip.install | default('ansible',true) }}"
 
-- name: dsm-docker.init|install docker spk from server
-  become: true
-  ansible.builtin.shell: synopkg install_from_server Docker
-  ignore_errors: true
-
 - name: dsm-docker.init|ensurepip pip
   become: true
   ansible.builtin.shell: python3 -m ensurepip
@@ -54,6 +49,16 @@
   retries: 3
   delay: 5
 
+- name: dsm-docker.init|gather fact
+  ansible.builtin.setup:
+
+- name: dsm-docker.init|install docker spk from server
+  become: true
+  environment:
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
+  ansible.builtin.shell: synopkg install_from_server Docker
+  ignore_errors: true
+
 # cant add to root group for access docker
 # - name: dsm-docker.init|add user to docker
 #   become: true
@@ -71,13 +76,19 @@
     
   - name: dsm-docker.init|add docker group
     become: true
+    environment:
+      PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
     ansible.builtin.shell: "synogroup --add docker"
     ignore_errors: true
 
   - name: dsm-docker.init|add user to docker group
     become: true
+    environment:
+      PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
     ansible.builtin.shell: "synogroup --member docker {{ ansible_user_id }}"
 
   - name: dsm-docker.init|chown docker api
     become: true
+    environment:
+      PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
     ansible.builtin.shell: "chown root:docker /var/run/docker.sock"
