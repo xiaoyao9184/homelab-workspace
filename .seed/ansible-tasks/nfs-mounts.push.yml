@@ -1,0 +1,24 @@
+---
+
+
+# NOTE
+# Need to use the system's nfs client, make sure it is installed
+- name: nfs-mounts.push|dict
+  when: mounts | type_debug == "dict"
+  ansible.builtin.set_fact:
+    _mounts: "{{ mounts | dict2items }}"
+
+- name: nfs-mounts.push|list
+  when: mounts | type_debug == "list"
+  ansible.builtin.set_fact:
+    _mounts: "{{ mounts }}"
+
+- name: nfs-mount.push|loop
+  loop: "{{ _mounts }}"
+  loop_control:
+    loop_var: mount
+  include_tasks: nfs-mount.push.yml
+
+- name: nfs-mounts.push|reset _mounts
+  ansible.builtin.set_fact:
+    _mounts: !!null

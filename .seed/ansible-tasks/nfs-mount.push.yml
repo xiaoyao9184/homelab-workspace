@@ -1,0 +1,100 @@
+---
+
+
+- name: nfs-mount.push|check in docker-seed connect local(docker-in-docker)
+  when:
+    - lookup('ansible.builtin.env', 'SEED_NAME') != ''
+    - ansible_connection == 'local'
+  ansible.builtin.set_fact:
+    seed_in_docker_connect_local: true
+
+- name: nfs-mount.push|set _mount from mount
+  when: mount.key is undefined
+  vars:
+    other_keys: ['name','loop','unmount','point','mount','option']
+    copy_keys: "{{ mount.keys() | difference(other_keys) }}"
+    copy_values: "{{ copy_keys | map('extract', mount) | list }}"
+    service: "{{ nfs.service[mount.name] }}"
+    server: "{{ service.host if(seed_in_docker_connect_local is defined) else service.addr }}"
+  ansible.builtin.set_fact:
+    _mount:
+      name: "{{ mount.name }}"
+      loop: "{{ mount.loop | default(true) }}"
+      unmount: "{{ mount.unmount | default(false) }}"
+      mount:
+        point: "{{ server }}:{{ mount.point }}"
+        mount: "{{ mount.mount }}"
+        option: "{{ mount.option }}"
+      cp: "{{ dict(copy_keys | zip(copy_values)) }}"
+
+- name: nfs-mount.push|set _mount from mount.key mount.value
+  when: mount.key is defined
+  vars:
+    other_keys: ['name','loop','unmount','point','mount','option']
+    copy_keys: "{{ mount.value.keys() | difference(other_keys) }}"
+    copy_values: "{{ copy_keys | map('extract', mount.value) | list }}"
+    service: "{{ nfs.service[mount.key] }}"
+    server: "{{ service.host if(seed_in_docker_connect_local is defined) else service.addr }}"
+  ansible.builtin.set_fact:
+    _mount:
+      name: "{{ mount.key }}"
+      loop: "{{ mount.value.loop | default(true) }}"
+      unmount: "{{ mount.value.unmount | default(false) }}"
+      mount:
+        point: "{{ server }}:{{ mount.value.point }}"
+        mount: "{{ mount.value.mount }}"
+        option: "{{ mount.value.option }}"
+      cp: "{{ dict(copy_keys | zip(copy_values)) }}"
+
+- name: nfs-mount.push|append _mount.mount.mount to _mount.cp.dest
+  vars:
+    update:
+      cp:
+        dest: "{{ _mount.mount.mount }}/{{ _mount.cp.dest }}"
+  ansible.builtin.set_fact:
+    _mount: "{{ _mount | combine(update, recursive=True) }}"
+
+- name: nfs-mount.push|print _mount
+  ansible.builtin.debug:
+    var: _mount
+
+- name: nfs-mount.push|loop mount
+  when: _mount.loop | bool
+  vars:
+    mount:
+      point: "{{ _mount.mount.point }}"
+      mount: "{{ _mount.mount.mount }}"
+      option: "{{ _mount.mount.option }}"
+      unmount: false
+      retries: -1
+  include_tasks: nfs-mount.loop.yml
+
+- name: nfs-mount.push|mkdir _mount.mount.mount
+  become: true
+  ansible.builtin.file:
+    path: "{{ _mount.mount.mount }}"
+    state: directory
+    mode: 0777
+
+- name: nfs-mount.push|mount
+  become: true
+  ansible.posix.mount:
+    src: "{{ _mount.mount.point }}"
+    path: "{{ _mount.mount.mount }}"
+    fstype: nfs
+    opts: "{{ _mount.mount.option }}"
+    state: mounted
+
+- name: nfs-mount.push|copy
+  ansible.builtin.copy: "{{ _mount.cp }}"
+
+- name: nfs-mount.push|unmount
+  become: true
+  when: _mount.unmount
+  ansible.posix.mount:
+    path: "{{ _mount.mount }}"
+    state: unmounted
+
+- name: nfs-mount.push|rest _mount
+  ansible.builtin.set_fact:
+    _mount: !!null
