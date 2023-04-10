@@ -4,8 +4,8 @@
 # NOTE
 # For clusters usually run once to generate available to all nodes.
 # see https://medium.com/opsops/the-magic-of-run-once-e31d583eca62
-# 
-# When _realpath_remote_dir uses relative paths ~, 
+#
+# When _realpath_remote_dir uses relative paths ~,
 # folders are created on all nodes for get absolute paths, these tasks are not.
 - block:
 
@@ -23,7 +23,7 @@
           _current_name_list: []
           _current_name_length: "{{ length | default(1) | int }}"
           _synchronized: false
-          # {{ false | default(true,true) }} result true because last param 
+          # {{ false | default(true,true) }} result true because last param
           # see https://github.com/pallets/jinja/blob/417f822196f66155e8c121e5229cc12a6b02ce14/src/jinja2/filters.py#L555
           _keep_name_in_path: "{{ keep | default(true) | bool }}"
 
@@ -43,7 +43,7 @@
 
   # mean: dir local and remote path is same not need copy
   - name: dir.set|set _synchronized when docker-seed target local
-    when: 
+    when:
       - lookup('ansible.builtin.env', 'SEED_NAME') != ''
       - ansible_connection == 'local'
     ansible.builtin.set_fact:
@@ -90,7 +90,7 @@
 
   - name: dir.set|set dir
     ansible.builtin.set_fact:
-      dir: 
+      dir:
         synchronized: "{{ _synchronized | default(false) | bool }}"
         names: "{{ _current_name_list }}"
         local: "{{ _realpath_local_dir }}"
