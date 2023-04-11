@@ -1,0 +1,46 @@
+---
+
+
+- name: docker-network.wait|append list _networks
+  loop: "{{ networks if (networks | type_debug == 'list') else [] }}"
+  loop_control:
+    loop_var: network
+  vars:
+    list: "{{ _networks | default([],true) }}"
+    item:
+      name: "{{ network.name | default(omit) }}"
+      retries: "{{ network.retries | default(1000) }}"
+      delay: "{{ network.delay | default(10) }}"
+      until: "{{ network.until | default(omit) }}"
+  ansible.builtin.set_fact:
+    _networks: "{{ list + [item] }}"
+
+- name: docker-network.wait|append dict _networks
+  loop: "{{ (networks | dict2items) if (networks | type_debug == 'dict') else [] }}"
+  loop_control:
+    loop_var: kv
+  vars:
+    list: "{{ _networks | default([],true) }}"
+    name: "{{ kv.key }}"
+    network: "{{ kv.value }}"
+    item:
+      name: "{{ name | default(omit) }}"
+      retries: "{{ network.retries | default(1000) }}"
+      delay: "{{ network.delay | default(10) }}"
+      until: "{{ network.until | default(omit) }}"
+  ansible.builtin.set_fact:
+    _networks: "{{ list + [item] }}"
+
+- name: docker-network.wait|print _networks
+  ansible.builtin.debug:
+    var: _networks
+
+- name: docker-network.wait|loop network
+  loop: "{{ _networks }}"
+  loop_control:
+    loop_var: network
+  include_tasks: docker-network.loop.yml
+
+- name: docker-network.wait|reset _networks
+  ansible.builtin.set_fact:
+    _networks: !!null

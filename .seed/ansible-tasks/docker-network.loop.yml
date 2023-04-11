@@ -1,0 +1,79 @@
+---
+
+
+- block:
+
+    - name: docker-network.loop|set _network_loop
+      when: _network_loop | default(None,true) == None
+      vars:
+        default_until:
+          - network_loop_info.exists
+        default_fail: []
+      ansible.builtin.set_fact:
+        _network_loop:
+          name: "{{ network.name }}"
+          retries: "{{ network.retries | default(1000) }}"
+          delay: "{{ network.delay | default(10) }}"
+          until: "{{ network.until | default(default_until) }}"
+          fail: "{{ network.fail | default(default_fail) }}"
+
+    - name: docker-network.loop|sleep for first
+      when: _network_retry | default(None,true) == None
+      ansible.builtin.pause:
+        seconds: "{{ _network_loop.delay | int }}"
+
+    - name: docker-network.loop|get network info
+      community.docker.docker_network_info:
+        name: "{{ _network_loop.name }}"
+      register: network_loop_info
+      ignore_errors: true
+
+    - name: docker-network.loop|print network_info
+      run_once: true
+      ansible.builtin.debug:
+        var: network_loop_info
+
+    - name: docker-network.loop|until check
+      loop: "{{ _network_loop.until }}"
+      loop_control:
+        loop_var: check
+      when: "not ( {{ check }} )"
+      ansible.builtin.fail:
+        msg: "beak loop network {{ _network_loop.name }}: {{ check }}"
+
+    - name: docker-network.loop|reset _network_retry
+      ansible.builtin.set_fact:
+        _network_retry: !!null
+        _network_loop: !!null
+
+  rescue:
+
+    - name: docker-network.loop|fail check
+      loop: "{{ _network_loop.fail }}"
+      loop_control:
+        loop_var: check
+      when: "{{ check }}"
+      ansible.builtin.fail:
+        msg: "fail loop network {{ _network_loop.name }}: {{ check }}"
+
+    - name: docker-network.loop|init _network_retry
+      when: _network_retry | default(None,true) == None
+      ansible.builtin.set_fact:
+        _network_retry: "{{ _network_loop.retries | int }}"
+
+    - name: docker-network.loop|all retry fail
+      when:
+        - (_network_retry | int) == 0
+      ansible.builtin.fail:
+        msg: "tired out loop network {{ _network_loop.name }}"
+
+    - name: docker-network.loop|sleep for next loop
+      ansible.builtin.pause:
+        seconds: "{{ _network_loop.delay | int }}"
+        prompt: "retries {{ _network_retry }}/{{ _network_loop.retries }}"
+
+    - name: docker-network.loop|reduce _network_retry
+      ansible.builtin.set_fact:
+        _network_retry: "{{ _network_retry | int - 1 }}"
+
+    - include_tasks: docker-network.loop.yml
