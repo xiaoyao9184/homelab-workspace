@@ -79,6 +79,7 @@
         networks:
           - name: "{{ _port_loop.container.network }}"
             retries: -1
+            delay: 0
       include_tasks: docker-network.wait.yml
 
 - name: docker-port.loop|connect to network

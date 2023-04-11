@@ -1,0 +1,53 @@
+---
+
+- name: wait
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --extra-vars "ports=" \
+        --inventory $PWD/ansible-inventories \
+        $PWD/../../../.seed/ansible-playbook/local-port.wait.yml
+  hosts: localhost
+  connection: local
+  tasks:
+
+    - name: set _ports
+      ansible.builtin.set_fact:
+        _ports: "{{ ports | b64decode | from_json }}"
+      register: set_result
+      ignore_errors: true
+
+    - when: set_result is failed
+      block:
+
+        - name: input host_port_list
+          ansible.builtin.pause:
+            prompt: "What is wait service(split ',' format {host}:{port})?"
+          register: _host_port_input
+
+        - name: set host_port_list
+          ansible.builtin.set_fact:
+            _ports: []
+            _host_port_list: "{{ _host_port_input | split(',') }}"
+
+        - name: append _ports
+          loop: "{{ _host_port_list }}"
+          loop_control:
+            loop_var: _host_port_item
+          vars:
+            item_split: "{{ _host_port_item | split(':') }}"
+            item:
+              host: "{{ item_split[0] if (item_split | length == 2) else _host_port_item }}"
+              port: "{{ item_split[1] if (item_split | length == 2) else 80 }}"
+            list: "{{ _ports | default([],true) }}"
+          ansible.builtin.set_fact:
+            _ports: "{{ list + [item] }}"
+
+    - name: print _ports
+      ansible.builtin.debug:
+        var: _ports
+
+    - name: wait host port
+      vars:
+        host_ports: "{{ _ports }}"
+      include_tasks: "../ansible-tasks/host-port.wait.yml"
