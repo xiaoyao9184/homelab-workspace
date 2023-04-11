@@ -1,108 +1,94 @@
+# NOTE
+# Need to use the system's nfs client, make sure it is installed
+
 ---
 
 
-# NOTE
-# Need to use the system's nfs client, make sure it is installed
-- name: nfs-mount.wait|list
-  when: wait_nfs | type_debug == "list"
-  ansible.builtin.set_fact:
-    _wait: "{{ wait_nfs }}"
-
-- name: nfs-mount.wait|dict
-  when: wait_nfs | type_debug == "dict"
-  block:
-
-    - name: nfs-mount.wait|dict to kv list
-      ansible.builtin.set_fact:
-        _kv_list: "{{ wait_nfs | dict2items }}"
-
-    - name: nfs-mount.wait|kv list to list
-      loop: "{{ _kv_list | default([]) }}"
-      loop_control:
-        loop_var: kv
-      vars:
-        _item_update:
-          name: "{{ kv.key }}"
-        item: "{{ kv.value | combine(_item_update, recursive=True) }}"
-      ansible.builtin.set_fact:
-        _wait: "{{ _wait | default([]) + [item] }}"
-
-    - name: nfs-mount.wait|reset _kv_list
-      ansible.builtin.set_fact:
-        _kv_list: !!null
-
-- name: nfs-mount.wait|print wait
-  ansible.builtin.debug:
-    var: _wait
-
 - name: nfs-mount.wait|check in docker-seed connect local(docker-in-docker)
-  when: 
+  when:
     - lookup('ansible.builtin.env', 'SEED_NAME') != ''
     - ansible_connection == 'local'
   ansible.builtin.set_fact:
     seed_in_docker_connect_local: true
 
-- name: nfs-mount.wait|set loop_nfs:use host
-  loop: "{{ _wait }}"
-  when: seed_in_docker_connect_local is defined
+- name: nfs-mount.wait|append list to _mounts
+  loop: "{{ mounts if (mounts | type_debug == 'list') else [] }}"
+  loop_control:
+    loop_var: mount
   vars:
-    service: "{{ nfs.service[item.name] }}"
-    loop_nfs:
-      point: "{{ service.host }}:{{ item.point }}"
-      mount: "{{ item.mount }}"
-      option: "{{ item.option }}"
-      unmount: "{{ item.unmount | default(false) }}"
-      retry: "{{ item.retry | default(5) }}"
+    service: "{{ nfs.service[mount.name] }}"
+    server: "{{ service.host if(seed_in_docker_connect_local is defined) else service.addr }}"
+    list: "{{ _mounts | default([],true) }}"
+    item_default:
+      unmount: false
+      retries: 5
+      delay: 5
+      name: "{{ mount.name }}"
+    item_update:
+      point: "{{ server }}:{{ mount.point }}"
+      mount: "{{ mount.mount }}"
+      option: "{{ mount.option }}"
+      unmount: "{{ mount.unmount | default(omit) }}"
+      retries: "{{ mount.retries | default(omit) }}"
+      delay: "{{ mount.delay | default(omit) }}"
+    item: "{{ item_default | combine(item_update, recursive=True) }}"
   ansible.builtin.set_fact:
-    _loop: "{{ _loop | default([]) + [loop_nfs] }}"
+    _mounts: "{{ list + [item] }}"
 
-- name: nfs-mount.wait|set loop_nfs:use addr
-  loop: "{{ _wait }}"
-  when: seed_in_docker_connect_local is undefined
+- name: nfs-mount.wait|append dict to _mounts
+  loop: "{{ (mounts | dict2items) if (mounts | type_debug == 'dict') else [] }}"
+  loop_control:
+    loop_var: kv
   vars:
-    service: "{{ nfs.service[item.name] }}"
-    loop_nfs:
-      point: "{{ service.addr }}:{{ item.point }}"
-      mount: "{{ item.mount }}"
-      option: "{{ item.option }}"
-      unmount: "{{ item.unmount | default(false) }}"
-      retry: "{{ item.retry | default(5) }}"
+    service: "{{ nfs.service[kv.key] }}"
+    server: "{{ service.host if(seed_in_docker_connect_local is defined) else service.addr }}"
+    list: "{{ _mounts | default([],true) }}"
+    item_default:
+      unmount: false
+      retries: 5
+      delay: 5
+      name: "{{ kv.key }}"
+    item_update:
+      point: "{{ server }}:{{ mount.point }}"
+      mount: "{{ mount.mount }}"
+      option: "{{ mount.option }}"
+      unmount: "{{ mount.unmount | default(omit) }}"
+      retries: "{{ mount.retries | default(omit) }}"
+      delay: "{{ mount.delay | default(omit) }}"
+    item: "{{ item_default | combine(item_update, recursive=True) }}"
   ansible.builtin.set_fact:
-    _loop: "{{ _loop | default([]) + [loop_nfs] }}"
+    _mounts: "{{ list + [item] }}"
 
-- name: nfs-mount.wait|print loop
+- name: nfs-mount.wait|print _mounts
   ansible.builtin.debug:
-    var: _loop
+    var: _mounts
 
 - name: nfs-mount.wait|mkdir nfs mount
   become: true
-  loop: "{{ _loop }}"
+  loop: "{{ _mounts }}"
   loop_control:
-    loop_var: loop_nfs
+    loop_var: mount
   ansible.builtin.file:
-    path: "{{ loop_nfs.mount }}"
+    path: "{{ mount.mount }}"
     state: directory
-    # mode: 0777
-    # owner: root
-    # group: root
+    mode: 0777
 
 - name: nfs-mount.wait|loop nfs mount
-  loop: "{{ _loop }}"
+  loop: "{{ _mounts }}"
   loop_control:
-    loop_var: loop_nfs
+    loop_var: mount
   include_tasks: nfs-mount.loop.yml
 
 - name: nfs-mount.wait|rmdir nfs mount
   become: true
-  loop: "{{ _loop }}"
+  loop: "{{ _mounts }}"
   loop_control:
-    loop_var: loop_nfs
-  when: loop_nfs.unmount | default(true) | bool
+    loop_var: mount
+  when: mount.unmount | default(true) | bool
   ansible.builtin.file:
-    path: "{{ loop_nfs.mount }}"
+    path: "{{ mount.mount }}"
     state: absent
 
-- name: nfs-mount.wait|reset _wait
+- name: nfs-mount.wait|reset _mounts
   ansible.builtin.set_fact:
-    _loop: !!null
-    _wait: !!null
+    _mounts: !!null

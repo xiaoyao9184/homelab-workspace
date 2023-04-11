@@ -1,56 +1,66 @@
 ---
 
 
-- name: nfs-mount.loop|loop mount
-  block:
+- block:
 
-    - name: nfs-mount.loop|mount loop_nfs.point
+    - name: nfs-mount.loop|init _mount_loop
+      when: _mount_loop | default(None,true) == None
+      ansible.builtin.set_fact:
+        _mount_loop:
+          mount:
+            src: "{{ mount.point }}"
+            path: "{{ mount.mount }}"
+            opts: "{{ mount.option }}"
+          unmount: "{{ mount.unmount | default(true) }}"
+          retries: "{{ mount.retries | default(1000) }}"
+          delay: "{{ mount.delay | default(10) }}"
+
+    - name: nfs-mount.loop|mount mount.point
       become: true
       ansible.posix.mount:
-        src: "{{ loop_nfs.point }}"
-        path: "{{ loop_nfs.mount }}"
         fstype: nfs
-        opts: "{{ loop_nfs.option }}"
+        src: "{{ _mount_loop.mount.src }}"
+        path: "{{ _mount_loop.mount.path }}"
+        opts: "{{ _mount_loop.mount.opts }}"
         state: mounted
-      register: loop_nfs_result
-    
-    - name: nfs-mount.loop|print loop_nfs_result
-      debug:
-        var: loop_nfs_result
+      register: mount_result
 
-    - name: nfs-mount.loop|unmount loop_nfs.mount
+    - name: nfs-mount.loop|print mount_result
+      debug:
+        var: mount_result
+
+    - name: nfs-mount.loop|unmount mount.mount
       become: true
-      when:
-        - loop_nfs.unmount is defined
-        - loop_nfs.unmount
+      when: _mount_loop.unmount
       ansible.posix.mount:
-        path: "{{ loop_nfs.mount }}"
+        path: "{{ _mount_loop.mount.path }}"
         state: unmounted
 
-    - name: nfs-mount.loop|reset loop_retry
+    - name: nfs-mount.loop|reset _mount_retry
       ansible.builtin.set_fact:
-        loop_retry: !!null
+        _mount_retry: !!null
+        _mount_loop: !!null
 
   rescue:
 
-    - name: nfs-mount.loop|set loop_retry
-      when: loop_retry | default('NONE') == 'NONE'
+    - name: nfs-mount.loop|init _mount_retry
+      when: _mount_retry | default(None,true) == None
       ansible.builtin.set_fact:
-        loop_retry: "{{ loop_nfs.retry | int }}"
+        _mount_retry: "{{ _mount_loop.retries | int }}"
 
-    - name: nfs-mount.loop|fail loop mount error
-      when: 
-        - (loop_retry | int) <= 0
+    - name: nfs-mount.loop|all retry fail
+      when:
+        - (_mount_retry | int) <= 0
       ansible.builtin.fail:
-        msg: "fail loop mount {{ loop_nfs.point }} to {{ loop_nfs.mount }}"
-    
-    - name: nfs-mount.loop|sleep 15 seconds loop mount
-      ansible.builtin.pause:
-        seconds: 15
-        prompt: "retries {{ loop_retry }}"
+        msg: "tired out loop mount {{ _mount_loop.mount.src }} to {{ _mount_loop.mount.path }}"
 
-    - name: nfs-mount.loop|reduce loop_retry
+    - name: nfs-mount.loop|sleep for next loop
+      ansible.builtin.pause:
+        seconds: "{{ _mount_loop.delay | int }}"
+        prompt: "retries {{ _mount_retry }}/{{ _mount_loop.retries }}"
+
+    - name: nfs-mount.loop|reduce _mount_retry
       ansible.builtin.set_fact:
-        loop_retry: "{{ loop_retry | int - 1 }}"
+        _mount_retry: "{{ _mount_retry | int - 1 }}"
 
     - include_tasks: nfs-mount.loop.yml
