@@ -69,14 +69,13 @@
               run_once: true
 
     # - name: wait nfs mount
-    #   when: 
-    #     # BUG default never use
+    #   when:
     #     - "'nfs-client' in group_names"
     #     - gitlab.runner.nfs_wait is defined
     #   include_tasks: "{{ ws.local }}/.seed/ansible-tasks/nfs-mount.wait.yml"
     #   vars:
-    #     _default: []
-    #     wait_nfs: "{{ gitlab.runner.nfs_wait | default(_default) }}"
+    #     default: []
+    #     mounts: "{{ gitlab.runner.nfs_wait if (gitlab.runner.nfs_wait | length == 0) else default }}"
 
     # - name: add external_vol
     #   include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-volumes.add.yml"

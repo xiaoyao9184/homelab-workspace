@@ -36,20 +36,18 @@
           cp: "{{ homebridge.dir_copy | default([],true) }}"
 
     - name: wait nfs mount
-      when: 
-        # BUG default never use
+      when:
         - "'nfs-client' in group_names"
         - homebridge.nfs_wait is defined
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/nfs-mount.wait.yml"
       vars:
-        _default:
+        default:
           - name: on_manager
             point: "/homebridge-data"
             mount: "/mnt/nfs/homebridge-data"
             option: "vers=4,loud,rw,sync"
             unmount: true
-            retry: 5
-        wait_nfs: "{{ homebridge.nfs_wait | default(_default) }}"
+        mounts: "{{ homebridge.nfs_wait if (homebridge.nfs_wait | length == 0) else default }}"
 
     - name: add external_vol
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-volumes.add.yml"

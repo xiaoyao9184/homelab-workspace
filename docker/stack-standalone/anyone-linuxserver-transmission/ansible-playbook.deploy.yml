@@ -35,38 +35,33 @@
           cp: "{{ transmission.dir_copy | default([],true) }}"
 
     - name: wait nfs mount
-      when: 
-        # BUG default never use
+      when:
         - "'nfs-client' in group_names"
         - transmission.nfs_wait is defined
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/nfs-mount.wait.yml"
       vars:
-        _default:
+        default:
           - name: on_manager
             point: "/transmission-config"
             mount: "/mnt/nfs/transmission-config"
             option: "vers=4,loud,rw,sync"
             unmount: true
-            retry: 5
           - name: on_manager
             point: "/transmission-watch"
             mount: "/mnt/nfs/transmission-watch"
             option: "vers=4,loud,rw,sync"
             unmount: true
-            retry: 5
           - name: on_manager
             point: "/transmission-downloads"
             mount: "/mnt/nfs/transmission-downloads"
             option: "vers=4,loud,rw,sync"
             unmount: true
-            retry: 5
           - name: on_manager
             point: "/transmission-completed"
             mount: "/mnt/nfs/transmission-completed"
             option: "vers=4,loud,rw,sync"
             unmount: true
-            retry: 5
-        wait_nfs: "{{ transmission.nfs_wait | default(_default) }}"
+        mounts: "{{ transmission.nfs_wait if (transmission.nfs_wait | length == 0) else default }}"
 
     - name: add external_vol
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-volumes.add.yml"

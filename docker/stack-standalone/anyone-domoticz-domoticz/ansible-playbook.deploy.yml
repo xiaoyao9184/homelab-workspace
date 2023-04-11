@@ -36,20 +36,18 @@
           cp: "{{ domoticz.dir_copy | default([],true) }}"
 
     - name: wait nfs mount
-      when: 
-        # BUG default never use
+      when:
         - "'nfs-client' in group_names"
         - domoticz.nfs_wait is defined
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/nfs-mount.wait.yml"
       vars:
-        _default:
+        default:
           on_manager:
             point: "/domoticz-userdata"
             mount: "/mnt/nfs/domoticz-userdata"
             option: "vers=4,loud,rw,sync"
             unmount: true
-            retry: 5
-        wait_nfs: "{{ domoticz.nfs_wait | default(_default) }}"
+        mounts: "{{ domoticz.nfs_wait if (domoticz.nfs_wait | length == 0) else default }}"
 
     - name: add external_vol
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-volumes.add.yml"

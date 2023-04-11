@@ -42,26 +42,23 @@
           cp: "{{ headscale.dir_copy | default([],true) }}"
 
     - name: wait nfs mount
-      when: 
-        # BUG default never use
+      when:
         - "'nfs-client' in group_names"
         - headscale.nfs_wait is defined
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/nfs-mount.wait.yml"
       vars:
-        _default:
+        default:
           - name: on_manager
             point: "/headscale-data"
             mount: "/mnt/nfs/headscale-data"
             option: "vers=4,loud,rw,sync"
             unmount: true
-            retry: 5
           - name: on_manager
             point: "/headscale-config"
             mount: "/mnt/nfs/headscale-config"
             option: "vers=4,loud,rw,sync"
             unmount: true
-            retry: 5
-        wait_nfs: "{{ headscale.nfs_wait | default(_default) }}"
+        mounts: "{{ headscale.nfs_wait if (headscale.nfs_wait | length == 0) else default }}"
 
     - name: add external_vol
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-volumes.add.yml"
