@@ -15,7 +15,7 @@ services:
       # - DERP_HTTP_PORT=80
     volumes:
       - certs:/app/certs
-      # if you use DERP_VERIFY_CLIENTS, 
+      # if you use DERP_VERIFY_CLIENTS,
       # you nee to mount tailscaled.sock so that that container can access the external machine's derper proces
       - /var/run/tailscale/tailscaled.sock:/var/run/tailscale/tailscaled.sock
     # Use the host network to support running on any ports

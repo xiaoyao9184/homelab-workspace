@@ -12,9 +12,9 @@
     - name: group_name
       prompt: "What is configs group[empty mean use all group]?"
       private: no
-      default: 
+      default:
   hosts: windows
-  tasks: 
+  tasks:
 
     - name: select config name
       include_tasks: "{{ playbook_dir }}/../../.seed/ansible-tasks/var-grouped.select.yml"

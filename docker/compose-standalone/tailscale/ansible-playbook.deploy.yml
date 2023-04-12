@@ -11,7 +11,7 @@
     PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
   hosts: "{{ 'docker:&docker-tailscale-node' if (groups['docker-tailscale-node'] is defined) else 'docker' }}"
   run_once: true
-  tasks: 
+  tasks:
 
     - name: mkdir tailscaled sock
       become: true

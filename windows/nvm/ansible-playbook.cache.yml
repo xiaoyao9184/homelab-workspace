@@ -9,7 +9,7 @@
         --inventory $PWD/ansible-inventories \
         $PWD/../../../windows/nvm/ansible-playbook.cache.yml
   hosts: windows
-  tasks: 
+  tasks:
 
     - name: mkdir nvm.root
       ansible.windows.win_file:
@@ -17,11 +17,11 @@
         state: directory
 
     - name: set nvm root
-      ansible.windows.win_command: 
+      ansible.windows.win_command:
         cmd: "nvm root {{ nvm.root }}"
 
     - name: test nvm
-      ansible.windows.win_command: 
+      ansible.windows.win_command:
         cmd: nvm version
       register: nvm_result
 
@@ -33,5 +33,5 @@
 
     - name: install nodejs
       loop: "{{ nvm.nodejs }}"
-      ansible.windows.win_command: 
+      ansible.windows.win_command:
         cmd: "nvm install {{ item }}"

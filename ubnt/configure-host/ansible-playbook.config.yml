@@ -8,7 +8,7 @@
         --inventory $PWD/ansible-inventories \
         $PWD/../../../ubnt/configure-host/ansible-playbook.config.yml
   hosts: ubnt
-  tasks: 
+  tasks:
 
     - name: load dhcp_csv
       community.general.read_csv:
@@ -27,7 +27,7 @@
       delay: 1
 
     - name: configure host by dhcp_csv
-      when: 
+      when:
         - item.cl_name != ''
         - item.location in location[location.at]
       community.network.edgeos_config:
@@ -44,7 +44,7 @@
       connection: local
 
     - name: configure host by domain_csv
-      when: 
+      when:
         - item.cl_name != ''
         - item.where in location[location.at]
       community.network.edgeos_config:

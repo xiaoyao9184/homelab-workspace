@@ -10,7 +10,7 @@
   environment:
     PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
   hosts: "{{ 'docker:&docker-syncthing-node' if (groups['docker-syncthing-node'] is defined) else 'docker' }}"
-  tasks: 
+  tasks:
 
     - name: set inotify limit
       become: true

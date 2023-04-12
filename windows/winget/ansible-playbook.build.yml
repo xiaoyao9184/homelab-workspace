@@ -8,11 +8,11 @@
         --inventory $PWD/ansible-inventories \
         $PWD/../../../windows/winget/ansible-playbook.build.yml
   hosts: localhost
-  tasks: 
+  tasks:
 
     - name: template winget pwsh file
-      vars: 
+      vars:
         packages: "{{ winget.packages }}"
-      ansible.builtin.template: 
+      ansible.builtin.template:
         src: "{{ playbook_dir }}/winget.install.ps1.j2"
         dest: "{{ inventory_dir }}/../winget/winget.install.ps1"

@@ -5,7 +5,7 @@
   block:
 
     - name: fail miss spk_url
-      when: 
+      when:
         - zerotier.spk_url is undefined
       ansible.builtin.fail:
         msg: "miss spk_url variable"
@@ -45,7 +45,7 @@
           {{ zerotier_status.stdout }}
 
   rescue:
-    
+
     - name: sleep 15 seconds loop container
       ansible.builtin.pause:
         seconds: 1

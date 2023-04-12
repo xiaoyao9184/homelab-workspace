@@ -9,7 +9,7 @@
         --inventory $PWD/ansible-inventories \
         $PWD/../../../windows/netsh/port-range/excluded/ansible-playbook.set.yml
   hosts: windows
-  tasks: 
+  tasks:
 
     - name: set ipv4
       loop: "{{ netsh.port_range.excluded.ipv4 | default([]) }}"

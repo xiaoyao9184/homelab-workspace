@@ -41,7 +41,7 @@ services:
     deploy:
       replicas: 1
       placement:
-        constraints: 
+        constraints:
           - node.platform.os == linux
           - node.labels.headscale-node == true
         preferences:

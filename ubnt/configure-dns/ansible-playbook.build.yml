@@ -9,7 +9,7 @@
         $PWD/../../../ubnt/configure-dns/ansible-playbook.build.yml
   hosts: localhost
   connection: local
-  tasks: 
+  tasks:
 
     - name: clear build
       ansible.builtin.file:
@@ -47,7 +47,7 @@
           {% for result in build_file.results %}
           //////////////////////////////////////////////////
           # {{ result.item }}
-          
+
           {{ result.stdout }}
           //////////////////////////////////////////////////
           {% endfor %}

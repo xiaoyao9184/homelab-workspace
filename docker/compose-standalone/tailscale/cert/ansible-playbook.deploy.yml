@@ -10,12 +10,12 @@
     - name: cert_domain
       prompt: "What is domain(like aaa.tailfe8c.ts.net)?"
       private: no
-      default: 
+      default:
   environment:
     PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
   hosts: "{{ 'docker:&docker-tailscale-node' if (groups['docker-tailscale-node'] is defined) else 'docker' }}"
   run_once: true
-  tasks: 
+  tasks:
 
     - name: set ws
       include_tasks:

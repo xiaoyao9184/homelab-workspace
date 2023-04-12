@@ -3,9 +3,9 @@
 # Install
 if [[ -z "$spk_url" ]]; then
   sudo synopkg install_from_server Tailscale
-else 
+else
   curl -o /tmp/tailscale.spk $spk_url
-  sudo synopkg install /tmp/tailscale.spk 
+  sudo synopkg install /tmp/tailscale.spk
   rm /tmp/tailscale.spk
 fi
 

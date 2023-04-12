@@ -11,7 +11,7 @@ build_filename="${build_name%.*}"
 rm -rdf ${build_path}
 mkdir -p ${build_path}
 
-# no location 
+# no location
 build_file=${build_path}/${build_filename}.${build_extension}
 cat <<EOT >> ${build_file}
 configure

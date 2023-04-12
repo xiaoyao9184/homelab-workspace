@@ -9,7 +9,7 @@
         --inventory $PWD/ansible-inventories \
         $PWD/../../../windows/nvs/ansible-playbook.cache.yml
   hosts: windows
-  tasks: 
+  tasks:
 
     - name: mkdir nvs.node
       ansible.windows.win_file:
@@ -22,7 +22,7 @@
       register: node_stat
 
     - name: mv nvs node
-      when: 
+      when:
         - node_stat.stat.exists
         - node_stat.stat.lnk_target is undefined
       ansible.windows.win_copy:
@@ -34,14 +34,14 @@
       ansible.windows.win_file:
         path: '%LOCALAPPDATA%\nvs\node'
         state: absent
-        
+
     - name: link nvs node
-      ansible.windows.win_command: 
+      ansible.windows.win_command:
         cmd: "cmd.exe /k mklink /j node {{ nvs.node }}"
         chdir: '%LOCALAPPDATA%\nvs'
 
     - name: install nodejs
       loop: "{{ nvs.nodejs }}"
-      ansible.windows.win_command: 
+      ansible.windows.win_command:
         cmd: "nvs.cmd add {{ item }}"
         chdir: '%LOCALAPPDATA%\nvs'

@@ -10,7 +10,7 @@
   hosts: openwrt
   roles:
     - gekmihesg.openwrt
-  tasks: 
+  tasks:
 
     - name: load host_csv
       community.general.read_csv:
@@ -30,7 +30,7 @@
       ansible.builtin.shell: while uci -q delete dhcp.@domain[0]; do :; done
 
     - name: set dhcp domain
-      when: 
+      when:
         - item.cl_name != ''
         - item.location in location[location.at]
       ansible.builtin.shell: |
@@ -40,7 +40,7 @@
       loop: "{{ host_csv.list }}"
 
     - name: set dhcp domain
-      when: 
+      when:
         - item.cl_name != ''
         - item.where in location[location.at]
       ansible.builtin.shell: |

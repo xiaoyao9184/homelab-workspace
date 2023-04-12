@@ -9,7 +9,7 @@
   loop: "{{ list }}"
   loop_control:
     loop_var: select_item
-  when: 
+  when:
     - select_item.query | default(true) | bool
   vars:
     vsphere_file:

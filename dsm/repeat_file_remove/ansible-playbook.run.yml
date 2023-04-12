@@ -9,7 +9,7 @@
         --inventory $PWD/ansible-inventories \
         $PWD/../../../dsm/repeat_file_remove/ansible-playbook.run.yml
   hosts: dsm
-  tasks: 
+  tasks:
 
     - name: set ws
       include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/ws.set.yml"
@@ -30,7 +30,7 @@
 
     - name: run python3
       become: true
-      ansible.builtin.shell: 
+      ansible.builtin.shell:
         cmd: echo y | python3 repeat_file_remove.py
         chdir: "{{ dir.remote }}"
       register: run_result

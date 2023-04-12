@@ -11,12 +11,12 @@
     OPENWRT_TARGET: "{{ openwrt.image.builder.OPENWRT_TARGET }}"
   hosts: localhost
   connection: local
-  tasks: 
+  tasks:
 
-    - name: install build package 
+    - name: install build package
       become: true
       ansible.builtin.package:
-        name: 
+        name:
           - build-essential
           - libncurses5-dev
           - libncursesw5-dev
@@ -146,7 +146,7 @@
         cmd_item: "CONFIG_TARGET_ROOTFS_PARTSIZE={{ openwrt.image.builder.BUILDER_CONFIG_TARGET_ROOTFS_PARTSIZE }}"
       ansible.builtin.set_fact:
         cmd_list: "{{ cmd_list + [cmd_item] }}"
-        
+
     - name: run builder make
       vars:
         builder_cmd: "{{ cmd_list | join(' ') }}"

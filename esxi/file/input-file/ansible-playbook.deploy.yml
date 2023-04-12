@@ -10,17 +10,17 @@
     - name: vm_username
       prompt: "What is ESXi/vCenter server username?"
       private: no
-      default: 
+      default:
     - name: vm_password
       prompt: "What is ESXi/vCenter server password?"
       private: yes
-      default: 
+      default:
     - name: file_name
       prompt: "What is file or group?"
       private: no
       default: all
   hosts: localhost
-  tasks: 
+  tasks:
 
     - name: set ws
       include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/ws.set.yml"
@@ -45,7 +45,7 @@
       loop: "{{ file_list }}"
       loop_control:
         loop_var: file_item
-      when: 
+      when:
         - file_item.vsphere_copy is defined
         - file_item.vsphere_copy.src is undefined
       ansible.builtin.pause:
@@ -57,12 +57,12 @@
     - name: set vsphere_copy_list
       ansible.builtin.set_fact:
         vsphere_copy_list: []
-        
+
     - name: append vsphere_copy_list
       loop: "{{ file_list }}"
       loop_control:
         loop_var: file_copy_item
-      when: 
+      when:
         - file_copy_item.vsphere_copy is defined
       vars:
         input_result: "{{ file_input_result.results | selectattr('file_item.name','equalto',file_copy_item.name) | first }}"

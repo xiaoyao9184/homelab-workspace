@@ -63,7 +63,7 @@
 # - name: dsm-docker.init|add user to docker
 #   become: true
 #   ansible.builtin.shell: "synogroup --add root {{ ansible_user_id }}"
-# 
+#
 # https://davejansen.com/manage-docker-without-needing-sudo-on-your-synology-nas/
 - name: dsm-docker.init|stat docker api
   become: true
@@ -73,7 +73,7 @@
 
 - when: docker_stat.stat.gr_name != 'docker'
   block:
-    
+
   - name: dsm-docker.init|add docker group
     become: true
     environment:

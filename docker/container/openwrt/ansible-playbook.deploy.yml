@@ -11,7 +11,7 @@
   environment:
     PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
   hosts: "{{ 'docker:&docker-openwrt-node' if (groups['docker-openwrt-node'] is defined) else 'docker' }}"
-  tasks: 
+  tasks:
 
     - name: set ws
       include_tasks:
@@ -85,7 +85,7 @@
 
           [Install]
           WantedBy=multi-user.target
-    
+
     - name: run service
       become: true
       ansible.builtin.systemd:

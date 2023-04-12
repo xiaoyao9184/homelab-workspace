@@ -8,7 +8,7 @@
         --inventory $PWD/ansible-inventories \
         $PWD/../../../ubnt/configure-ipv6/ansible-playbook.config.yml
   hosts: ubnt
-  tasks: 
+  tasks:
 
     - name: configure ipv6
       vars:

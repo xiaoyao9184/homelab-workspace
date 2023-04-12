@@ -7,7 +7,7 @@
         --inventory $PWD/ansible-inventories \
         $PWD/../../../dsm/esata/ansible-playbook.change.yml
   hosts: dsm
-  tasks: 
+  tasks:
 
     - name: read portcfg internal
       ansible.builtin.shell: cat /etc.defaults/synoinfo.conf | grep internalportcfg | sed -E 's/internalportcfg=.(.*)./\1/'
@@ -19,7 +19,7 @@
 
     - name: set read portcfg
       ansible.builtin.set_fact:
-        portcfg: 
+        portcfg:
           internal: "{{ '{0:016b}'.format(read_internal.stdout | int(base=16)) }}"
           esata: "{{ '{0:016b}'.format(read_esata.stdout | int(base=16)) }}"
 

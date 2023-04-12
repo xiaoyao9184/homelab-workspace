@@ -10,11 +10,11 @@
     - name: service_names
       prompt: "What is service name(see telegraf.services keys)[empty use all]?"
       private: no
-      default: 
+      default:
   environment:
     PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
   hosts: docker-manager
-  tasks: 
+  tasks:
 
     - name: set ws
       include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/ws.set.yml"
@@ -38,7 +38,7 @@
         - name: list config_files
           include_tasks: "{{ ws.local }}/.seed/ansible-tasks/file-name.list.yml"
           vars:
-            name: 
+            name:
               option_find: "{{ inventory_dir }}/../telegraf/service"
               result_var: config_files
               location: local

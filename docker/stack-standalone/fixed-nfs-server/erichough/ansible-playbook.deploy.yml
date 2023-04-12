@@ -10,9 +10,9 @@
     PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
   hosts: docker:&docker-nfs-node
   tasks:
-  
+
     - name: fail for not support env
-      when: 
+      when:
         # - inventory_hostname != 'localhost'
         - ansible_env.WSL_DISTRO_NAME | default('NONE') == 'NONE'
       ansible.builtin.fail:

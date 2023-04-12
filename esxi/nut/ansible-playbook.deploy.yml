@@ -11,17 +11,17 @@
     - name: vm_username
       prompt: "What is ESXi/vCenter server username?"
       private: no
-      default: 
+      default:
     - name: vm_password
       prompt: "What is ESXi/vCenter server password?"
       private: yes
-      default: 
+      default:
     - name: bundle_file
       prompt: "What is bundle file on local?"
       private: no
       default: /mnt/c/Users/xiaoyao9184/Downloads/NutClient-ESXi-2.8.0-2.4.1.x86_64.tar.gz
   hosts: esxi
-  tasks: 
+  tasks:
 
     - name: set ws
       include_tasks: "{{ playbook_dir }}/../../.seed/ansible-tasks/ws.set.yml"
@@ -69,11 +69,11 @@
         state: present
 
     # - name: change software acceptance
-    #   ansible.builtin.shell: 
+    #   ansible.builtin.shell:
     #     cmd: "esxcli software acceptance set --level=CommunitySupported"
 
     # - name: get software acceptance
-    #   ansible.builtin.shell: 
+    #   ansible.builtin.shell:
     #     cmd: "esxcli software acceptance get"
     #   register: acceptance_result
 
@@ -84,7 +84,7 @@
     #       {{ acceptance_result.stdout }}
 
     - name: install bundle
-      ansible.builtin.shell: 
+      ansible.builtin.shell:
         cmd: "sh ./upsmon-install.sh"
         chdir: "{{ dir.remote }}/.nut-client"
       register: install_result
@@ -105,7 +105,7 @@
         - esxcli system settings advanced set -o "/UserVars/NutSendMail" --int-value "{{ esxi.nut.sendmail | default(0,true) }}"
         - esxcli system settings advanced set -o "/UserVars/NutMailTo" --string-value "{{ esxi.nut.mailto | default('root@domain',true) }}"
         - esxcli system settings advanced set -o "/UserVars/NutMinSupplies" --int-value "{{ esxi.nut.minsupplies | default(1,true) }}"
-      ansible.builtin.shell: 
+      ansible.builtin.shell:
         cmd: "{{ item }}"
 
     - name: start upsmon with on policy
@@ -121,7 +121,7 @@
         state: present
 
     # - name: restart upsmon
-    #   ansible.builtin.shell: 
+    #   ansible.builtin.shell:
     #     cmd: "/etc/init.d/upsmon restart"
     #   register: upsmon_result
 
@@ -132,7 +132,7 @@
     #       {{ upsmon_result.stdout }}
 
     - name: test nut server
-      ansible.builtin.shell: 
+      ansible.builtin.shell:
         cmd: "/opt/nut/bin/upsc {{ esxi.nut.upsname }}"
       register: upsc_result
 

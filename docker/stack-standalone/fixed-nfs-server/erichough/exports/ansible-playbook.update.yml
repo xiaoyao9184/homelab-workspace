@@ -8,10 +8,10 @@
         $PWD/../../../docker/stack-standalone/fixed-nfs-server/erichough/exports/ansible-playbook.update.yml
   hosts: docker:&docker-nfs-node
   run_once: true
-  tasks: 
-  
+  tasks:
+
     - name: fail for not support env
-      when: 
+      when:
         # - inventory_hostname != 'localhost'
         - ansible_env.WSL_DISTRO_NAME | default('NONE') == 'NONE'
       ansible.builtin.fail:

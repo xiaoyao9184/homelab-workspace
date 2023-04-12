@@ -12,17 +12,17 @@
     - name: vm_username
       prompt: "What is ESXi/vCenter server username?"
       private: no
-      default: 
+      default:
     - name: vm_password
       prompt: "What is ESXi/vCenter server password?"
       private: yes
-      default: 
+      default:
     - name: vm_name
       prompt: "What is vm or group?"
       private: no
       default: autoinstall
   hosts: localhost
-  tasks: 
+  tasks:
 
     - name: set ws
       include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/ws.set.yml"
@@ -51,14 +51,14 @@
       loop: "{{ vm_list }}"
       loop_control:
         loop_var: vm_item
-      when: 
+      when:
         - vm_item.guest is defined
         - vm_item.autoinstall is defined
       vars:
         iso_config: "{{ esxi.vm_iso[vm_item.iso] }}"
         autoinstall_config: "{{ esxi.file[vm_item.autoinstall] }}"
         guest_config: "{{ esxi.vm_guest[vm_item.guest] }}"
-        guest_combine: 
+        guest_combine:
           state: powered-on
           cdrom:
             - controller_type: ide
@@ -74,7 +74,7 @@
               type: iso
               iso_path: "[{{ autoinstall_config.vsphere_file.datastore }}] {{ autoinstall_config.vsphere_file.path }}"
         guest_item: "{{ guest_config | combine(guest_combine, recursive=True) }}"
-        vm_guest_combine: 
+        vm_guest_combine:
           guest: "{{ guest_item }}"
           iso: "{{ iso_config }}"
           autoinstall: "{{ autoinstall_config }}"
@@ -107,7 +107,7 @@
       community.vmware.vmware_guest: "{{ guest_item }}"
       register: guest_result
       # 20 min
-      async: 1200 
+      async: 1200
       poll: 0
 
     - name: wait task finished

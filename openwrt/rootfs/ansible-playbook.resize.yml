@@ -10,7 +10,7 @@
   hosts: openwrt
   roles:
     - gekmihesg.openwrt
-  tasks: 
+  tasks:
 
     - name: opkg install
       loop:

@@ -4,7 +4,7 @@
 - name: create persistent TUN sysvinit
   ansible.builtin.copy:
   content: |
-    #!/bin/sh -e 
+    #!/bin/sh -e
     insmod /lib/modules/tun.ko
   dest: /usr/local/etc/rc.d/tun.sh
   owner: root

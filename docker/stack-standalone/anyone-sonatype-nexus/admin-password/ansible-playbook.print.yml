@@ -10,7 +10,7 @@
   environment:
     PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
   hosts: "{{ 'docker:&docker-nexus-node' if (groups['docker-nexus-node'] is defined) else 'docker' }}"
-  tasks: 
+  tasks:
 
     - name: set ws
       include_tasks:

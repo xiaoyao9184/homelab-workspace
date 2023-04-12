@@ -10,17 +10,17 @@
     - name: vm_username
       prompt: "What is ESXi/vCenter server username?"
       private: no
-      default: 
+      default:
     - name: vm_password
       prompt: "What is ESXi/vCenter server password?"
       private: yes
-      default: 
+      default:
     - name: vm_name
       prompt: "What is vm or group?"
       private: no
       default: ovf
   hosts: localhost
-  tasks: 
+  tasks:
 
     - name: set ws
       include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/ws.set.yml"
@@ -51,7 +51,7 @@
         loop_var: vm_item
       when: vm_item.ovf is defined
       vars:
-        vm_ovf_combine: 
+        vm_ovf_combine:
           ovf_name: "{{ vm_item.ovf }}"
           ovf: "{{ esxi.vm_ovf[vm_item.ovf] }}"
         vm_ovf_item: "{{ vm_item | combine(vm_ovf_combine, recursive=True) }}"
@@ -64,7 +64,7 @@
       vars:
         list: "{{ vm_ovf_list }}"
 
-    - name: create a virtual machine by ovf      
+    - name: create a virtual machine by ovf
       loop: "{{ ovf_list }}"
       loop_control:
         loop_var: ovf_item

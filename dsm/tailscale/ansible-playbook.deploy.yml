@@ -8,10 +8,10 @@
         --inventory $PWD/ansible-inventories \
         $PWD/../../../dsm/tailscale/ansible-playbook.deploy.yml
   hosts: dsm
-  tasks: 
+  tasks:
 
     - name: install spk from url
-      when: 
+      when:
         - tailscale.spk_url is defined
       block:
 
@@ -73,7 +73,7 @@
     - name: script sysvinit
       ansible.builtin.copy:
         content: |
-          #!/bin/sh -e 
+          #!/bin/sh -e
           /var/packages/Tailscale/target/bin/tailscale configure-host
         dest: /usr/local/etc/rc.d/tailscale.sh
         owner: root
@@ -117,7 +117,7 @@
           register: stat_stdout
 
         - name: check stdout content
-          when: 
+          when:
             - not status_async.finished
             - stat_stdout.stat.exists
           ansible.builtin.shell: "grep -i 'http' /tmp/tailscale.up.log"
@@ -127,13 +127,13 @@
           delay: 10
 
         - name: read stdout content
-          when: 
+          when:
             - stat_stdout.stat.exists
           ansible.builtin.shell: "cat /tmp/tailscale.up.log"
           register: content_stdout
 
         - name: print stdout content
-          when: 
+          when:
             - stat_stdout.stat.exists
           ansible.builtin.pause:
             seconds: 1
@@ -147,7 +147,7 @@
           until: status_stdout.finished
           retries: 1000
           delay: 10
-        
+
         - name: clear stdout file
           ansible.builtin.file:
             path: "/tmp/tailscale.up.log"

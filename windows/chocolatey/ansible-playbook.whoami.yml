@@ -9,7 +9,7 @@
         --inventory $PWD/ansible-inventories \
         $PWD/../../../windows/chocolatey/ansible-playbook.whoami.yml
   hosts: windows
-  tasks: 
+  tasks:
 
     - name: test whoami
       ansible.windows.win_command: whoami.exe

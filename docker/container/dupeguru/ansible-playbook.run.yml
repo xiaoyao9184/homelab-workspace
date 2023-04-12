@@ -10,10 +10,10 @@
   environment:
     PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
   hosts: "{{ 'docker:&docker-dupeguru-node' if (groups['docker-dupeguru-node'] is defined) else 'docker' }}"
-  tasks: 
+  tasks:
 
     - name: mkdir bind dir
-      loop: 
+      loop:
         - "{{ dupeguru.bind_config }}"
         - "{{ dupeguru.bind_storage }}"
       ansible.builtin.file:

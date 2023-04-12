@@ -9,7 +9,7 @@
         $PWD/../../../softwave/switchhost/ansible-playbook.build.yml
   hosts: localhost
   connection: local
-  tasks: 
+  tasks:
 
     - name: clear build
       ansible.builtin.file:
@@ -28,7 +28,7 @@
         build_name: "host"
         mapping_dhcp: "{{ switchhost.dhcp_csv }}"
         mapping_domain: "{{ switchhost.domain_csv }}"
-        
+
     - name: list build file
       ansible.builtin.find:
         paths: "{{ playbook_dir }}/build"
@@ -48,7 +48,7 @@
           {% for result in build_file.results %}
           //////////////////////////////////////////////////
           # {{ result.item }}
-          
+
           {{ result.stdout }}
           //////////////////////////////////////////////////
           {% endfor %}

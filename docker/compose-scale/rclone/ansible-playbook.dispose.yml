@@ -10,12 +10,12 @@
     - name: service_names
       prompt: "What is service name(see rclone.services keys)[empty use all]?"
       private: no
-      default: 
+      default:
   environment:
     PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
   hosts: "{{ 'docker:&docker-rclone-node' if (groups['docker-rclone-node'] is defined) else 'docker' }}"
   run_once: true
-  tasks: 
+  tasks:
 
     - name: set ws
       include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/ws.set.yml"
@@ -37,7 +37,7 @@
         - name: list config_files
           include_tasks: "{{ ws.local }}/.seed/ansible-tasks/file-name.list.yml"
           vars:
-            name: 
+            name:
               option_find: "{{ inventory_dir }}/../rclone"
               result_var: config_files
               location: local

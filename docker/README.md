@@ -13,7 +13,7 @@ So the division is as follows
 |:----- |:-----:|:----- |
 | compose-standalone | compose | no |
 | stack-standalone | stack | no |
-| stack-scale | stack | yes | 
+| stack-scale | stack | yes |
 
 You can find the division of each directory according to the following table.
 
@@ -27,7 +27,7 @@ The subfolder is usually the project name for compose, for stack name for stack.
 
 > Use `compose-standalone` if special permissions are required, or use those in docker-compose-swarm.
 > - build
-> - cap_add 
+> - cap_add
 > - cap_drop
 > - cgroup_parent
 > - container_name
@@ -45,7 +45,7 @@ The subfolder is usually the project name for compose, for stack name for stack.
 
 > Use `stack-scale` if cluster services.
 
-In `stack-` subfolder According to the folder prefix, you can know its cluster mode. 
+In `stack-` subfolder According to the folder prefix, you can know its cluster mode.
 
 | **prefix**/`regex` | dir | features |
 |:----- |:----- |:----- |
@@ -58,11 +58,11 @@ In `stack-` subfolder According to the folder prefix, you can know its cluster m
 | `^min\d+-` | [stack-scale](./stack-scale/) | fixed number of multiple services have roles and allows with fewer services |
 | **roles-** | [stack-scale](./stack-scale/) | Not fixed number of multiple services have roles |
 
-There is a single point of failure on a [stack-standalone](./stack-standalone/), 
+There is a single point of failure on a [stack-standalone](./stack-standalone/),
 when it crashes, service will be restarted by default one the original node.
 Usually [stack-scale](./stack-scale/) services without roles are suitable for high availability.
 
-> Use `^node\d+-` `^max\d+-` or **global-** when service enable scaling without roles 
+> Use `^node\d+-` `^max\d+-` or **global-** when service enable scaling without roles
 > - like [node3-itsaur-zookeeper](./stack-scale/node3-itsaur-zookeeper/)
 > - like [max3-alibaba-canal](./stack-scale/max3-alibaba-canal/)
 > - like [global-docker-telegraf](./stack-scale/global-gitlab-runner/)
@@ -113,7 +113,7 @@ failover of fixed it is decided based on whether shared volumes are supported.
 
 On the other hand, service can publish the port to docker host
 
-| publish | alias | 
+| publish | alias |
 |:----- |:-----:|
 | yes | endpoint service |
 | no | agent service |
@@ -147,13 +147,13 @@ use constraint control scale number
 
 [stack-scale](./stack-scale/)/`^node\d+-` use `replicated` mode,
 
-[stack-scale](./stack-scale/)/`^max\d+-` use `replicated` first, 
+[stack-scale](./stack-scale/)/`^max\d+-` use `replicated` first,
 or use a different service name with `replicas: 1`.
 
-[stack-scale](./stack-scale/)/`^roles\d+-` use `replicated` first, 
+[stack-scale](./stack-scale/)/`^roles\d+-` use `replicated` first,
 or use a different service name with `replicas: 1`.
 
-[stack-scale](./stack-scale/)/`^min\d+-` use `replicated` first, 
+[stack-scale](./stack-scale/)/`^min\d+-` use `replicated` first,
 or use a different service name with `replicas: 1`.
 
 ### max replicas per node
@@ -171,10 +171,10 @@ It is logically, it is divided into two categories according to whether the serv
 
 Reflected by ansible file name
 
-| ansible playbook name | name | 
+| ansible playbook name | name |
 |:----- |:----- |
-| ansible-playbook.deploy.yml | continuous | 
-| ansible-playbook.run.yml | job | 
+| ansible-playbook.deploy.yml | continuous |
+| ansible-playbook.run.yml | job |
 
 Job service run and exit, so does not need resources reservations,
 and no [dir classification](#dir-classification) is established.

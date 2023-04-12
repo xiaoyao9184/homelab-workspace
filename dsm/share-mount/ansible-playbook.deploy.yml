@@ -9,13 +9,13 @@
         --inventory $PWD/ansible-inventories \
         $PWD/../../../dsm/share-mount/ansible-playbook.deploy.yml
   hosts: dsm
-  tasks: 
+  tasks:
 
     - name: create sysvinit script
       become: true
       ansible.builtin.copy:
         content: |
-          #!/bin/sh -e 
+          #!/bin/sh -e
         dest: /usr/local/etc/rc.d/shared-mount.sh
         owner: root
         mode: 0755
@@ -29,5 +29,5 @@
 
     - name: run sysvinit script
       become: true
-      ansible.builtin.shell: 
+      ansible.builtin.shell:
         cmd: bash -c /usr/local/etc/rc.d/shared-mount.sh

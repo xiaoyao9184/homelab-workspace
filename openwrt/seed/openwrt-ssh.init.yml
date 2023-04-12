@@ -2,7 +2,7 @@
 
 
 - name: openwrt-ssh.init|role openwrt
-  ansible.builtin.include_role: 
+  ansible.builtin.include_role:
     name: gekmihesg.openwrt
 
 - name: openwrt-ssh.init|init _ssh

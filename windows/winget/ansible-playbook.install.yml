@@ -12,7 +12,7 @@
   hosts: windows
   become: false
   # become_method: runas
-  tasks: 
+  tasks:
 
     - name: install through winget
       loop: "{{ winget.packages }}"

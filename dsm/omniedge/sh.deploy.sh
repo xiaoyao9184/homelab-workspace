@@ -4,9 +4,9 @@
 if [[ -z "$spk_url" ]]; then
   echo "miss spk_url"
   exit 1
-else 
+else
   curl -o /tmp/omniedge.spk $spk_url
-  sudo synopkg install /tmp/omniedge.spk 
+  sudo synopkg install /tmp/omniedge.spk
   rm /tmp/omniedge.spk
 fi
 

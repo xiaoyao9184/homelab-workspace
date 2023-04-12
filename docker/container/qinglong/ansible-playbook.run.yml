@@ -10,10 +10,10 @@
   environment:
     PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
   hosts: "{{ 'docker:&docker-qinglong-node' if (groups['docker-qinglong-node'] is defined) else 'docker' }}"
-  tasks: 
+  tasks:
 
     - name: mkdir bind dir
-      loop: 
+      loop:
         - "{{ qinglong.bind_data }}"
       ansible.builtin.file:
         path: "{{ item }}"

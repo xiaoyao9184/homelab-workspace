@@ -4,7 +4,7 @@
 # https://openwrt.org/docs/guide-user/base-system/dhcp_configuration#client_classifying_and_individual_options
 # http://www.networksorcery.com/enp/protocol/bootp/options.htm
 # https://bbs.ikuai8.com/thread-107844-1-1.html
-# 
+#
 # use this for test DHCP
 # sudo nmap --script broadcast-dhcp-discover
 # see https://serverfault.com/questions/171744/command-line-program-to-test-dhcp-service
@@ -20,7 +20,7 @@ build_filename="${build_name%.*}"
 rm -rdf ${build_path}
 mkdir -p ${build_path}
 
-# no location 
+# no location
 build_file=${build_path}/${build_filename}.${build_extension}
 echo "" >> ${build_file}
 
@@ -46,7 +46,7 @@ do
     location=$(echo "$location" | tr -d '"' | tr -d '\r' )
     tag=$(echo "$tag" | tr -d '"' | tr -d '\r' )
     ip=$(echo "$ip_addr" | tr -d '"' | tr -d '\r' )
-    
+
     template=$(cat << EOF
 
 uci delete dhcp.${tag}

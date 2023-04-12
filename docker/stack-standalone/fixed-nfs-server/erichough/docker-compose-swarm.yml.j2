@@ -12,7 +12,7 @@ volumes:
 networks:
   external_net-nfs:
     external: true
-  # not use built-in network because other service cant join host network 
+  # not use built-in network because other service cant join host network
   # external_net-host:
   #   external: true
   #   name: host
@@ -69,11 +69,11 @@ services:
       #   mode: host
     deploy:
       placement:
-        constraints: 
+        constraints:
           - node.platform.os == linux
           - node.labels.nfs-node == true
       endpoint_mode: dnsrr
-    
+
     user: root
     # not support with swarm mode
     # https://serverfault.com/questions/1066152/how-to-setup-privileged-in-docker-swarm

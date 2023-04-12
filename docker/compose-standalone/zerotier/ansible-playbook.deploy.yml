@@ -10,7 +10,7 @@
     PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
   hosts: "{{ 'docker:&docker-zerotier-node' if (groups['docker-zerotier-node'] is defined) else 'docker' }}"
   run_once: true
-  tasks: 
+  tasks:
 
     - name: set ws
       include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/ws.set.yml"

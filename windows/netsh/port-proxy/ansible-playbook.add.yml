@@ -9,7 +9,7 @@
         --inventory $PWD/ansible-inventories \
         $PWD/../../../windows/netsh/port-proxy/ansible-playbook.add.yml
   hosts: windows
-  tasks: 
+  tasks:
 
     - name: add v4tov4 port proxy
       loop: "{{ netsh.port_proxy.v4tov4 | default([]) }}"

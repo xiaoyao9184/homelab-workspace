@@ -10,7 +10,7 @@
   hosts: openwrt
   roles:
     - gekmihesg.openwrt
-  tasks: 
+  tasks:
 
     - name: load tag_csv
       community.general.read_csv:
@@ -20,7 +20,7 @@
       connection: local
 
     - name: set dhcp tag
-      when: 
+      when:
         - item.tag != ''
         - item.location in location[location.at]
       ansible.builtin.shell: |

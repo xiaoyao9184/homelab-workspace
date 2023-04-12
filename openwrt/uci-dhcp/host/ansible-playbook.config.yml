@@ -10,7 +10,7 @@
   hosts: openwrt
   roles:
     - gekmihesg.openwrt
-  tasks: 
+  tasks:
 
     - name: load host_csv
       community.general.read_csv:
@@ -23,7 +23,7 @@
       ansible.builtin.shell: while uci -q delete dhcp.@host[0]; do :; done
 
     - name: set dhcp host
-      when: 
+      when:
         - item.location in location[location.at]
       ansible.builtin.shell: |
         uci add dhcp host

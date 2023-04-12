@@ -9,7 +9,7 @@
         $PWD/../../../openwrt/openclash/ansible-playbook.deploy.yml
   hosts: localhost
   connection: local
-  tasks: 
+  tasks:
 
     - name: clear dir
       ansible.builtin.file:
@@ -36,7 +36,7 @@
   hosts: openwrt
   roles:
     - gekmihesg.openwrt
-  tasks: 
+  tasks:
 
     - name: opkg install
       loop:
@@ -71,7 +71,7 @@
       ansible.builtin.shell: opkg list-installed | grep 'libcap-bin' | awk '{print $1}'
       register: opkg_libcap
 
-    - when: 
+    - when:
         - opkg_fw4.stdout == ''
       block:
 
@@ -90,16 +90,16 @@
             name: iptables-mod-extra
           ignore_errors: yes
 
-    - when: 
+    - when:
         - opkg_fw4.stdout != ''
       block:
 
         - name: opkg kmod-nft-tproxy
           opkg:
-            name: kmod-nft-tproxy 
+            name: kmod-nft-tproxy
           ignore_errors: yes
 
-    - when: 
+    - when:
         - opkg_dnsmasq.stdout == ''
       block:
 
@@ -114,9 +114,9 @@
             name: dnsmasq-full
           ignore_errors: yes
 
-    - when: 
+    - when:
         - opkg_libcap.stdout == ''
-      block: 
+      block:
 
         - name: get distrib arch
           ansible.builtin.shell: cat /etc/openwrt_release | grep DISTRIB_ARCH | sed -E 's/DISTRIB_ARCH=.(.*)./\1/'
@@ -139,7 +139,7 @@
 
     - name: copy file
       ansible.builtin.copy:
-        src: "{{ playbook_dir }}/luci-app-openclash/luci-app-openclash.ipk" 
+        src: "{{ playbook_dir }}/luci-app-openclash/luci-app-openclash.ipk"
         dest: /tmp/luci-app-openclash.ipk
         mode: '0755'
 

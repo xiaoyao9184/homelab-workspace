@@ -9,7 +9,7 @@
   hosts: openwrt
   roles:
     - gekmihesg.openwrt
-  tasks: 
+  tasks:
 
     - name: check fw4
       ansible.builtin.shell: command -v fw4
@@ -83,7 +83,7 @@
 - name: download
   hosts: localhost
   connection: local
-  tasks: 
+  tasks:
 
     - when: tailscale.install | default('opkg') == 'enabler'
       block:
@@ -172,12 +172,12 @@
   hosts: openwrt
   roles:
     - gekmihesg.openwrt
-  tasks: 
+  tasks:
 
     - when: tailscale.install | default('opkg') == 'enabler'
         # - opkg_tailscale is failed
         # - hostvars[groups['openwrt'][0]]['tailscale']['install'] | default('opkg') != 'opkg'
-      block: 
+      block:
 
         - name: opkg install
           loop:
@@ -192,7 +192,7 @@
 
         - name: copy file
           ansible.builtin.copy:
-            src: "{{ hostvars['localhost']['copy_dir'] }}/" 
+            src: "{{ hostvars['localhost']['copy_dir'] }}/"
             dest: /
             mode: '0755'
 
@@ -210,7 +210,7 @@
       ansible.builtin.shell: "ip route | grep src | grep br-lan | awk '{print $1}'"
       register: network_lan
 
-    - name: authkey tailscale up 
+    - name: authkey tailscale up
       when: tailscale.up.authkey is defined
       ansible.builtin.set_fact:
         shell_tailscale: "tailscale up --authkey {{ tailscale.up.authkey }} --advertise-routes={{ network_lan.stdout }} --advertise-exit-node &> /tmp/tailscale.up.log"
@@ -242,7 +242,7 @@
       register: tailscale_log
 
     - name: check tailscale stdout finished
-      when: 
+      when:
         - not tailscale_async.finished
         - tailscale_log.stat.exists
       ansible.builtin.shell: "grep -i 'http' /tmp/tailscale.up.log"
@@ -252,13 +252,13 @@
       delay: 10
 
     - name: read stdout content
-      when: 
+      when:
         - tailscale_log.stat.exists
       ansible.builtin.shell: "cat /tmp/tailscale.up.log"
       register: content_stdout
 
     - name: print stdout content
-      when: 
+      when:
         - tailscale_log.stat.exists
       ansible.builtin.pause:
         seconds: 1
@@ -272,7 +272,7 @@
       until: status_stdout.finished
       retries: 1000
       delay: 10
-    
+
     - name: clear stdout file
       ansible.builtin.file:
         path: "/tmp/tailscale.up.log"
@@ -332,7 +332,7 @@
           forward: 'ACCEPT'
           network: 'tailscale'
           device: 'tailscale0'
-        
+
     - name: uci add firewall.lanfwts
       uci:
         command: set

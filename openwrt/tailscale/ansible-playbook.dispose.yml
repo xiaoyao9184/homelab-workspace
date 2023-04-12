@@ -9,7 +9,7 @@
         $PWD/../../../openwrt/tailscale/ansible-playbook.dispose.yml
   hosts: localhost
   connection: local
-  tasks: 
+  tasks:
 
     - name: find extract_dir
       vars:
@@ -32,7 +32,7 @@
   hosts: openwrt
   roles:
     - gekmihesg.openwrt
-  tasks: 
+  tasks:
 
     - name: uci del firewall.lanfwts
       uci:
@@ -67,7 +67,7 @@
     - name: down tailscale
       ansible.builtin.shell: "tailscale down"
       register: tailscale_result
-          
+
     - name: print result
       debug:
         msg:
@@ -87,7 +87,7 @@
       ignore_errors: yes
 
     - when: opkg_tailscale is failed
-      block: 
+      block:
 
         - name: kill process
           ansible.builtin.shell: kill $(ps | grep '[p]/etc/config/tailscaled.state' | awk '{print $1}')

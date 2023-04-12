@@ -27,7 +27,7 @@ echo "$user_name - $key"
 template=$(cat << EOF
 set system login user $user_name authentication public-keys me type ssh-rsa
 set system login user $user_name authentication public-keys me key $key
-commit 
+commit
 EOF
 )
 echo "$template" >> ${build_file}

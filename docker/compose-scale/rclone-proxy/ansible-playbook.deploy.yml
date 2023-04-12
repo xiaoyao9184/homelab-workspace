@@ -10,12 +10,12 @@
     - name: service_names
       prompt: "What is service name(see rclone_proxy.services keys)[empty use all]?"
       private: no
-      default: 
+      default:
   environment:
     PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
   hosts: "{{ 'docker:&docker-rclone-node' if (groups['docker-rclone-node'] is defined) else 'docker' }}"
   run_once: true
-  tasks: 
+  tasks:
 
     - name: check shared
       loop: "{{ rclone_proxy.shared_check | default([]) }}"
@@ -25,7 +25,7 @@
     - name: fail not shared
       when:
         - rclone_proxy.shared_check | default([]) | length >0
-        - check_result.rc is defined 
+        - check_result.rc is defined
         - check_result.rc == 0
       ansible.builtin.fail:
         msg: "shared check fail"
@@ -43,7 +43,7 @@
         - name: list config_files
           include_tasks: "{{ ws.local }}/.seed/ansible-tasks/file-name.list.yml"
           vars:
-            name: 
+            name:
               option_find: "{{ inventory_dir }}/../rclone"
               result_var: config_files
               location: local

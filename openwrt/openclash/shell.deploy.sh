@@ -20,7 +20,7 @@ if [[ -n "$(command -v fw3)" ]]; then
 elif [[ -n "$(command -v fw4)" ]]; then
     #nftables
     opkg install \
-      kmod-nft-tproxy 
+      kmod-nft-tproxy
 fi
 
 #libcap libcap-bin

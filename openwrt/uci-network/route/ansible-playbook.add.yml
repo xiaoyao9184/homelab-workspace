@@ -10,7 +10,7 @@
   hosts: openwrt
   roles:
     - gekmihesg.openwrt
-  tasks: 
+  tasks:
 
     - name: set network route
       loop: "{{ uci.network.route | default([],true) }}"

@@ -9,7 +9,7 @@ configs:
   omnibus_config:
     name: external_cfg-gitlab-omnibus
     external: true
-    
+
 volumes:
   config:
     name: external_vol-gitlab-config

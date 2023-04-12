@@ -8,10 +8,10 @@
         --inventory $PWD/ansible-inventories \
         $PWD/../../../linux/sdkman/ansible-playbook.install.yml
   hosts: linux
-  tasks: 
+  tasks:
 
     - name: install sdkman
-      ansible.builtin.include_role: 
+      ansible.builtin.include_role:
         name: comcast.sdkman
       vars:
         sdkman_user: "{{ ansible_user_id }}"
@@ -33,7 +33,7 @@
     - name: list sdk
       ansible.builtin.shell: /bin/bash -c "source ~/.sdkman/bin/sdkman-init.sh && sdk current"
       register: sdk_list
-    
+
     - name: print sdk
       ansible.builtin.pause:
         seconds: 1

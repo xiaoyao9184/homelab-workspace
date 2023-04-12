@@ -13,15 +13,15 @@
     - name: prompt_path
       prompt: "input image path(img.gz/img)[from image-builder]"
       private: no
-      default: 
+      default:
   hosts: localhost
   connection: local
   tasks:
- 
-    - name: install qemu-img 
+
+    - name: install qemu-img
       become: true
       ansible.builtin.package:
-        name: 
+        name:
           - qemu-utils
         state: present
       register: package_result

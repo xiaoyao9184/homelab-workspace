@@ -10,17 +10,17 @@
     - name: vm_username
       prompt: "What is ESXi/vCenter server username?"
       private: no
-      default: 
+      default:
     - name: vm_password
       prompt: "What is ESXi/vCenter server password?"
       private: yes
-      default: 
+      default:
     - name: vm_name
       prompt: "What is vm or group?"
       private: no
       default: template
   hosts: localhost
-  tasks: 
+  tasks:
 
     - name: set ws
       include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/ws.set.yml"
@@ -49,14 +49,14 @@
       loop: "{{ vm_list }}"
       loop_control:
         loop_var: vm_item
-      when: 
+      when:
         - vm_item.name is defined
       vars:
-        guest_item: 
+        guest_item:
           name: "{{ vm_item.name }}"
           state: absent
           force: true
-        vm_guest_combine: 
+        vm_guest_combine:
           guest: "{{ guest_item }}"
         vm_guest_item: "{{ vm_item | combine(vm_guest_combine, recursive=True) }}"
       ansible.builtin.set_fact:

@@ -34,14 +34,14 @@ fi
 
 # dsm6
 if [[ "$major_version" -eq "6" ]]; then
-  
+
   # Install
   if [[ -z "$spk_url" ]]; then
     echo "miss spk_url"
     exit 1
-  else 
+  else
     curl -o /tmp/zerotier.spk $spk_url
-    sudo synopkg install /tmp/zerotier.spk 
+    sudo synopkg install /tmp/zerotier.spk
     rm /tmp/zerotier.spk
 
     zerotier-cli status

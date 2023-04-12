@@ -11,7 +11,7 @@
   hosts: dsm
   roles:
     - rclone
-  tasks: 
+  tasks:
 
     - name: install rclone
       become: true
@@ -36,7 +36,7 @@
     - name: create persistent rclone sysvinit
       ansible.builtin.copy:
         content: |
-          #!/bin/sh -e 
+          #!/bin/sh -e
           rclone \
             mount {{ item.name }}: {{ item.path }} \
             --config=/var/services/homes/{{ ansible_user_id }}/.config/rclone/rclone.conf \

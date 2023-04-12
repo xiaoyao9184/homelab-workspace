@@ -8,10 +8,10 @@
         --inventory $PWD/ansible-inventories \
         $PWD/../../../dsm/omniedge/ansible-playbook.deploy.yml
   hosts: dsm
-  tasks: 
+  tasks:
 
     - name: install spk from url
-      when: 
+      when:
         - omniedge.spk_url is defined
       block:
 

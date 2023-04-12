@@ -15,7 +15,7 @@
   hosts: openwrt
   roles:
     - gekmihesg.openwrt
-  tasks: 
+  tasks:
 
     - name: replace distfeeds
       ansible.builtin.shell: "sed -i.bak 's|//downloads.openwrt.org|//{{ mirror_host }}/openwrt|g' /etc/opkg/distfeeds.conf"

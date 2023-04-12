@@ -11,7 +11,7 @@
   tasks:
 
     - name: install nodejs
-      ansible.builtin.include_role: 
+      ansible.builtin.include_role:
         name: stephdewit.nvm
         apply:
           environment:
@@ -28,7 +28,7 @@
       ansible.builtin.shell: /bin/bash -c "source ~/.nvm/nvm.sh && nvm ls"
       register: nvm_list
       ignore_errors: true
-    
+
     - name: print nodejs
       ansible.builtin.pause:
         seconds: 1

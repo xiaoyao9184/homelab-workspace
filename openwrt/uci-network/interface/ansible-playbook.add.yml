@@ -10,7 +10,7 @@
   hosts: openwrt
   roles:
     - gekmihesg.openwrt
-  tasks: 
+  tasks:
 
     - name: set network interface
       loop: "{{ uci.network.interface | dict2items | default([],true) }}"

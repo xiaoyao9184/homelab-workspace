@@ -39,7 +39,7 @@
     - exec_result.stdout is defined
   ansible.builtin.set_fact:
     "{{ _password.result }}": "{{ exec_result .stdout_lines[-1] }}"
-  
+
 - name: admin-password.print|print _password.result
   debug:
     var: "{{ _password.result }}"

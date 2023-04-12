@@ -12,7 +12,7 @@
 - debug: msg="{{ vm_iso_state }}" verbosity=3
 
 - name: file-list.query|fail miss file on esxi datastore
-  when: 
+  when:
     - (vm_iso_state.results | selectattr('status','!=',200) | length) > 0
   ansible.builtin.fail:
     msg: "miss file {{ vm_iso_state.results | selectattr('status','!=',200) | map(attribute='path') }}"

@@ -11,17 +11,17 @@
     - name: vm_username
       prompt: "What is ESXi/vCenter server username?"
       private: no
-      default: 
+      default:
     - name: vm_password
       prompt: "What is ESXi/vCenter server password?"
       private: yes
-      default: 
+      default:
     - name: file_name
       prompt: "What is file or group?"
       private: no
       default: all
   hosts: localhost
-  tasks: 
+  tasks:
 
     - name: set ws
       include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/ws.set.yml"
@@ -46,10 +46,10 @@
       loop: "{{ file_list }}"
       loop_control:
         loop_var: iso_make_item
-      when: 
+      when:
         - iso_make_item.path is defined
         - iso_make_item.output is defined
-      ansible.builtin.shell: 
+      ansible.builtin.shell:
         cmd: genisoimage -output {{ iso_make_item.output }} -volid cidata -joliet -rock user-data meta-data
         chdir: "{{ iso_make_item.path }}"
       register: iso_make_result
@@ -59,12 +59,12 @@
     - name: set vsphere_copy_list
       ansible.builtin.set_fact:
         vsphere_copy_list: []
-        
+
     - name: append vsphere_copy_list
       loop: "{{ file_list }}"
       loop_control:
         loop_var: iso_copy_item
-      when: 
+      when:
         - iso_copy_item.path is defined
         - iso_copy_item.output is defined
         - iso_copy_item.vsphere_copy is defined

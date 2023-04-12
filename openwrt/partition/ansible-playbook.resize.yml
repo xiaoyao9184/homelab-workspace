@@ -10,7 +10,7 @@
   hosts: openwrt
   roles:
     - gekmihesg.openwrt
-  tasks: 
+  tasks:
 
     - name: opkg install
       loop:
@@ -70,8 +70,8 @@
             disk: "{{ shell_disk.stdout }}"
             part: "{{ shell_part.stdout }}"
 
-    - name: fix parted 
-      ansible.builtin.shell: | 
+    - name: fix parted
+      ansible.builtin.shell: |
         (
           echo OK
           echo Fix

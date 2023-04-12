@@ -10,7 +10,7 @@
   environment:
     PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
   hosts: "{{ 'docker:&docker-portainer-node' if (groups['docker-portainer-node'] is defined) else 'docker' }}"
-  tasks: 
+  tasks:
 
     - name: run container
       become: true

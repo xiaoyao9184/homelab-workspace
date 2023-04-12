@@ -10,17 +10,17 @@
     - name: vm_username
       prompt: "What is ESXi/vCenter server username?"
       private: no
-      default: 
+      default:
     - name: vm_password
       prompt: "What is ESXi/vCenter server password?"
       private: yes
-      default: 
+      default:
     - name: vm_name
       prompt: "What is vm or group?"
       private: no
       default: vmdk
   hosts: localhost
-  tasks: 
+  tasks:
 
     - name: set ws
       include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/ws.set.yml"
@@ -49,13 +49,13 @@
       loop: "{{ vm_list }}"
       loop_control:
         loop_var: vm_item
-      when: 
+      when:
         - vm_item.guest is defined
         - vm_item.vmdk is defined
       vars:
         guest_config: "{{ esxi.vm_guest[vm_item.guest] }}"
         vmdk_config: "{{ esxi.vm_vmdk[vm_item.vmdk] }}"
-        guest_combine: 
+        guest_combine:
           disk:
             - type: thin
               datastore: "{{ guest_config.datastore }}"
@@ -66,7 +66,7 @@
             path: "{{ vm_item.name }}.disk/{{ vmdk_config.filename }}"
         guest_item: "{{ guest_config | combine(guest_combine, recursive=True) }}"
         vmdk_item: "{{ vmdk_config | combine(vmdk_combine, recursive=True) }}"
-        vm_guest_combine: 
+        vm_guest_combine:
           guest_name: "{{ vm_item.guest }}"
           guest: "{{ guest_item }}"
           vmdk_name: "{{ vm_item.vmdk }}"
@@ -93,14 +93,14 @@
       vars:
         list: "{{ vm_guest_list }}"
 
-    - name: create a virtual machine by vmdk  
+    - name: create a virtual machine by vmdk
       loop: "{{ guest_list }}"
       loop_control:
         loop_var: guest_config
       community.vmware.vmware_guest: "{{ guest_config }}"
       register: guest_result
       # 20 min
-      async: 1200 
+      async: 1200
       poll: 0
 
     - name: wait task finished

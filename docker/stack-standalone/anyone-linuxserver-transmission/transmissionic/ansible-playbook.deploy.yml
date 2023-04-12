@@ -11,7 +11,7 @@
     PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
   hosts: "{{ 'docker:&docker-transmission-node' if (groups['docker-transmission-node'] is defined) else 'docker' }}"
   run_once: true
-  tasks: 
+  tasks:
 
     - name: set ws
       include_tasks: "{{ playbook_dir }}/../../../../.seed/ansible-tasks/ws.set.yml"
@@ -106,7 +106,7 @@
             directory_mode: '0744'
 
     - name: remove webui archive
-      loop: 
+      loop:
         - "{{ transmissionic.archive }}"
         - "{{ transmissionic.webui }}"
       ansible.builtin.file:

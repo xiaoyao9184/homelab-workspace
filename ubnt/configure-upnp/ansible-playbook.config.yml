@@ -8,7 +8,7 @@
         --inventory $PWD/ansible-inventories \
         $PWD/../../../ubnt/configure-upnp/ansible-playbook.config.yml
   hosts: ubnt
-  tasks: 
+  tasks:
 
     - name: configure upnp upnp2
       community.network.edgeos_config:
@@ -24,6 +24,6 @@
         commands: show upnp2 rules
       register: show_upnp2
 
-    - name: print upnp2 
+    - name: print upnp2
       ansible.builtin.debug:
         var: show_upnp2.stdout_lines

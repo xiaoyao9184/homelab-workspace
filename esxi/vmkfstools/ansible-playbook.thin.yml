@@ -13,7 +13,7 @@
       private: no
       default: vmkfstools
   hosts: esxi
-  tasks: 
+  tasks:
 
     - name: set ws
       include_tasks: "{{ playbook_dir }}/../../.seed/ansible-tasks/ws.set.yml"
@@ -42,14 +42,14 @@
       loop: "{{ vmkfstools_list }}"
       loop_control:
         loop_var: vmkfstools_item
-      when: 
+      when:
         - vmkfstools_item.file is defined
         - vmkfstools_item.path is defined
       vars:
         file_item: "{{ esxi.file[vmkfstools_item.file] }}"
         datastore_name: "{{ file_item.vsphere_copy.datastore }}"
         datastore_path: "{{ file_item.vsphere_copy.path }}"
-        vmkfstools_cmd_item: 
+        vmkfstools_cmd_item:
           source: "/vmfs/volumes/{{ datastore_name }}/{{ datastore_path }}"
           target: "/vmfs/volumes/{{ datastore_name }}/{{ vmkfstools_item.path }}"
       ansible.builtin.set_fact:

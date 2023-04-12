@@ -25,7 +25,7 @@
       ansible.builtin.shell: "bash ~/get-docker.sh"
       register: docker_get
       ignore_errors: true
-    
+
     - name: print docker get
       ansible.builtin.pause:
         seconds: 1

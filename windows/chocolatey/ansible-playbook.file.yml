@@ -9,14 +9,14 @@
         $PWD/../../../windows/chocolatey/ansible-playbook.file.yml
     ansible_connection: local
   hosts: windows
-  tasks: 
+  tasks:
 
     - name: template chocolatey Packages.config
       loop: "{{ chocolatey.packages | dict2items }}"
       loop_control:
         loop_var: group_item
-      vars: 
+      vars:
         packages: "{{ group_item.value }}"
-      ansible.builtin.template: 
+      ansible.builtin.template:
         src: "{{ playbook_dir }}/package.config.j2"
         dest: "{{ inventory_dir }}/../choco/{{ group_item.key }}.config"

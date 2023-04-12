@@ -10,7 +10,7 @@
   environment:
     PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
   hosts: "{{ 'docker:&docker-gitlab-node' if (groups['docker-gitlab-node'] is defined) else 'docker' }}"
-  tasks: 
+  tasks:
 
     - name: wait host port
       include_tasks:

@@ -12,19 +12,19 @@ then
 
     echo "no boot partition in /etc/mtab!!! but root partition maybe: $ROOT"
     read -p "do you want to proceed? (yes/no) " yn
-    case $yn in 
+    case $yn in
         yes | y )
             ;;
-        no | n ) 
+        no | n )
             echo "exiting..."
             exit
             ;;
-        * ) 
+        * )
             echo "invalid response"
             exit 1
             ;;
     esac
-    
+
     losetup ${LOOP} ${ROOT}
     fsck.ext4 -y ${LOOP}
 else

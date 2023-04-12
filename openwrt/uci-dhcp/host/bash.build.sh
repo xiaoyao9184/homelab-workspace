@@ -10,7 +10,7 @@ build_filename="${build_name%.*}"
 rm -rdf ${build_path}
 mkdir -p ${build_path}
 
-# no location 
+# no location
 build_file=${build_path}/${build_filename}.${build_extension}
 echo "while uci -q delete dhcp.@host[0]; do :; done" >> ${build_file}
 echo "" >> ${build_file}

@@ -8,7 +8,7 @@
         --inventory $PWD/ansible-inventories \
         $PWD/../../../wsl/automount/ansible-playbook.metadata.yml
   hosts: localhost
-  tasks: 
+  tasks:
 
     - name: create file
       become: true

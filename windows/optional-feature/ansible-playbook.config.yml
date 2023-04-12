@@ -12,9 +12,9 @@
     - name: group_name
       prompt: "What is optional_features group[empty mean use all group]?"
       private: no
-      default: 
+      default:
   hosts: windows
-  tasks: 
+  tasks:
 
     - name: select optional_feature name
       include_tasks: "{{ playbook_dir }}/../../.seed/ansible-tasks/var-grouped.select.yml"

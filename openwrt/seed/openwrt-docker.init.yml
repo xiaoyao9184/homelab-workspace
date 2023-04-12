@@ -25,7 +25,7 @@
       pip: "{{ system_pip | default(default_pip,true) }}"
 
 - name: openwrt-docker.init|role openwrt
-  ansible.builtin.include_role: 
+  ansible.builtin.include_role:
     name: gekmihesg.openwrt
 
 - name: openwrt-docker.init|replace opkg distfeeds
