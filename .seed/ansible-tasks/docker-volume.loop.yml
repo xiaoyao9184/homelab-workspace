@@ -1,0 +1,79 @@
+---
+
+
+- block:
+
+    - name: docker-volume.loop|set _volume_loop
+      when: _volume_loop | default(None,true) == None
+      vars:
+        default_until:
+          - volume_loop_info.exists
+        default_fail: []
+      ansible.builtin.set_fact:
+        _volume_loop:
+          name: "{{ volume.name }}"
+          retries: "{{ volume.retries | default(1000) }}"
+          delay: "{{ volume.delay | default(10) }}"
+          until: "{{ volume.until | default(default_until) }}"
+          fail: "{{ volume.fail | default(default_fail) }}"
+
+    - name: docker-volume.loop|sleep for first
+      when: _volume_retry | default(None,true) == None
+      ansible.builtin.pause:
+        seconds: "{{ _volume_loop.delay | int }}"
+
+    - name: docker-volume.loop|get volume info
+      community.docker.docker_volume_info:
+        name: "{{ _volume_loop.name }}"
+      register: volume_loop_info
+      ignore_errors: true
+
+    - name: docker-volume.loop|print volume_info
+      run_once: true
+      ansible.builtin.debug:
+        var: volume_loop_info
+
+    - name: docker-volume.loop|until check
+      loop: "{{ _volume_loop.until }}"
+      loop_control:
+        loop_var: check
+      when: "not ( {{ check }} )"
+      ansible.builtin.fail:
+        msg: "beak loop volume {{ _volume_loop.name }}: {{ check }}"
+
+    - name: docker-volume.loop|reset _volume_retry
+      ansible.builtin.set_fact:
+        _volume_retry: !!null
+        _volume_loop: !!null
+
+  rescue:
+
+    - name: docker-volume.loop|fail check
+      loop: "{{ _volume_loop.fail }}"
+      loop_control:
+        loop_var: check
+      when: "{{ check }}"
+      ansible.builtin.fail:
+        msg: "fail loop volume {{ _volume_loop.name }}: {{ check }}"
+
+    - name: docker-volume.loop|init _volume_retry
+      when: _volume_retry | default(None,true) == None
+      ansible.builtin.set_fact:
+        _volume_retry: "{{ _volume_loop.retries | int }}"
+
+    - name: docker-volume.loop|all retry fail
+      when:
+        - (_volume_retry | int) == 0
+      ansible.builtin.fail:
+        msg: "tired out loop volume {{ _volume_loop.name }}"
+
+    - name: docker-volume.loop|sleep for next loop
+      ansible.builtin.pause:
+        seconds: "{{ _volume_loop.delay | int }}"
+        prompt: "retries {{ _volume_retry }}/{{ _volume_loop.retries }}"
+
+    - name: docker-volume.loop|reduce _volume_retry
+      ansible.builtin.set_fact:
+        _volume_retry: "{{ _volume_retry | int - 1 }}"
+
+    - include_tasks: docker-volume.loop.yml

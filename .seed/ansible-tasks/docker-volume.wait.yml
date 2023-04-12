@@ -1,0 +1,46 @@
+---
+
+
+- name: docker-volume.wait|append list _volumes
+  loop: "{{ volumes if (volumes | type_debug == 'list') else [] }}"
+  loop_control:
+    loop_var: volume
+  vars:
+    list: "{{ _volumes | default([],true) }}"
+    item:
+      name: "{{ volume.name | default(omit) }}"
+      retries: "{{ volume.retries | default(1000) }}"
+      delay: "{{ volume.delay | default(10) }}"
+      until: "{{ volume.until | default(omit) }}"
+  ansible.builtin.set_fact:
+    _volumes: "{{ list + [item] }}"
+
+- name: docker-volume.wait|append dict _volumes
+  loop: "{{ (volumes | dict2items) if (volumes | type_debug == 'dict') else [] }}"
+  loop_control:
+    loop_var: kv
+  vars:
+    list: "{{ _volumes | default([],true) }}"
+    name: "{{ kv.key }}"
+    volume: "{{ kv.value }}"
+    item:
+      name: "{{ name | default(omit) }}"
+      retries: "{{ volume.retries | default(1000) }}"
+      delay: "{{ volume.delay | default(10) }}"
+      until: "{{ volume.until | default(omit) }}"
+  ansible.builtin.set_fact:
+    _volumes: "{{ list + [item] }}"
+
+- name: docker-volume.wait|print _volumes
+  ansible.builtin.debug:
+    var: _volumes
+
+- name: docker-volume.wait|loop volume
+  loop: "{{ _volumes }}"
+  loop_control:
+    loop_var: volume
+  include_tasks: docker-volume.loop.yml
+
+- name: docker-volume.wait|reset _volumes
+  ansible.builtin.set_fact:
+    _volumes: !!null
