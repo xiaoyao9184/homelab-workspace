@@ -68,7 +68,7 @@
         dest: "{{ combustion.webui }}"
 
     - name: copy webui to volume
-      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-volumes.copy.yml"
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-volumes.push.yml"
       vars:
         volumes:
           external_vol-transmission-config:

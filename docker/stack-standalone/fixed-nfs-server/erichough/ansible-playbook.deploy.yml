@@ -54,8 +54,8 @@
             driver: local
         volumes: "{{ nfs.vol | default(default,true) }}"
 
-    - name: copy to volume
-      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-volumes.copy.yml"
+    - name: push to volume
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-volumes.push.yml"
       vars:
         default:
           external_vol-nfs-server-data:
@@ -63,7 +63,7 @@
             src: "{{ dir.remote }}/data/"
             dest: "./"
             directory_mode: '0777'
-        volumes: "{{ nfs.vol_copy | default(default,true) }}"
+        volumes: "{{ nfs.vol_push | default(default,true) }}"
 
     - name: add external_net
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-networks.add.yml"

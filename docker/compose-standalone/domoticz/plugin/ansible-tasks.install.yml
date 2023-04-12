@@ -20,7 +20,7 @@
       ws: "{{ plugin.ws }}"
       dir: "{{ plugin.dir }}"
       wait: "{{ wait_default | combine(wait_update, recursive=True) }}"
-      vol_copy: "{{ plugin.vol_copy | default([]) }}"
+      vol_push: "{{ plugin.vol_push | default([]) }}"
       exec: "{{ exec_default | combine(exec_update, recursive=True) }}"
       result: "{{ plugin.result | default('create_result') }}"
 
@@ -33,10 +33,10 @@
   debug:
     var: _plugin
 
-- name: plugin.install|copy to volume
-  include_tasks: "{{ _plugin.ws.local }}/.seed/ansible-tasks/docker-volumes.copy.yml"
+- name: plugin.install|push to volume
+  include_tasks: "{{ _plugin.ws.local }}/.seed/ansible-tasks/docker-volumes.push.yml"
   vars:
-    volumes: "{{ _plugin.vol_copy }}"
+    volumes: "{{ _plugin.vol_push }}"
 
 - name: plugin.install|exec container
   include_tasks: "{{ _plugin.ws.local }}/.seed/ansible-tasks/docker-container.exec.yml"

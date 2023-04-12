@@ -41,7 +41,7 @@
           ws: "{{ ws }}"
           dir: "{{ dir }}"
           result: plugin_install
-          vol_copy: "{{ domoticz.plugin.vol_copy | default([],true) }}"
+          vol_push: "{{ domoticz.plugin.vol_push | default([],true) }}"
 
     - name: restart compose service
       when: domoticz.plugin.restart | default(false) | bool
