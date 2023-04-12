@@ -7,7 +7,7 @@
       ansible-playbook \
         --ask-become-pass \
         --inventory $PWD/ansible-inventories \
-        $PWD/../../../docker/compose-standalone/openwrt/ansible-playbook.deploy.yml
+        $PWD/../../../docker/container/openwrt/ansible-playbook.deploy.yml
   environment:
     PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
   hosts: "{{ 'docker:&docker-openwrt-node' if (groups['docker-openwrt-node'] is defined) else 'docker' }}"
