@@ -1,11 +1,11 @@
 # A set of variables grouped by dictionary key
-# 
+#
 # Parameters:
 # grouped.var always is a dict
 # grouped.select is list of group name
 # grouped.flatten is flatten values
 # grouped.register is register of grouped
-# 
+#
 # `grouped.var` like this:
 # var:
 #   group1:
@@ -13,7 +13,7 @@
 #     - value1
 #   group2:
 #     - value2
-#   group3: 
+#   group3:
 #     - value3
 # `grouped.select` is 'group1,group3'
 # `grouped.register` will be:
@@ -21,25 +21,25 @@
 #   - value0
 #   - value1
 #   - value3
-# 
+#
 # if `grouped.var` item are string not list
 # var:
 #   group1: value1
 #   group2: value2
 #   group3: value3
 # set `grouped.flatten` to '0' disable flatten
-# 
+#
 # if `grouped.var` item are nested
 # var:
 #   group1:
-#     - 
+#     -
 #       - value0
 #       - value1
 #   group2:
-#     - 
+#     -
 #       - value2
-#   group3: 
-#     - 
+#   group3:
+#     -
 #       - value3
 # set `grouped.flatten` to '2' flatten 2 level nested list
 

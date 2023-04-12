@@ -37,7 +37,7 @@
       ansible.builtin.set_fact:
         seed_user: "{{ prompt.user_input }}"
 
-  tasks: 
+  tasks:
 
     - include_tasks: "{{ playbook_dir }}/../ansible-tasks/seed-ssh.create.yml"
       vars:
@@ -46,8 +46,8 @@
         ansible_group: "{{ local.init.ssh.hosts | default('') }}"
         keyscan_type: "{{ local.init.ssh.keyscan | default('') }}"
 
-    - debug: 
-        msg: 
+    - debug:
+        msg:
           - "{{ hostvars['localhost'].seed_group }}"
           - "{{ hostvars['localhost'].seed_user }}"
         verbosity: 3
@@ -68,7 +68,7 @@
         seed_group: "{{ hostvars['localhost'].seed_group }}"
         seed_user: "{{ hostvars['localhost'].seed_user }}"
 
-  tasks: 
+  tasks:
 
     - include_tasks: "{{ task_path }}"
       vars:

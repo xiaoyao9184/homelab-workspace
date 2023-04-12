@@ -8,7 +8,7 @@
 #       file: config3.conf
 #     - file: config4.conf
 # list `var`'s keys are variable name
-# 
+#
 # Parameters:
 # mixed.list always is a list
 # mixed.register is register of mixed

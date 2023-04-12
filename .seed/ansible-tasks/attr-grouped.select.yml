@@ -1,11 +1,11 @@
 # A set of variables grouped by list attr
-# 
+#
 # Parameters:
 # grouped.var always is a list
 # grouped.select is list of group name
 # grouped.flatten is flatten values
 # grouped.register is register of grouped
-# 
+#
 # `grouped.var` like this:
 # var:
 #   - value_attr1: value0
@@ -22,19 +22,19 @@
 #   - value_attr1: value0
 #   - value_attr1: value1
 #   - value_attr1: value3
-# 
+#
 # if `grouped.var` item are nested
 # var:
-#   - 
+#   -
 #     - value_attr1: value0
 #       group: group1
-#   - 
+#   -
 #     - value_attr1: value1
 #       group: group1
-#   - 
+#   -
 #     - value_attr1: value2
 #       group: group2
-#   - 
+#   -
 #     - value_attr1: value3
 #       group: group3
 # set `grouped.flatten` to '1' flatten 1 level nested list

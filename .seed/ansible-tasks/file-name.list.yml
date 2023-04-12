@@ -6,14 +6,14 @@
     _name: "{{ name }}"
 
 - name: file-name.list|set _find_opt by dict
-  when: _name.option_find | type_debug == "dict" 
+  when: _name.option_find | type_debug == "dict"
   ansible.builtin.set_fact:
     _find_opt: "{{ _name.option_find }}"
 
 - name: file-name.list|set _find_opt by string
-  when: _name.option_find | type_debug == "str" 
+  when: _name.option_find | type_debug == "str"
   ansible.builtin.set_fact:
-    _find_opt: 
+    _find_opt:
       paths: "{{ _name.option_find }}"
 
 - name: file-name.list|find in remote

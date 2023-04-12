@@ -12,7 +12,7 @@ first add subrepo
 git subrepo clone git@gitlab.lan:homelab/seed-ansible-path.git .seed -b master -m "Update .seed"
 ```
 
-loop 
+loop
 ```
 git subrepo pull .seed -b master
 git subrepo push .seed -b master

@@ -15,13 +15,13 @@
   pre_tasks:
 
     - name: set group to docker automatic
-      when: 
+      when:
         - remote.init.system is undefined
         - groups.docker is defined
       ansible.builtin.set_fact:
         ansible_group: "docker"
     # TODO add init.group for user setting group
-    - name: input group 
+    - name: input group
       when: ansible_group is undefined
       ansible.builtin.pause:
         prompt: "What is ansible host group for init system(empty skip)?"
@@ -32,10 +32,10 @@
       ansible.builtin.set_fact:
         ansible_group: "{{ prompt.user_input | default('SKIP',true) }}"
 
-  tasks: 
+  tasks:
 
-    - debug: 
-        msg: 
+    - debug:
+        msg:
           - "{{ hostvars['localhost'].ansible_group }}"
         verbosity: 3
 
@@ -57,7 +57,7 @@
       ansible.builtin.set_fact:
         task_path: "{{ remote.init.system | default(task_default) }}"
 
-  tasks: 
+  tasks:
 
     - include_tasks: "{{ task_path }}"
       vars:

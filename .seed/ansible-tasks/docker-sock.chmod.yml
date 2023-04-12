@@ -1,7 +1,7 @@
 ---
 
 
-- name: docker-sock.chmod|permissions docker sock 
+- name: docker-sock.chmod|permissions docker sock
   ansible.builtin.file:
     path: /var/run/docker.sock
     mode: u=rw,g=rw,o=rw

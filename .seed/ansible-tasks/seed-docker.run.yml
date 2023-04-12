@@ -3,17 +3,17 @@
 # param check
 - block:
   - name: seed-docker.run|must seed_ws_dir
-    when: 
+    when:
       - seed_ws_dir is undefined
     fail:
       msg: Not set seed_ws_dir
   - name: seed-docker.run|must anisble_inventory
-    when: 
+    when:
       - anisble_inventory is undefined
     fail:
       msg: Not set anisble_inventory
   - name: seed-docker.run|must anisble_playbook
-    when: 
+    when:
       - anisble_playbook is undefined
     fail:
       msg: Not set anisble_playbook
@@ -82,12 +82,12 @@
 # seed_local
 - block:
   - name: seed-docker.run|check in docker-seed connect local(docker-in-docker)
-    when: 
+    when:
       - lookup('ansible.builtin.env', 'SEED_NAME') != ''
       - ansible_connection == 'local'
     ansible.builtin.set_fact:
       seed_in_docker_connect_local: true
-  
+
   - name: seed-docker.run|set seed_local
     ansible.builtin.set_fact:
       seed_local: "{{ seed_in_docker_connect_local | default(false) }}"
@@ -101,7 +101,7 @@
 - block:
   - name: seed-docker.run|create seed_env fact
     ansible.builtin.set_fact:
-      seed_env: 
+      seed_env:
 
   - name: seed-docker.run|create seed_volume fact
     ansible.builtin.set_fact:
@@ -150,7 +150,7 @@
             exist: true
 
       - name: seed-docker.run|set seed_ws.dest fact
-        when: 
+        when:
           - ws_src.stat.exists
           - not seed_ws.exist
         ansible.builtin.set_fact:
@@ -160,7 +160,7 @@
             dest: "~/.seed/workspace/{{ seed_ws.name }}"
 
       - name: seed-docker.run|mkdir seed_ws.dest dir
-        when: 
+        when:
           - ws_src.stat.exists
           - not seed_ws.exist
         become: false
@@ -169,7 +169,7 @@
           state: directory
 
       - name: seed-docker.run|get seed_ws.dest stat
-        when: 
+        when:
           - ws_src.stat.exists
           - not seed_ws.exist
         become: false
@@ -178,7 +178,7 @@
         register: ws_dest
 
       - name: seed-docker.run|reset seed_ws.dest fact
-        when: 
+        when:
           - ws_src.stat.exists
           - not seed_ws.exist
         ansible.builtin.set_fact:
@@ -188,7 +188,7 @@
             dest: "{{ ws_dest.stat.path }}"
 
       - name: seed-docker.run|sync seed_ws.dest path
-        when: 
+        when:
           - ws_src.stat.exists
           - not seed_ws.exist
         ansible.posix.synchronize:
@@ -201,7 +201,7 @@
           rsync_path: rsync
 
       - name: seed-docker.run|create seed_ws.name volume
-        when: 
+        when:
           - ws_src.stat.exists
           - not seed_ws.exist
         community.docker.docker_volume:
@@ -231,7 +231,7 @@
           seed_env: "{{ seed_env | combine(envs, recursive=True) }}"
         vars:
           envs:
-            "SEED_WORKSPACE": "{{ seed_ws.name }}"   
+            "SEED_WORKSPACE": "{{ seed_ws.name }}"
 
   - name: seed-docker.run|key seed_volume
     vars:
@@ -252,7 +252,7 @@
 
       - name: seed-docker.run|print seed_id.src stat
         ansible.builtin.debug:
-          msg: 
+          msg:
             - "{{ id_src.stat.exists }}"
             - "{{ id_src.stat.checksum | default(None) }}"
           # verbosity: 3
@@ -284,7 +284,7 @@
 
       - name: seed-docker.run|print seed_id.dest stat
         ansible.builtin.debug:
-          msg: 
+          msg:
             - "{{ key_dest.stat.exists }}"
             - "{{ key_dest.stat.checksum | default(None) }}"
           # verbosity: 3
@@ -301,7 +301,7 @@
             exist: true
 
       - name: seed-docker.run|mkdir seed_id.dest dir
-        when: 
+        when:
           - id_src.stat.exists
           - not seed_id.exist
         ansible.builtin.file:
@@ -309,7 +309,7 @@
           state: directory
 
       - name: seed-docker.run|copy seed_id.dest file
-        when: 
+        when:
           - id_src.stat.exists
           - not seed_id.exist
         ansible.builtin.copy:
@@ -330,9 +330,9 @@
             vars:
               seed_id_update:
                 exist: false
-        
+
           - name: seed-docker.run|create seed_id.name volume
-            when: 
+            when:
               - id_src.stat.exists
               - not seed_id.exist
             community.docker.docker_volume:
@@ -362,7 +362,7 @@
 
           - name: seed-docker.run|copy seed_id.name container
             ansible.builtin.shell: "docker cp {{ seed_id.dest }} key-volume.{{ seed_id.name }}:/seed_vol"
-            
+
           - name: seed-docker.run|stop seed_id.name container
             community.docker.docker_container:
               name: "key-volume.{{ seed_id.name }}"
@@ -377,7 +377,7 @@
                 map: "/root/.ssh"
 
       - name: seed-docker.run|add seed_id.name seed_volume
-        when: 
+        when:
           - id_src.stat.exists
         ansible.builtin.set_fact:
           seed_volume: "{{ seed_volume + binds }}"

@@ -1,7 +1,7 @@
 ---
 
 - name: seed-ssh.create|check ssh_user
-  when: 
+  when:
     - ssh_user | default(None) == ''
   ansible.builtin.pause:
     prompt: "What is ssh user?"
@@ -9,7 +9,7 @@
   register: prompt_ssh_user
 
 - name: seed-ssh.create|check ssh_group
-  when: 
+  when:
     - ssh_group | default(None) == ''
   ansible.builtin.pause:
     prompt: "What is ssh group(also an dir name of ssh key)?"

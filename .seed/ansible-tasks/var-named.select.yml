@@ -8,7 +8,7 @@
 #   name3:
 #     p1: value3
 # dict `var`'s keys are variable name
-# 
+#
 # Parameters:
 # named.dict always is a dict
 # named.select is list of names/keys

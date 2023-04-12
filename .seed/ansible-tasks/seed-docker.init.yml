@@ -21,7 +21,7 @@
       package: "{{ system_package | default(default_package,true) }}"
       pip: "{{ system_pip | default(default_pip,true) }}"
 
-- name: seed-docker.init|install system package 
+- name: seed-docker.init|install system package
   become: true
   loop: "{{ _docker.package }}"
   ansible.builtin.package:

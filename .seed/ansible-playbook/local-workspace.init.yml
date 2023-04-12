@@ -29,9 +29,9 @@
   connection: local
   # environment:
   #   SSL_CERT_DIR: /etc/ssl/certs
-  tasks: 
+  tasks:
 
-    - name: install system package 
+    - name: install system package
       become: true
       ansible.builtin.package:
         name: "{{ default.package + (local.init.package | default([]) | flatten) }}"
@@ -63,7 +63,7 @@
       until: "galaxy_result is not failed"
       retries: 3
       delay: 5
-    
+
     - when: not _stat_requirements.stat.exists
       block:
 
