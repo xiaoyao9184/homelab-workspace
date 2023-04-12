@@ -1,0 +1,189 @@
+---
+
+
+- name: docker-volume.push|set _volume from volume
+  when: volume.key is undefined
+  vars:
+    other_keys: ['name','loop']
+    copy_keys: "{{ volume.keys() | difference(other_keys) }}"
+    copy_values: "{{ copy_keys | map('extract', volume) | list }}"
+  ansible.builtin.set_fact:
+    _volume:
+      name: "{{ volume.name }}"
+      loop: "{{ volume.loop | default(true) }}"
+      cp: "{{ dict(copy_keys | zip(copy_values)) }}"
+      pushed: false
+
+- name: docker-volume.push|set _volume from volume.key volume.value
+  when: volume.key is defined
+  vars:
+    other_keys: ['name','loop']
+    copy_keys: "{{ volume.value.keys() | difference(other_keys) }}"
+    copy_values: "{{ copy_keys | map('extract', volume.value) | list }}"
+  ansible.builtin.set_fact:
+    _volume:
+      name: "{{ volume.key }}"
+      loop: "{{ volume.value.loop | default(true) }}"
+      cp: "{{ dict(copy_keys | zip(copy_values)) }}"
+      pushed: false
+
+- name: docker-volume.push|print volume
+  ansible.builtin.debug:
+    var: _volume
+
+- name: docker-volume.push|loop volume
+  when: _volume.loop | bool
+  vars:
+    volume:
+      name: "{{ _volume.name }}"
+      retries: -1
+      delay: 0
+  include_tasks: docker-volume.loop.yml
+
+- name: docker-volume.push|get volume info
+  community.docker.docker_volume_info:
+    name: "{{ _volume.name }}"
+  register: _volume_info
+
+- name: docker-volume.push|print volume info
+  ansible.builtin.debug:
+    var: _volume_info
+
+- when:
+    - _volume_info.exists
+    - _volume_info.volume.Driver | default('NONE') == 'local'
+    - _volume_info.volume.Options.type | default('NONE') == 'none'
+    - _volume_info.volume.Options.o | default('NONE') == 'bind'
+  block:
+
+    - name: docker-volume.push|set push to volume bind device
+      vars:
+        update:
+          cp:
+            dest: "{{ _volume_info.volume.Options.device }}/{{ _volume.cp.dest }}"
+      ansible.builtin.set_fact:
+        _volume: "{{ _volume | combine(update, recursive=True) }}"
+
+    - name: docker-volume.push|print cp
+      ansible.builtin.debug:
+        var: _volume.cp
+
+    - name: docker-volume.push|copy bind
+      ansible.builtin.copy: "{{ _volume.cp }}"
+
+    - name: docker-volume.push|update _volume.pushed
+      vars:
+        update:
+          pushed: true
+      ansible.builtin.set_fact:
+        _volume: "{{ _volume | combine(update, recursive=True) }}"
+
+- when:
+    - _volume_info.exists
+    - not (_volume.pushed | default(false) | bool)
+  block:
+
+    - when: not ( _volume.cp.remote_src | default(false) | bool )
+      block:
+
+        - name: docker-volume.push|init ws
+          when: ws is undefined
+          include_tasks: ws.set.yml
+
+        - name: docker-volume.push|init dir
+          when: dir is undefined
+          include_tasks: dir.set.yml
+
+        - name: docker-volume.push|empty temporary path
+          vars:
+            temporary_path: "{{ dir.remote | default(ws.remote) }}/.vol/{{ _volume.name }}"
+          ansible.builtin.file:
+            path: "{{ temporary_path }}/"
+            state: absent
+
+        - name: docker-volume.push|create temporary path
+          vars:
+            temporary_path: "{{ dir.remote | default(ws.remote) }}/.vol/{{ _volume.name }}"
+          ansible.builtin.file:
+            path: "{{ temporary_path }}"
+            state: directory
+
+        - name: docker-volume.push|set temporary copy
+          vars:
+            temporary_path: "{{ dir.remote | default(ws.remote) }}/.vol/{{ _volume.name }}"
+            update:
+              dest: "{{ temporary_path }}/{{ _volume.cp.dest }}"
+          ansible.builtin.set_fact:
+            _volume_temporary_copy: "{{ _volume.cp | combine(update, recursive=True) }}"
+
+        - name: docker-volume.push|print temporary copy
+          ansible.builtin.debug:
+            var: _volume_temporary_copy
+
+        - name: docker-volume.push|copy temporary path
+          ansible.builtin.copy: "{{ _volume_temporary_copy }}"
+          register: _volume_temporary_copy_result
+
+        - name: docker-volume.push|set docker cp by temporary dest
+          ansible.builtin.set_fact:
+            _volume_container_copy:
+              src: "{{ _volume_temporary_copy.dest }}{{ '' if (_volume_temporary_copy_result.state == 'file') else '/.' }}"
+              dest: "/seed_vol/{{ _volume.cp.dest }}"
+            _volume_temporary_copy: !!null
+            _volume_temporary_copy_result: !!null
+
+    - when: _volume.cp.remote_src | default(false) | bool
+      block:
+
+        - name: docker-volume.push|set docker cp by remote src
+          ansible.builtin.set_fact:
+            _volume_container_copy:
+              src: "{{ _volume.cp.src }}/."
+              dest: "/seed_vol/{{ _volume.cp.dest }}"
+
+    - name: docker-volume.push|print docker cp
+      ansible.builtin.debug:
+        var: _volume_container_copy
+
+    - name: docker-volume.push|start copy container
+      community.docker.docker_container:
+        name: "{{ _volume.name }}"
+        state: started
+        image: alpine
+        command: "tail -f /dev/null"
+        volumes:
+          - "{{ _volume.name }}:/seed_vol"
+        labels:
+          "com.docker.stack.namespace": seed
+          "com.github.xiaoyao9184.docker-seed.type": "docker-volume.push"
+          "com.github.xiaoyao9184.docker-seed.creator": "{{ lookup('ansible.builtin.env', 'SEED_NAME') | default('docker-volume.push',true) }}"
+      register: result_vol_container
+      until: "result_vol_container is not failed"
+      retries: 1000
+      delay: 10
+
+    - name: docker-volume.push|copy to container
+      ansible.builtin.shell: "docker cp {{ _volume_container_copy.src }} {{ _volume.name }}:/{{ _volume_container_copy.dest }}"
+
+    - name: docker-volume.push|stop copy container
+      community.docker.docker_container:
+        name: "{{ _volume.name }}"
+        state: stopped
+
+    - name: docker-volume.push|update _volume.pushed
+      vars:
+        update:
+          pushed: true
+      ansible.builtin.set_fact:
+        _volume: "{{ _volume | combine(update, recursive=True) }}"
+        _volume_container_copy: !!null
+
+- name: docker-volume.push|fail check
+  when: not (_volume.pushed | default(false) | bool)
+  ansible.builtin.fail:
+    msg: "fail volume push"
+
+- name: docker-volume.push|reset _volume
+  ansible.builtin.set_fact:
+    _volume_info: !!null
+    _volume: !!null
