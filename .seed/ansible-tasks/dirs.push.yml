@@ -1,0 +1,23 @@
+---
+
+
+- name: dirs.push|init _dirs_push
+  vars:
+    sync_default:
+      - src: "{{ dir.local | default(playbook_dir,true) }}/"
+        dest: "{{ dir.remote | default(playbook_dir,true) }}"
+    sync_copy: "{{ dirs.sync | default(sync_default) }}"
+    always_list: "{{ [] if (dir.synchronized | default(false)) else sync_copy }}"
+    append_list: "{{ dirs.cp | default([]) }}"
+  ansible.builtin.set_fact:
+    _dirs_push: "{{ always_list + append_list }}"
+
+- name: dirs.push|loop
+  loop: "{{ _dirs_push }}"
+  loop_control:
+    loop_var: dir_push
+  include_tasks: dir.push.yml
+
+- name: dirs.push|reset _dirs_push
+  ansible.builtin.set_fact:
+    _dirs_push: !!null

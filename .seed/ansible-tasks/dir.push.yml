@@ -1,0 +1,48 @@
+---
+
+
+- name: dir.push|set _dir_push
+  vars:
+    update:
+      skip: "{{ true if (dir_push.delegate_to | default(omit) == '') else false }}"
+  ansible.builtin.set_fact:
+    _dir_push: "{{ dir_push | combine(update, recursive=True) }}"
+
+- name: dir.push|mkdir dest parent
+  delegate_to: "{{ _dir_push.delegate_to | default(omit) }}"
+  run_once: "{{ _dir_push.run_once | default(false) }}"
+  when:
+    - not _dir_push.skip
+  ansible.builtin.file:
+    path: "{{ _dir_push.dest | dirname }}"
+    state: directory
+
+# mean no src copy is just mkdir
+- name: dir.push|mkdir dest
+  delegate_to: "{{ _dir_push.delegate_to | default(omit) }}"
+  run_once: "{{ _dir_push.run_once | default(false) }}"
+  when:
+    - not _dir_push.skip
+    - _dir_push.src is undefined
+  ansible.builtin.file:
+    path: "{{ _dir_push.dest }}"
+    mode: "{{ _dir_push.mode | default(omit) }}"
+    state: directory
+
+- name: dir.push|copy
+  delegate_to: "{{ _dir_push.delegate_to | default(omit,true) }}"
+  run_once: "{{ _dir_push.run_once | default(false) }}"
+  vars:
+    other_keys: ['group','run_once','delegate_to','skip']
+    copy_keys: "{{ _dir_push.keys() | difference(other_keys) }}"
+    copy_values: "{{ copy_keys | map('extract', _dir_push) | list }}"
+    copy_item: "{{ dict(copy_keys | zip(copy_values)) }}"
+  when:
+    - not _dir_push.skip
+    - _dir_push.src is defined
+    - _dir_push.dest is defined
+  ansible.builtin.copy: "{{ copy_item }}"
+
+- name: dir.push|reset _dir_push
+  ansible.builtin.set_fact:
+    _dir_push: !!null

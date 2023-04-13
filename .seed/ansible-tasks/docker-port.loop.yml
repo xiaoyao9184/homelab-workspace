@@ -28,7 +28,7 @@
     cntr_name: "wait-port.{{ port.name }}"
   ansible.builtin.set_fact:
     _port_loop:
-      dir_copy:
+      dir_push:
         - src: "{{ ws.local }}/.seed/ansible-playbook/local-port.wait.yml"
           dest: "{{ ws.remote }}/.seed/ansible-playbook/local-port.wait.yml"
         - src: "{{ ws.local }}/.seed/ansible-tasks/host-port.wait.yml"
@@ -101,11 +101,11 @@
   shell: "docker network disconnect {{ _port_loop.container.network }} {{ _port_loop.container.name }}"
 
 - name: docker-port.loop|copy to dir
-  when: _port_loop.dir_copy is defined
+  when: _port_loop.dir_push is defined
   vars:
     dirs:
-      sync: "{{ _port_loop.dir_copy }}"
-  include_tasks: dirs.copy.yml
+      sync: "{{ _port_loop.dir_push }}"
+  include_tasks: dirs.push.yml
 
 - name: docker-port.loop|info workspace volume
   when: _port_loop.vol is defined
