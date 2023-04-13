@@ -25,7 +25,8 @@ services:
       - {{ VARS.BIND_CONFIG }}:/omnibus_config
     ports:
       - 8880:80
-      - 2222:22
+      # https://github.com/docker/compose/issues/3109#issuecomment-195435884
+      - '2222:22'
       - 8443:443
     # network_mode: "bridge"
     container_name: gitlab-ce
