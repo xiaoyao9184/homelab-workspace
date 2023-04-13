@@ -1,0 +1,41 @@
+---
+
+
+- name: docker-port.clean|set list to _ports
+  when: ports | type_debug == "list"
+  ansible.builtin.set_fact:
+    _ports: "{{ ports }}"
+
+- name: docker-port.clean|append dict to _ports
+  loop: "{{ (ports | dict2items) if (ports | type_debug == 'dict') else [] }}"
+  loop_control:
+    loop_var: kv
+  vars:
+    list: "{{ _ports | default([],true) }}"
+    update:
+      name: "{{ kv.key }}"
+    item: "{{ kv.value | combine(update, recursive=True) }}"
+  ansible.builtin.set_fact:
+    _ports: "{{ list + [item] }}"
+
+- name: docker-port.clean|print _ports
+  ansible.builtin.debug:
+    var: _ports
+
+- name: docker-port.clean|init ws
+  when: ws is undefined
+  include_tasks: ws.set.yml
+
+- name: docker-port.clean|remove container
+  loop: "{{ _ports }}"
+  loop_control:
+    loop_var: port
+  vars:
+    cntr_name: "wait-port.{{ port.name }}"
+  community.docker.docker_container:
+    name: "{{ cntr_name }}"
+    state: absent
+
+- name: docker-port.clean|clean _ports
+  ansible.builtin.set_fact:
+    _ports: []
