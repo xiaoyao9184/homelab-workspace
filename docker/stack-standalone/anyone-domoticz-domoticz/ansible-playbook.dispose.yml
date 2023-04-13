@@ -18,6 +18,12 @@
     - name: set dir
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.set.yml"
 
+    - name: remove wait port
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-port.clean.yml"
+      vars:
+        ports:
+          - name: "{{ dir.names | join('_') }}"
+
     - name: copy to dir
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dirs.copy.yml"
       vars:
