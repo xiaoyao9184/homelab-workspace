@@ -55,7 +55,7 @@
     - name: deploy ninja
       include_tasks: "{{ dir.local }}/ninja/ansible-tasks.deploy.yml"
       vars:
-        qinglong:
+        ninja:
           service:
             type: compose
             name: "qinglong"
