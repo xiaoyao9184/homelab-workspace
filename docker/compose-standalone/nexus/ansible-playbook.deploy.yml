@@ -54,7 +54,7 @@
     - name: print admin password
       include_tasks: "{{ dir.local }}/admin-password/ansible-tasks.print.yml"
       vars:
-        nexus:
+        password:
           service:
             type: compose
             name: "nexus3"

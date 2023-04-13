@@ -18,7 +18,6 @@
   ansible.builtin.set_fact:
     _password:
       ws: "{{ password.ws }}"
-      dir: "{{ password.dir }}"
       wait: "{{ wait_default | combine(wait_update, recursive=True) }}"
       exec: "{{ exec_default | combine(exec_update, recursive=True) }}"
       result: "{{ password.result | default('create_result') }}"
