@@ -25,7 +25,7 @@
           run_once: true
 
     - name: copy to dir
-      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dirs.copy.yml"
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dirs.push.yml"
       vars:
         dirs:
           sync:
@@ -37,7 +37,7 @@
               dest: "{{ dir.remote }}/docker-compose-swarm.yml"
               delegate_to: "{{ groups['docker-manager'] | first }}"
               run_once: true
-          cp: "{{ gitlab.dir_copy | default([],true) }}"
+          cp: "{{ gitlab.dir_push | default([],true) }}"
 
     - name: wait nfs mount
       when:

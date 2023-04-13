@@ -22,13 +22,13 @@
         length: 2
 
     - name: copy to dir
-      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dirs.copy.yml"
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dirs.push.yml"
       vars:
         dirs:
           sync:
             - src: "{{ dir.local }}/Caddyfile"
               dest: "{{ dir.remote }}/Caddyfile"
-          cp: "{{ caddy.config.dir_copy | default([],true) }}"
+          cp: "{{ caddy.config.dir_push | default([],true) }}"
 
     # https://medium.com/@jonsbun/why-need-to-be-careful-when-mounting-single-files-into-a-docker-container-4f929340834
     - name: overwrite bind caddyfile

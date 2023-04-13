@@ -21,7 +21,7 @@
         length: 2
 
     - name: copy to dir
-      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dirs.copy.yml"
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dirs.push.yml"
       vars:
         dirs:
           sync:
@@ -33,7 +33,7 @@
               dest: "{{ dir.remote }}/docker-compose-swarm.yml"
               delegate_to: "{{ groups['docker-manager'] | first }}"
               run_once: true
-          cp: "{{ headscale.ui.dir_copy | default([],true) }}"
+          cp: "{{ headscale.ui.dir_push | default([],true) }}"
 
     - name: remove stack service
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-compose.rm.yml"

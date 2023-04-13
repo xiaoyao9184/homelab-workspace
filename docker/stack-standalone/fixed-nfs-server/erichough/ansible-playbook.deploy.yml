@@ -34,7 +34,7 @@
         length: 2
 
     - name: copy to dir
-      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dirs.copy.yml"
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dirs.push.yml"
       vars:
         dirs:
           sync:
@@ -44,7 +44,7 @@
               dest: "{{ dir.remote }}/exports/exports"
               delegate_to: "{{ groups['docker-manager'] | first }}"
               run_once: true
-          cp: "{{ nfs.dir_copy | default(default,true) }}"
+          cp: "{{ nfs.dir_push | default(default,true) }}"
 
     - name: add external_vol
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-volumes.add.yml"

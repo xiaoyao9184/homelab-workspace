@@ -54,11 +54,11 @@
         dest: "{{ dir.remote }}/.docker-openwrt"
 
     - name: copy to dir
-      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dirs.copy.yml"
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dirs.push.yml"
       vars:
         dirs:
           sync: []
-          cp: "{{ openwrt.dir_copy | default([],true) }}"
+          cp: "{{ openwrt.dir_push | default([],true) }}"
 
     - name: pull image
       community.docker.docker_image:

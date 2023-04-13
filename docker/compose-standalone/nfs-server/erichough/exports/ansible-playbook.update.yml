@@ -20,13 +20,13 @@
         length: 3
 
     - name: copy to dir
-      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dirs.copy.yml"
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dirs.push.yml"
       vars:
         dirs:
           sync:
             - src: "{{ dir.local }}/exports"
               dest: "{{ dir.remote }}/exports"
-          cp: "{{ nfs.exports.dir_copy | default([],true) }}"
+          cp: "{{ nfs.exports.dir_push | default([],true) }}"
 
     - name: push to volume
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-volumes.push.yml"

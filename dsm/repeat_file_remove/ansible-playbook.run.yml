@@ -18,7 +18,7 @@
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.set.yml"
 
     - name: copy to dir
-      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dirs.copy.yml"
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dirs.push.yml"
       vars:
         dirs:
           sync:
@@ -26,7 +26,7 @@
               dest: "{{ dir.remote }}/duplicate_file.csv"
             - src: "{{ dir.local }}/repeat_file_remove.py"
               dest: "{{ dir.remote }}/repeat_file_remove.py"
-          cp: "{{ repeat_file_remove.dir_copy | default([],true) }}"
+          cp: "{{ repeat_file_remove.dir_push | default([],true) }}"
 
     - name: run python3
       become: true
