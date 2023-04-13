@@ -1,11 +1,11 @@
 ---
 
-- name: deploy
+- name: logininfo
   vars:
     run_wsl: |
       ansible-playbook \
         --inventory $PWD/ansible-inventories \
-        $PWD/../../../docker/compose-standalone/pgyvpn/pgyvisitor/ansible-playbook.deploy.yml
+        $PWD/../../../docker/compose-standalone/pgyvpn/pgyvisitor/ansible-playbook.logininfo.yml
   environment:
     PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
   hosts: "{{ 'docker:&docker-pgyvpn-node' if (groups['docker-pgyvpn-node'] is defined) else 'docker' }}"
