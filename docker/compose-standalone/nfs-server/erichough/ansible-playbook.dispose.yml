@@ -50,3 +50,4 @@
               dest: "{{ dir.remote }}/docker-compose.yml"
             vars:
               BIND_EXPORTS: "{{ dir.remote }}/bind/exports"
+              PORTS: "{{ nfs.tmp.ports | default([],true) }}"
