@@ -9,6 +9,7 @@
   environment:
     PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
   hosts: docker-manager
+  run_once: true
   tasks:
 
     - name: set ws
