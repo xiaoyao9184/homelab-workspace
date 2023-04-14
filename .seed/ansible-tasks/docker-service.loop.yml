@@ -1,0 +1,100 @@
+---
+
+
+- block:
+
+    - name: docker-service.loop|set _service_loop
+      run_once: true
+      when: _service_loop | default(None,true) == None
+      vars:
+        default_until:
+          - service_loop_info.exists
+          - service_loop_info.service.ID is defined
+        default_fail: []
+      ansible.builtin.set_fact:
+        _service_loop:
+          name: "{{ service.name }}"
+          task: "{{ service.task | default(omit) }}"
+          retries: "{{ service.retries | default(1000) }}"
+          delay: "{{ service.delay | default(10) }}"
+          until: "{{ service.until | default(default_until) }}"
+          fail: "{{ service.fail | default(default_fail) }}"
+
+    - name: docker-service.loop|sleep for first
+      run_once: true
+      when: _service_retry | default(None,true) == None
+      ansible.builtin.pause:
+        seconds: "{{ _service_loop.delay | int }}"
+
+    - name: docker-service.loop|get service info
+      run_once: true
+      delegate_to: "{{ groups['docker-manager'] | first }}"
+      community.docker.docker_swarm_service_info:
+        name: "{{ _service_loop.name }}"
+      register: service_loop_info
+      ignore_errors: true
+
+    - name: docker-service.loop|print service_loop_info
+      run_once: true
+      ansible.builtin.debug:
+        var: service_loop_info
+
+    - name: docker-service.loop|get service task
+      when: _service_loop.task is defined
+      vars:
+        task:
+          name: "{{ _service_loop.name }}"
+          type: service
+          result: "{{ _service_loop.task }}"
+      include_tasks: docker-task.set.yml
+
+    - name: docker-service.loop|until check
+      run_once: true
+      loop: "{{ _service_loop.until }}"
+      loop_control:
+        loop_var: check
+      when: "not ( {{ check }} )"
+      ansible.builtin.fail:
+        msg: "beak loop service {{ _service_loop.name }}: {{ check }}"
+
+    - name: docker-service.loop|reset _service_retry
+      run_once: true
+      ansible.builtin.set_fact:
+        _service_retry: !!null
+        _service_loop: !!null
+
+  rescue:
+
+    - name: docker-service.loop|fail check
+      run_once: true
+      loop: "{{ _service_loop.fail }}"
+      loop_control:
+        loop_var: check
+      when: "{{ check }}"
+      ansible.builtin.fail:
+        msg: "fail loop service {{ _service_loop.name }}: {{ check }}"
+
+    - name: docker-service.loop|init _service_retry
+      run_once: true
+      when: _service_retry | default(None,true) == None
+      ansible.builtin.set_fact:
+        _service_retry: "{{ _service_loop.retries | int }}"
+
+    - name: docker-service.loop|all retry fail
+      run_once: true
+      when:
+        - (_service_retry | int) == 0
+      ansible.builtin.fail:
+        msg: "tired out loop service {{ _service_loop.name }}"
+
+    - name: docker-service.loop|sleep for next loop
+      ansible.builtin.pause:
+        seconds: "{{ _service_loop.delay | int }}"
+        prompt: "retries {{ _service_retry }}/{{ _service_loop.retries }}"
+
+    - name: docker-service.loop|reduce _service_retry
+      run_once: true
+      ansible.builtin.set_fact:
+        _service_retry: "{{ _service_retry | int - 1 }}"
+
+    - include_tasks: docker-service.loop.yml

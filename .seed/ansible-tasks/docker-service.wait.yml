@@ -1,0 +1,55 @@
+---
+
+
+- name: docker-service.wait|append list _services
+  run_once: true
+  loop: "{{ services if (services | type_debug == 'list') else [] }}"
+  loop_control:
+    loop_var: service
+  vars:
+    list: "{{ _services | default([],true) }}"
+    namespace_name: "{{ service.namespace | default(omit) }}_{{ service.name }}"
+    item:
+      name: "{{ namespace_name if (service.namespace is defined) else service.name }}"
+      task: "{{ service.task | default(omit) }}"
+      retries: "{{ service.retries | default(1000) }}"
+      delay: "{{ service.delay | default(10) }}"
+      until: "{{ service.until | default(omit) }}"
+  ansible.builtin.set_fact:
+    _services: "{{ list + [item] }}"
+
+- name: docker-service.wait|append dict _services
+  run_once: true
+  loop: "{{ (services | dict2items) if (services | type_debug == 'dict') else [] }}"
+  loop_control:
+    loop_var: kv
+  vars:
+    list: "{{ _services | default([],true) }}"
+    name: "{{ kv.key }}"
+    service: "{{ kv.value }}"
+    namespace_name: "{{ name }}_{{ service.namespace | default(omit) }}"
+    item:
+      name: "{{ namespace_name if (service.namespace is defined) else name }}"
+      task: "{{ service.task | default(omit) }}"
+      retries: "{{ service.retries | default(1000) }}"
+      delay: "{{ service.delay | default(10) }}"
+      until: "{{ service.until | default(omit) }}"
+  ansible.builtin.set_fact:
+    _services: "{{ list + [item] }}"
+
+- name: docker-service.wait|print _services
+  run_once: true
+  ansible.builtin.debug:
+    var: _services
+
+- name: docker-service.wait|loop service
+  run_once: true
+  loop: "{{ _services }}"
+  loop_control:
+    loop_var: service
+  include_tasks: docker-service.loop.yml
+
+- name: docker-service.wait|reset _services
+  run_once: true
+  ansible.builtin.set_fact:
+    _services: !!null
