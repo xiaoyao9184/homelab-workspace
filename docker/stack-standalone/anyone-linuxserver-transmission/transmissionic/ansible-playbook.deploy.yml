@@ -10,11 +10,14 @@
   environment:
     PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
   hosts: "{{ 'docker:&docker-transmission-node' if (groups['docker-transmission-node'] is defined) else 'docker' }}"
-  run_once: true
   tasks:
 
     - name: set ws
-      include_tasks: "{{ playbook_dir }}/../../../../.seed/ansible-tasks/ws.set.yml"
+      include_tasks:
+        file: "{{ playbook_dir }}/../../../../.seed/ansible-tasks/ws.set.yml"
+        # https://github.com/ansible/ansible/issues/72099
+        apply:
+          run_once: true
 
     - when: transmission.transmissionic.version is defined
       block:
