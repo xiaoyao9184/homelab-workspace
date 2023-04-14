@@ -5,7 +5,7 @@
     run_wsl: |
       ansible-playbook \
         --inventory $PWD/ansible-inventories \
-        $PWD/../../../docker/stack-standalone/list-docker-telegraf/ansible-playbook.dispose.yml
+        $PWD/../../../docker/stack-scale/list-docker-telegraf/ansible-playbook.dispose.yml
   vars_prompt:
     - name: service_names
       prompt: "What is service name(see telegraf.services keys)[empty use all]?"
