@@ -13,10 +13,17 @@
   tasks:
 
     - name: set ws
-      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/ws.set.yml"
+      include_tasks:
+        file: "{{ playbook_dir }}/../../../.seed/ansible-tasks/ws.set.yml"
+        # https://github.com/ansible/ansible/issues/72099
+        apply:
+          run_once: true
 
     - name: set dir
-      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.set.yml"
+      include_tasks:
+        file: "{{ ws.local }}/.seed/ansible-tasks/dir.set.yml"
+        apply:
+          run_once: true
 
     - name: wait host port
       include_tasks:
@@ -27,7 +34,8 @@
         ports:
           - name: "{{ dir.names | join('_') }}"
             network: external_net-gitlab
-            gitlab-ce: 80
+            hosts:
+              gitlab-ce: 80
 
     - name: wait swarm service
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-service.wait.yml"
@@ -47,18 +55,36 @@
             gitlab-rails runner -e production "puts Gitlab::CurrentSettings.current_application_settings.runners_registration_token"
           result: "runner_token"
 
+    - name: delegate fact to localhost
+      run_once: true
+      delegate_to: localhost
+      delegate_facts: true
+      ansible.builtin.set_fact:
+        gitlab_runner_token: "{{ runner_token }}"
+
 - name: deploy
   environment:
     PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
   hosts: "{{ 'docker:&docker-gitlab-runner' if (groups['docker-gitlab-runner'] is defined) else 'docker' }}"
-  run_once: true
   tasks:
 
+    - name: get fact from localhost
+      ansible.builtin.set_fact:
+        runner_token: "{{ hostvars['localhost'].gitlab_runner_token }}"
+
     - name: set ws
-      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/ws.set.yml"
+      when: ws is undefined
+      include_tasks:
+        file: "{{ playbook_dir }}/../../../.seed/ansible-tasks/ws.set.yml"
+        # https://github.com/ansible/ansible/issues/72099
+        apply:
+          run_once: true
 
     - name: set dir
-      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.set.yml"
+      include_tasks:
+        file: "{{ ws.local }}/.seed/ansible-tasks/dir.set.yml"
+        apply:
+          run_once: true
 
     - name: copy to dir
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dirs.push.yml"

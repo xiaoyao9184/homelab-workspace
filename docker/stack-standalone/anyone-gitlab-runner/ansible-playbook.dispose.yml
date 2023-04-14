@@ -9,14 +9,20 @@
   environment:
     PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
   hosts: "{{ 'docker:&docker-gitlab-runner' if (groups['docker-gitlab-runner'] is defined) else 'docker' }}"
-  run_once: true
   tasks:
 
     - name: set ws
-      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/ws.set.yml"
+      include_tasks:
+        file: "{{ playbook_dir }}/../../../.seed/ansible-tasks/ws.set.yml"
+        # https://github.com/ansible/ansible/issues/72099
+        apply:
+          run_once: true
 
     - name: set dir
-      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.set.yml"
+      include_tasks:
+        file: "{{ ws.local }}/.seed/ansible-tasks/dir.set.yml"
+        apply:
+          run_once: true
 
     - name: remove wait port
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-port.clean.yml"
