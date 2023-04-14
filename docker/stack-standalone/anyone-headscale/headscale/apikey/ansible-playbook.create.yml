@@ -44,7 +44,7 @@
               headscale: 8080
 
     - name: create headscale apikey
-      include_tasks: "{{ dir.local }}/ansible-tasks/apikey.create.yml"
+      include_tasks: "{{ dir.local }}/../../ansible-tasks/apikey.create.yml"
       vars:
         apikey:
           ws: "{{ ws }}"

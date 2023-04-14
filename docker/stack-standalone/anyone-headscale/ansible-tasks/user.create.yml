@@ -6,7 +6,7 @@
     wait_default:
       name: anyone-headscale_headscale
       retries: -1
-      delay: 10
+      delay: 0
     wait_update: "{{ user.wait | default({}) }}"
     exec_default:
       name: anyone-headscale_headscale
@@ -47,6 +47,7 @@
   vars:
     service: "{{ _user.exec }}"
 
+# exec_result results item is command
 - name: user.create|set _user.result
   when:
     - exec_result is defined

@@ -32,11 +32,11 @@
         dirs:
           sync:
             - src: "{{ dir.local }}/config/config.yaml"
-              dest: "{{ dir.remote }}/config/config.yaml"
+              dest: "{{ dir.remote }}/{{ dir.names[-1] }}/config/config.yaml"
               delegate_to: "{{ groups['docker-manager'] | first }}"
               run_once: true
-            - src: "{{ dir.remote }}/docker-compose-swarm.yml"
-              dest: "{{ dir.remote }}/docker-compose-swarm.yml"
+            - src: "{{ dir.local }}/docker-compose-swarm.yml"
+              dest: "{{ dir.remote }}/{{ dir.names[-1] }}/docker-compose-swarm.yml"
               delegate_to: "{{ groups['docker-manager'] | first }}"
               run_once: true
           cp: "{{ headscale.dir_push | default([],true) }}"
@@ -98,7 +98,7 @@
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-envs.create.yml"
       vars:
         envs:
-          - dest: "{{ dir.remote }}/external_env-all.env"
+          - dest: "{{ dir.remote }}/{{ dir.names[-1] }}/external_env-all.env"
             data: "{{ headscale.env | default([],true) }}"
             mode: stack
 
@@ -125,21 +125,21 @@
               headscale: 8080
 
     - name: create headscale apikey
-      include_tasks: "{{ dir.local }}/ansible-tasks/apikey.create.yml"
+      include_tasks: "{{ dir.local }}/../ansible-tasks/apikey.create.yml"
       vars:
         apikey:
           ws: "{{ ws }}"
           result: apikey_create
 
     - name: create headscale user
-      include_tasks: "{{ dir.local }}/ansible-tasks/user.create.yml"
+      include_tasks: "{{ dir.local }}/../ansible-tasks/user.create.yml"
       vars:
         user:
           ws: "{{ ws }}"
           result: user_create
 
     - name: create headscale preauthkey
-      include_tasks: "{{ dir.local }}/ansible-tasks/preauthkey.create.yml"
+      include_tasks: "{{ dir.local }}/../ansible-tasks/preauthkey.create.yml"
       vars:
         preauthkey:
           ws: "{{ ws }}"

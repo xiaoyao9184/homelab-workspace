@@ -10,7 +10,7 @@
     - name: node_id
       prompt: What is node id(split ',' format {id} | @{user})?
       private: no
-      default: 123456@default
+      default: '@default'
   environment:
     PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
   hosts: "{{ 'docker:&docker-headscale-node' if (groups['docker-headscale-node'] is defined) else 'docker' }}"
@@ -18,7 +18,7 @@
 
     - name: set id user
       ansible.builtin.set_fact:
-        _node_delete_list: "{{ node_id | split(',') }}"
+        _node_delete_list: "{{ node_id | split(',') | select() }}"
         _node_id_list: []
         _node_user_list: []
 
@@ -60,7 +60,7 @@
               headscale: 8080
 
     - name: delete headscale node
-      include_tasks: "{{ dir.local }}/ansible-tasks/node.delete.yml"
+      include_tasks: "{{ dir.local }}/../../ansible-tasks/node.delete.yml"
       vars:
         node:
           ws: "{{ ws }}"

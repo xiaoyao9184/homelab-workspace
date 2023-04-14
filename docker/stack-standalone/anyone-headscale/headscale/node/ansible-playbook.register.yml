@@ -18,7 +18,7 @@
 
     - name: set key
       ansible.builtin.set_fact:
-        _node_register_list: "{{ node_key | split(',') }}"
+        _node_register_list: "{{ node_key | split(',') | select() }}"
         _node_key_user_list: []
 
     - name: format key
@@ -59,7 +59,7 @@
               headscale: 8080
 
     - name: register headscale node
-      include_tasks: "{{ dir.local }}/ansible-tasks/node.register.yml"
+      include_tasks: "{{ dir.local }}/../../ansible-tasks/node.register.yml"
       vars:
         node:
           ws: "{{ ws }}"

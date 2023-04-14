@@ -6,7 +6,7 @@
     wait_default:
       name: anyone-headscale_headscale
       retries: -1
-      delay: 10
+      delay: 0
     wait_update: "{{ preauthkey.wait | default({}) }}"
     exec_default:
       name: anyone-headscale_headscale
@@ -47,12 +47,13 @@
   vars:
     service: "{{ _preauthkey.exec }}"
 
+# exec_result results item is command
 - name: preauthkey.create|set _preauthkey.result
   when:
     - exec_result is defined
     - exec_result.results is defined
   ansible.builtin.set_fact:
-    "{{ _preauthkey.result }}": "{{ exec_result | json_query('results[].{expire: item.expire,user: item.user,result: stdout_lines[-1]}') }}"
+    "{{ _preauthkey.result }}": "{{ exec_result | json_query('results[].{key: item,value: stdout_lines[-1]}') | items2dict }}"
 
 - name: preauthkey.create|print _preauthkey.result
   debug:

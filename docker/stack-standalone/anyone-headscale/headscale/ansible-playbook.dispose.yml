@@ -9,40 +9,46 @@
   environment:
     PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
   hosts: "{{ 'docker:&docker-headscale-node' if (groups['docker-headscale-node'] is defined) else 'docker' }}"
-  run_once: true
   tasks:
 
     - name: set ws
-      include_tasks: "{{ playbook_dir }}/../../../../.seed/ansible-tasks/ws.set.yml"
+      include_tasks:
+        file: "{{ playbook_dir }}/../../../../.seed/ansible-tasks/ws.set.yml"
+        # https://github.com/ansible/ansible/issues/72099
+        apply:
+          run_once: true
 
     - name: set dir
-      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.set.yml"
+      include_tasks:
+        file: "{{ ws.local }}/.seed/ansible-tasks/dir.set.yml"
+        apply:
+          run_once: true
       vars:
         length: 2
 
     - name: expire headscale preauthkey
-      include_tasks: "{{ dir.local }}/ansible-tasks/preauthkey.expire.yml"
+      include_tasks: "{{ dir.local }}/../ansible-tasks/preauthkey.expire.yml"
       vars:
         preauthkey:
           ws: "{{ ws }}"
           result: preauthkey_result
 
     - name: delete headscale node
-      include_tasks: "{{ dir.local }}/ansible-tasks/node.delete.yml"
+      include_tasks: "{{ dir.local }}/../ansible-tasks/node.delete.yml"
       vars:
         node:
           ws: "{{ ws }}"
           result: node_result
 
     - name: destroy headscale user
-      include_tasks: "{{ dir.local }}/ansible-tasks/user.destroy.yml"
+      include_tasks: "{{ dir.local }}/../ansible-tasks/user.destroy.yml"
       vars:
         user:
           ws: "{{ ws }}"
           result: user_result
 
     - name: expire headscale apikey
-      include_tasks: "{{ dir.local }}/ansible-tasks/apikey.expire.yml"
+      include_tasks: "{{ dir.local }}/../ansible-tasks/apikey.expire.yml"
       vars:
         apikey:
           ws: "{{ ws }}"
@@ -53,6 +59,10 @@
       vars:
         ports:
           - name: "{{ dir.names | join('_') }}"
+          - name: "{{ dir.names | join('_') }}_preauthkey"
+          - name: "{{ dir.names | join('_') }}_node"
+          - name: "{{ dir.names | join('_') }}_apikey"
+          - name: "{{ dir.names | join('_') }}_user"
 
     - name: copy to dir
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dirs.push.yml"
@@ -60,7 +70,7 @@
         dirs:
           sync:
             - src: "{{ dir.local }}/docker-compose-swarm.yml"
-              dest: "{{ dir.remote }}/docker-compose-swarm.yml"
+              dest: "{{ dir.remote }}/{{ dir.names[-1] }}/docker-compose-swarm.yml"
               delegate_to: "{{ groups['docker-manager'] | first }}"
               run_once: true
 
@@ -68,7 +78,7 @@
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-envs.create.yml"
       vars:
         envs:
-          - dest: "{{ dir.remote }}/external_env-all.env"
+          - dest: "{{ dir.remote }}/{{ dir.names[-1] }}/external_env-all.env"
             data: []
             mode: stack
 

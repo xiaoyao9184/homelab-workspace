@@ -44,9 +44,9 @@
               headscale: 8080
 
     - name: create headscale user
-      include_tasks: "{{ dir.local }}/ansible-tasks/user.create.yml"
+      include_tasks: "{{ dir.local }}/../../ansible-tasks/user.create.yml"
       vars:
         user:
           ws: "{{ ws }}"
-          name: "{{ user_name | split(',') }}"
+          name: "{{ user_name | split(',') | select() }}"
           result: user_result

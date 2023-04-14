@@ -6,7 +6,7 @@
     wait_default:
       name: anyone-headscale_headscale
       retries: -1
-      delay: 10
+      delay: 0
     wait_update: "{{ node.wait | default({}) }}"
     exec_default:
       name: anyone-headscale_headscale
@@ -75,7 +75,7 @@
       loop: "{{ list_result.results }}"
       when: item.stdout != 'null'
       vars:
-        key: "{{ item.stdout | from_json | json_query('[].id') | default([],true) }}"
+        id: "{{ item.stdout | from_json | json_query('[].id') | default([],true) }}"
         update:
           id: "{{ _node.id + id }}"
       ansible.builtin.set_fact:
@@ -89,6 +89,7 @@
     update:
       exec:
         command: "{{ command_list + [command_item] }}"
+  when: item != ''
   ansible.builtin.set_fact:
     _node: "{{ _node | combine(update, recursive=True) }}"
 
@@ -101,6 +102,7 @@
   vars:
     service: "{{ _node.exec }}"
 
+# exec_result results item is command not param
 - name: node.delete|set _node.result
   when:
     - exec_result is defined

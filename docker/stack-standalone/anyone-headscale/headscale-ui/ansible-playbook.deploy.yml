@@ -26,11 +26,11 @@
         dirs:
           sync:
             - src: "{{ dir.local }}/config/Caddyfile"
-              dest: "{{ dir.remote }}/config/Caddyfile"
+              dest: "{{ dir.remote }}/{{ dir.names[-1] }}/config/Caddyfile"
               delegate_to: "{{ groups['docker-manager'] | first }}"
               run_once: true
             - src: "{{ dir.local }}/docker-compose-swarm.yml"
-              dest: "{{ dir.remote }}/docker-compose-swarm.yml"
+              dest: "{{ dir.remote }}/{{ dir.names[-1] }}/docker-compose-swarm.yml"
               delegate_to: "{{ groups['docker-manager'] | first }}"
               run_once: true
           cp: "{{ headscale.ui.dir_push | default([],true) }}"
