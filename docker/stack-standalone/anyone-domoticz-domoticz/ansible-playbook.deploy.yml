@@ -29,11 +29,10 @@
       vars:
         dirs:
           sync:
-            - src: "{{ dir.remote }}/docker-compose-swarm.yml"
-              dest: "{{ dir.remote }}/docker-compose-swarm.yml"
+            - dest: "{{ dir.remote }}"
               delegate_to: "{{ groups['docker-manager'] | first }}"
               run_once: true
-          cp: "{{ domoticz.dir_push | default([],true) }}"
+          cp: "{{ traefik.dir_push | default([],true) }}"
 
     - name: wait nfs mount
       when:
@@ -57,10 +56,14 @@
             driver: local
         volumes: "{{ domoticz.vol | default(default,true) }}"
 
-    # - name: add external_net
-    #   include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-networks.add.yml"
-    #   vars:
-    #     networks: "{{ domoticz.net | default([],true) }}"
+    - name: add external_net
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-networks.add.yml"
+      vars:
+        default:
+          external_net-domoticz:
+            driver: overlay
+            attachable: true
+        networks: "{{ domoticz.net | default(default,true) }}"
 
     # - name: add external_cfg
     #   include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-configs.add.yml"
@@ -92,8 +95,15 @@
           type: stack
           name: "{{ dir.names[0] }}"
           path: "{{ dir.remote }}"
-          files:
-            - "docker-compose-swarm.yml"
+          # files:
+          #   - "docker-compose-swarm.yml"
+          template:
+            name: "docker-compose-swarm"
+            opt:
+              src: "{{ dir.local }}/docker-compose-swarm.yml.j2"
+              dest: "{{ dir.remote }}/docker-compose-swarm.yml"
+            vars:
+              PORTS: "{{ domoticz.tmp.ports | default([],true) }}"
 
     - name: wait host port
       include_tasks:
@@ -105,7 +115,7 @@
           - name: "{{ dir.names | join('_') }}"
             network: external_net-domoticz
             hosts:
-              domoticz: 80
+              domoticz: 8080
 
     - name: wait swarm service
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-service.wait.yml"

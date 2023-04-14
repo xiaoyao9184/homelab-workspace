@@ -7,8 +7,10 @@ volumes:
 
 networks:
   domoticz:
-    name: "host"
+    name: external_net-domoticz
     external: true
+    # name: "host"
+    # external: true
 
 services:
   domoticz:
@@ -18,10 +20,13 @@ services:
     #   - LOG_PATH=/opt/domoticz/userdata/domoticz.log
     volumes:
       - userdata:/opt/domoticz/userdata
-    # ports:
-    #   - "8080:8080"
     networks:
       - domoticz
+{% if VARS.PORTS | length > 0 %}
+    ports:
+      # - 8080:8080
+      {{ VARS.PORTS | to_nice_yaml(indent=2) | trim | indent(6) }}
+{% endif %}
     # healthcheck:
     #   test: curl -f http://localhost:9090 || exit 1
     #   interval: 60s

@@ -29,8 +29,7 @@
       vars:
         dirs:
           sync:
-            - src: "{{ dir.local }}/docker-compose-swarm.yml"
-              dest: "{{ dir.remote }}/docker-compose-swarm.yml"
+            - dest: "{{ dir.remote }}"
               delegate_to: "{{ groups['docker-manager'] | first }}"
               run_once: true
 
