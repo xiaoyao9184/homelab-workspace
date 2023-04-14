@@ -23,6 +23,7 @@
       vars:
         ports:
           - name: "{{ dir.names | join('_') }}"
+          - name: "{{ dir.names | join('_') }}_admin-password"
 
     - name: copy to dir
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dirs.push.yml"

@@ -29,7 +29,7 @@
       vars:
         dirs:
           sync:
-            - src: "{{ dir.remote }}/docker-compose-swarm.yml"
+            - src: "{{ dir.local }}/docker-compose-swarm.yml"
               dest: "{{ dir.remote }}/docker-compose-swarm.yml"
               delegate_to: "{{ groups['docker-manager'] | first }}"
               run_once: true
@@ -115,10 +115,11 @@
         ports:
           - name: "{{ dir.names | join('_') }}"
             network: external_net-jenkins
-            jenkins: 8080
+            hosts:
+              jenkins: 8080
 
     - name: print admin password
-      include_tasks: "{{ dir.local }}/admin.password/ansible-tasks.print.yml"
+      include_tasks: "{{ dir.local }}/admin-password/ansible-tasks.print.yml"
       vars:
         password:
           ws: "{{ ws }}"

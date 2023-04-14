@@ -14,7 +14,7 @@
 
     - name: set ws
       include_tasks:
-        file: "{{ playbook_dir }}/../../../../../.seed/ansible-tasks/ws.set.yml"
+        file: "{{ playbook_dir }}/../../../../.seed/ansible-tasks/ws.set.yml"
         # https://github.com/ansible/ansible/issues/72099
         apply:
           run_once: true
@@ -36,7 +36,8 @@
         ports:
           - name: "{{ dir.names | join('_') }}"
             network: external_net-jenkins
-            jenkins: 8080
+            hosts:
+              jenkins: 8080
 
     - name: print admin password
       include_tasks: "{{ dir.local }}/ansible-tasks.print.yml"
