@@ -5,7 +5,7 @@
     run_wsl: |
       ansible-playbook \
         --inventory $PWD/ansible-inventories \
-        $PWD/../../../docker/stack-standalone/anyone-nondanee-unblockneteasemusicansible-playbook.deploy.yml
+        $PWD/../../../docker/stack-standalone/anyone-nondanee-unblockneteasemusic/ansible-playbook.deploy.yml
   environment:
     PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
   hosts: docker-manager
