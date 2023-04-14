@@ -28,7 +28,7 @@ networks:
 
 services:
   gitlab-ce:
-    image: gitlab/gitlab-ce:13.12.15-ce.0
+    image: gitlab/gitlab-ce:15.9.1-ce.0
     env_file: external_env-all.env
     environment:
       GITLAB_HOME: /home/gitlab/
@@ -49,8 +49,8 @@ services:
       #   source: config
       #   target: /etc/gitlab
     ports:
-      - '80:80'
-      - '443:443'
+      - '8880:80'
+      - '8443:443'
       # - target: 80
       #   published: 80
       # - target: 443
@@ -72,13 +72,13 @@ services:
           - spread: node.platform.os
       labels:
         "com.docker.stack.namespace": seed
-      resources:
-        limits:
-          cpus: '4'
-          memory: 4096M
-        reservations:
-          cpus: '1'
-          memory: 2048M
+      # resources:
+      #   limits:
+      #     cpus: '4'
+      #     memory: 4096M
+      #   reservations:
+      #     cpus: '1'
+      #     memory: 2048M
       restart_policy:
         condition: on-failure
         delay: 10s

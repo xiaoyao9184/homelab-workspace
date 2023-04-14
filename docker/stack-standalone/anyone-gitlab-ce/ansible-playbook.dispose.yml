@@ -17,8 +17,6 @@
 
     - name: set dir
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.set.yml"
-      vars:
-        length: 2
 
     - name: copy to dir
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dirs.push.yml"
