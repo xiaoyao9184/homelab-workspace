@@ -7,7 +7,6 @@
         --inventory $PWD/ansible-inventories \
         $PWD/../../../docker/stack-standalone/fixed-nfs-server/erichough/exports/ansible-playbook.update.yml
   hosts: docker:&docker-nfs-node
-  run_once: true
   tasks:
 
     - name: fail for not support env
@@ -30,7 +29,7 @@
       vars:
         dirs:
           sync:
-            - src: "{{ dir.remote }}/../data/"
+            - src: "{{ dir.local }}/../data/"
               dest: "{{ dir.remote }}/../data"
             - src: "{{ dir.local }}/exports"
               dest: "{{ dir.remote }}/exports"

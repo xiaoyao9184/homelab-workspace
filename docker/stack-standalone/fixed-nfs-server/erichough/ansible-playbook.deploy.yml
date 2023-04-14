@@ -38,7 +38,7 @@
       vars:
         dirs:
           sync:
-            - src: "{{ dir.remote }}/data/"
+            - src: "{{ dir.local }}/data/"
               dest: "{{ dir.remote }}/data"
             - src: "{{ dir.local }}/exports/exports"
               dest: "{{ dir.remote }}/exports/exports"
