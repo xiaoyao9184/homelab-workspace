@@ -5,7 +5,7 @@
     wait_default:
       name: anyone-sonatype-nexus_nexus3
       retries: -1
-      delay: 10
+      delay: 0
     wait_update: "{{ password.wait | default({}) }}"
     exec_default:
       name: anyone-sonatype-nexus_nexus3
@@ -16,6 +16,7 @@
     _password:
       ws: "{{ password.ws }}"
       wait: "{{ wait_default | combine(wait_update, recursive=True) }}"
+      exec: "{{ exec_default | combine(exec_update, recursive=True) }}"
       result: "{{ password.result | default('create_result') }}"
 
 - name: admin-password.print|wait service
