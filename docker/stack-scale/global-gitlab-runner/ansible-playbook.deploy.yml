@@ -12,6 +12,19 @@
   hosts: "{{ 'docker:&docker-gitlab-node' if (groups['docker-gitlab-node'] is defined) else 'docker' }}"
   tasks:
 
+    - name: set ws
+      include_tasks:
+        file: "{{ playbook_dir }}/../../../.seed/ansible-tasks/ws.set.yml"
+        # https://github.com/ansible/ansible/issues/72099
+        apply:
+          run_once: true
+
+    - name: set dir
+      include_tasks:
+        file: "{{ ws.local }}/.seed/ansible-tasks/dir.set.yml"
+        apply:
+          run_once: true
+
     - name: wait host port
       include_tasks:
         file: "{{ ws.local }}/.seed/ansible-tasks/docker-port.wait.yml"
@@ -42,6 +55,13 @@
             gitlab-rails runner -e production "puts Gitlab::CurrentSettings.current_application_settings.runners_registration_token"
           result: "runner_token"
 
+    - name: delegate fact to localhost
+      run_once: true
+      delegate_to: localhost
+      delegate_facts: true
+      ansible.builtin.set_fact:
+        gitlab_runner_token: "{{ runner_token }}"
+
 
 - name: deploy
   environment:
@@ -49,7 +69,12 @@
   hosts: "{{ 'docker:&docker-gitlab-runner' if (groups['docker-gitlab-runner'] is defined) else 'docker' }}"
   tasks:
 
+    - name: get fact from localhost
+      ansible.builtin.set_fact:
+        runner_token: "{{ hostvars['localhost'].gitlab_runner_token }}"
+
     - name: set ws
+      when: ws is undefined
       include_tasks:
         file: "{{ playbook_dir }}/../../../.seed/ansible-tasks/ws.set.yml"
         # https://github.com/ansible/ansible/issues/72099
@@ -57,6 +82,7 @@
           run_once: true
 
     - name: set dir
+      when: ws is undefined
       include_tasks:
         file: "{{ ws.local }}/.seed/ansible-tasks/dir.set.yml"
         apply:
@@ -67,7 +93,7 @@
       vars:
         dirs:
           sync:
-            - src: "{{ dir.remote }}/docker-compose-swarm.yml"
+            - src: "{{ dir.local }}/docker-compose-swarm.yml"
               dest: "{{ dir.remote }}/docker-compose-swarm.yml"
               delegate_to: "{{ groups['docker-manager'] | first }}"
               run_once: true
