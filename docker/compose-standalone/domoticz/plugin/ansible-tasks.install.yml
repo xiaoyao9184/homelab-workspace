@@ -18,7 +18,6 @@
   ansible.builtin.set_fact:
     _plugin:
       ws: "{{ plugin.ws }}"
-      dir: "{{ plugin.dir }}"
       wait: "{{ wait_default | combine(wait_update, recursive=True) }}"
       vol_push: "{{ plugin.vol_push | default([]) }}"
       exec: "{{ exec_default | combine(exec_update, recursive=True) }}"

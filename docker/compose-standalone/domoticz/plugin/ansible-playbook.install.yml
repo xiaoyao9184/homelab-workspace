@@ -39,7 +39,6 @@
       vars:
         plugin:
           ws: "{{ ws }}"
-          dir: "{{ dir }}"
           result: plugin_install
           vol_push: "{{ domoticz.plugin.vol_push | default([],true) }}"
 
