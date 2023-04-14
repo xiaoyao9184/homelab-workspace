@@ -49,6 +49,7 @@
   vars:
     container: "{{ _apikey.exec }}"
 
+# exec_result results item is command
 - name: apikey.create|set _apikey.result
   when:
     - exec_result is defined

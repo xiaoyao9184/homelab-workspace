@@ -19,7 +19,7 @@
 
     - name: set expire
       ansible.builtin.set_fact:
-        _preauthkey_create_list: "{{ preauthkey_expire | split(',') }}"
+        _preauthkey_create_list: "{{ preauthkey_expire | split(',') | select() }}"
         _preauthkey_expire_user_list: []
 
     - name: format expire
@@ -27,7 +27,7 @@
       vars:
         _item_split: "{{ item | split('@') }}"
         _item:
-          expire: "{{ _item_split[0] }}"
+          expire: "{{ _item_split[0] | default('1h',true) }}"
           user: "{{ _item_split[1] if (_item_split | length == 2) else 'default' }}"
       ansible.builtin.set_fact:
         _preauthkey_expire_user_list: "{{ _preauthkey_expire_user_list + [_item] }}"

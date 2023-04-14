@@ -20,9 +20,8 @@
     _preauthkey:
       ws: "{{ preauthkey.ws }}"
       wait: "{{ wait_default | combine(wait_update, recursive=True) }}"
-      user: "{{ preauthkey.user | default([]) }}"
       list_command: []
-      key: "{{ preauthkey.key | default([]) }}"
+      key_user: "{{ preauthkey.key_user | default([]) | select() }}"
       exec: "{{ exec_default | combine(exec_update, recursive=True) }}"
       result: "{{ preauthkey.result | default('expire_result') }}"
 
@@ -32,8 +31,7 @@
     containers: "{{ _preauthkey.wait }}"
 
 - when:
-    - _preauthkey.key | length == 0
-    - _preauthkey.user | length == 0
+    - _preauthkey.key_user | length == 0
   block:
 
     - name: preauthkey.expire|list user
@@ -44,13 +42,23 @@
           command: "headscale user list -o json"
           result: list_result
 
-    - name: preauthkey.expire|append _preauthkey.user
+    - name: preauthkey.expire|append _preauthkey.key_user
       vars:
-        user: "{{ list_result.stdout | from_json | json_query('[].name') | default([],true) }}"
+        user: "{{ list_result.stdout | from_json | json_query('[].{user: name}') | default([],true) }}"
         update:
-          user: "{{ user }}"
+          key_user: "{{ user }}"
       ansible.builtin.set_fact:
         _preauthkey: "{{ _preauthkey | combine(update, recursive=True) }}"
+
+- name: preauthkey.expire|separate _preauthkey.key_user
+  vars:
+    user: "{{ _preauthkey.key_user | selectattr('key','undefined') }}"
+    key_user: "{{ _preauthkey.key_user | selectattr('key','defined') }}"
+    update:
+      key_user: "{{ key_user }}"
+      user: "{{ user }}"
+  ansible.builtin.set_fact:
+    _preauthkey: "{{ _preauthkey | combine(update, recursive=True) }}"
 
 - when: _preauthkey.user | length > 0
   block:
@@ -59,7 +67,7 @@
       loop: "{{ _preauthkey.user }}"
       vars:
         command_list: "{{ _preauthkey.list_command | default([],true) }}"
-        command_item: "headscale preauthkey list -u {{ item }} -o json"
+        command_item: "headscale preauthkey list -u {{ item.user }} -o json"
         update:
           list_command: "{{ command_list + [command_item] }}"
       ansible.builtin.set_fact:
@@ -73,24 +81,25 @@
           command: "{{ _preauthkey.list_command }}"
           result: list_result
 
-    - name: preauthkey.expire|append _preauthkey.key
+    - name: preauthkey.expire|append _preauthkey.key_user
       loop: "{{ list_result.results }}"
       when: item.stdout != 'null'
       vars:
-        key: "{{ item.stdout | from_json | json_query('[].key') | default([],true) }}"
+        key_user: "{{ item.stdout | from_json | json_query('[].{key: key, user: user}') | default([],true) }}"
         update:
-          key: "{{ _preauthkey.key + key }}"
+          key_user: "{{ _preauthkey.key_user + key_user }}"
       ansible.builtin.set_fact:
         _preauthkey: "{{ _preauthkey | combine(update, recursive=True) }}"
 
 - name: preauthkey.expire|append _preauthkey.exec
-  loop: "{{ _preauthkey.key }}"
+  loop: "{{ _preauthkey.key_user }}"
   vars:
     command_list: "{{ _preauthkey.exec.command | default([],true) }}"
-    command_item: "headscale preauthkey destroy {{ item }} --force"
+    command_item: "headscale preauthkey expire {{ item.key }} -u {{ item.user }} --force"
     update:
       exec:
         command: "{{ command_list + [command_item] }}"
+  when: item != ''
   ansible.builtin.set_fact:
     _preauthkey: "{{ _preauthkey | combine(update, recursive=True) }}"
 
@@ -103,7 +112,7 @@
   vars:
     container: "{{ _preauthkey.exec }}"
 
-# TODO exec_result results item is command not param
+# exec_result results item is command
 - name: preauthkey.expire|set _preauthkey.result
   when:
     - exec_result is defined

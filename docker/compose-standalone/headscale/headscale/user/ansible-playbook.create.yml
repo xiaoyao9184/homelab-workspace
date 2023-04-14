@@ -39,5 +39,5 @@
       vars:
         user:
           ws: "{{ ws }}"
-          name: "{{ user_name | split(',') }}"
+          name: "{{ user_name | split(',') | select() }}"
           result: user_result

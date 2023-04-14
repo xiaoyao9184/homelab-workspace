@@ -19,7 +19,7 @@
 
     - name: set key
       ansible.builtin.set_fact:
-        _node_register_list: "{{ node_key | split(',') }}"
+        _node_register_list: "{{ node_key | split(',') | select() }}"
         _node_key_user_list: []
 
     - name: format key

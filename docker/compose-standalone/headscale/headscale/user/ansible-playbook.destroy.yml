@@ -8,7 +8,7 @@
         $PWD/../../../docker/compose-standalone/headscale/headscale/user/ansible-playbook.destroy.yml
   vars_prompt:
     - name: user_name
-      prompt: What name for destroy(split ',')?
+      prompt: What name for destroy(split ',' empty all)?
       private: no
       default:
   environment:
@@ -39,5 +39,5 @@
       vars:
         user:
           ws: "{{ ws }}"
-          name: "{{ user_name | split(',') }}"
+          name: "{{ user_name | split(',') | select() }}"
           result: user_result

@@ -21,7 +21,7 @@
       ws: "{{ user.ws }}"
       wait: "{{ wait_default | combine(wait_update, recursive=True) }}"
       list_command: "headscale user list -o json"
-      name: "{{ user.name | default([]) }}"
+      name: "{{ user.name | default([]) | select() }}"
       exec: "{{ exec_default | combine(exec_update, recursive=True) }}"
       result: "{{ user.result | default('expire_result') }}"
 
@@ -56,6 +56,7 @@
     update:
       exec:
         command: "{{ command_list + [command_item] }}"
+  when: item != ''
   ansible.builtin.set_fact:
     _user: "{{ _user | combine(update, recursive=True) }}"
 
@@ -68,7 +69,7 @@
   vars:
     container: "{{ _user.exec }}"
 
-# TODO exec_result results item is command not param
+# exec_result results item is command
 - name: user.destroy|set _user.result
   when:
     - exec_result is defined

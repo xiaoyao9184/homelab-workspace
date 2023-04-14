@@ -49,13 +49,13 @@
   vars:
     container: "{{ _node.exec }}"
 
-# TODO exec_result results item is command not param
+# exec_result results item is command
 - name: node.register|set _node.result
   when:
     - exec_result is defined
     - exec_result.results is defined
   ansible.builtin.set_fact:
-    "{{ _node.result }}": "{{ exec_result | json_query('results[].{key: item.key,user: item.user,result: stdout_lines[-1]}') }}"
+    "{{ _node.result }}": "{{ exec_result | json_query('results[].{key: item,value: stdout_lines[-1]}') | items2dict }}"
 
 - name: node.register|print _node.result
   debug:

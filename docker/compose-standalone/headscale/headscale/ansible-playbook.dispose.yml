@@ -60,6 +60,10 @@
       vars:
         ports:
           - name: "{{ dir.names | join('_') }}"
+          - name: "{{ dir.names | join('_') }}_preauthkey"
+          - name: "{{ dir.names | join('_') }}_node"
+          - name: "{{ dir.names | join('_') }}_apikey"
+          - name: "{{ dir.names | join('_') }}_user"
 
     - name: copy to dir
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dirs.push.yml"

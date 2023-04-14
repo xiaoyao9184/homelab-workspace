@@ -49,7 +49,7 @@
   vars:
     container: "{{ _user.exec }}"
 
-# TODO exec_result results item is command not param
+# exec_result results item is command
 - name: user.create|set _user.result
   when:
     - exec_result is defined
