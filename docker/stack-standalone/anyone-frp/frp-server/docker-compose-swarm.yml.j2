@@ -6,12 +6,11 @@ configs:
     external: true
 
 networks:
-  # frp:
-  #   name: external_net-frp
-  #   external: true
-  host:
-    name: host
+  frp:
+    name: external_net-frp
     external: true
+  #   name: host
+  #   external: true
 
 services:
   frp-server:
@@ -24,13 +23,18 @@ services:
     configs:
       - source: server_config
         target: /app/frps.ini
-    # ports:
-    #   - "7500:7500"
-    #   - "50801-50806:50801-50806"
-    #   - "54436:54436"
     networks:
-      # - frp
-      - host
+      - frp
+{% if VARS.PORTS | length > 0 %}
+    ports:
+      # - "8780:80"
+      # - "17443:443"
+      # - "7001:7001"
+      # - "7002:7002"
+      # - "7400:7400"
+      # - "7500:7500"
+      {{ VARS.PORTS | to_nice_yaml(indent=2) | trim | indent(6) }}
+{% endif %}
     deploy:
       endpoint_mode: vip
       mode: replicated

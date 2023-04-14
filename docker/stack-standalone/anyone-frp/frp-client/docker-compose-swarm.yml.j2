@@ -5,10 +5,10 @@ configs:
     name: external_cfg-frp-client
     external: true
 
-# networks:
-#   frp:
-#     name: external_net-frp
-#     external: true
+networks:
+  frp:
+    name: external_net-frp
+    external: true
 
 services:
   frp-client:
@@ -21,8 +21,11 @@ services:
     configs:
       - source: client_config
         target: /app/frpc.ini
-    # networks:
-    #   - frp
+    networks:
+      - frp
+{% if VARS.NETWORKS | length > 0 %}
+      {{ VARS.NETWORKS | to_nice_yaml(indent=2) | trim | indent(6) }}
+{% endif %}
     deploy:
       endpoint_mode: vip
       mode: replicated

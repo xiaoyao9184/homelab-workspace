@@ -25,8 +25,7 @@
       vars:
         dirs:
           sync:
-            - src: "{{ dir.local }}/docker-compose-swarm.yml"
-              dest: "{{ dir.remote }}/docker-compose-swarm.yml"
+            - dest: "{{ dir.remote }}"
               delegate_to: "{{ groups['docker-manager'] | first }}"
               run_once: true
 
@@ -45,5 +44,12 @@
           type: stack
           name: "{{ dir.names[0] }}"
           path: "{{ dir.remote }}"
-          files:
-            - "docker-compose-swarm.yml"
+          # files:
+          #   - "docker-compose-swarm.yml"
+          template:
+            name: "docker-compose-swarm"
+            opt:
+              src: "{{ dir.local }}/docker-compose-swarm.yml.j2"
+              dest: "{{ dir.remote }}/docker-compose-swarm.yml"
+            vars:
+              PORTS: "{{ frp.server.tmp.ports | default([],true) }}"

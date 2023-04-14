@@ -8,15 +8,22 @@
         $PWD/../../../docker/stack-standalone/anyone-frp/frp-client/ansible-playbook.deploy.yml
   environment:
     PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
-  hosts: docker-manager
-  run_once: true
+  hosts: "{{ 'docker:&docker-frp-node' if (groups['docker-frp-node'] is defined) else 'docker' }}"
   tasks:
 
     - name: set ws
-      include_tasks: "{{ playbook_dir }}/../../../../.seed/ansible-tasks/ws.set.yml"
+      when: ws is undefined
+      include_tasks:
+        file: "{{ playbook_dir }}/../../../../.seed/ansible-tasks/ws.set.yml"
+        # https://github.com/ansible/ansible/issues/72099
+        apply:
+          run_once: true
 
     - name: set dir
-      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dir.set.yml"
+      include_tasks:
+        file: "{{ ws.local }}/.seed/ansible-tasks/dir.set.yml"
+        apply:
+          run_once: true
       vars:
         length: 2
 
@@ -29,18 +36,21 @@
               dest: "{{ dir.remote }}/../config/frpc.ini"
               delegate_to: "{{ groups['docker-manager'] | first }}"
               run_once: true
-            - src: "{{ dir.local }}/docker-compose-swarm.yml"
-              dest: "{{ dir.remote }}/docker-compose-swarm.yml"
-              delegate_to: "{{ groups['docker-manager'] | first }}"
-              run_once: true
           cp: "{{ frp.client.dir_push | default([],true) }}"
 
     - name: wait host port
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-port.wait.yml"
       vars:
-        ports:
-          - name: "{{ dir.names | join('_') }}"
-            hosts: "{{ frp.client.wait_port }}"
+        ports: "{{ frp.client.port_wait | default([],true) }}"
+
+    - name: add external_net
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-networks.add.yml"
+      vars:
+        default:
+          external_net-frp:
+            driver: overlay
+            attachable: true
+        networks: "{{ frp.client.net | default(default,true) }}"
 
     - name: add external_cfg
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-configs.add.yml"
@@ -68,6 +78,14 @@
             data: "{{ frp.client.env | default([],true) }}"
             mode: stack
 
+    - name: build compose_file
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-composes.create.yml"
+      vars:
+        composes:
+          - version: "3.8"
+            dest: "{{ dir.remote }}/docker-compose-swarm.networks.yml"
+            data: "{{ frp.client.compose | default({}) }}"
+
     - name: add stack service
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-compose.add.yml"
       vars:
@@ -76,4 +94,12 @@
           name: "{{ dir.names[0] }}"
           path: "{{ dir.remote }}"
           files:
-            - "docker-compose-swarm.yml"
+            - "docker-compose-swarm.networks.yml"
+          #   - "docker-compose-swarm.yml"
+          template:
+            name: "docker-compose-swarm"
+            opt:
+              src: "{{ dir.local }}/docker-compose-swarm.yml.j2"
+              dest: "{{ dir.remote }}/docker-compose-swarm.yml"
+            vars:
+              NETWORKS: "{{ frp.client.tmp.networks | default([],true) }}"
