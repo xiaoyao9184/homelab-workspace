@@ -159,7 +159,7 @@
           "com.github.xiaoyao9184.docker-seed.creator": "{{ lookup('ansible.builtin.env', 'SEED_NAME') | default('docker-volume.push',true) }}"
       register: result_vol_container
       until: "result_vol_container is not failed"
-      retries: 1000
+      retries: 3
       delay: 10
 
     - name: docker-volume.push|copy to container

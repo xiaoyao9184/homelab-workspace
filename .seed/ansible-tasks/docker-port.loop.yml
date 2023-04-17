@@ -54,7 +54,7 @@
         cmd: "-e ports={{ port.hosts | to_json | b64encode }} /workspace/.seed/ansible-playbook/local-port.wait.yml"
         network: "{{ net_name | default(omit) }}"
         volume: "{{ vol_name }}"
-        retries: 5
+        retries: 3
         delay: 10
       container_wait:
         - name: "{{ cntr_name }}"

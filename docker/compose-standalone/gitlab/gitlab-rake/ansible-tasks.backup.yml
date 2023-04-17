@@ -4,7 +4,7 @@
   vars:
     wait_default:
       gitlab-ce:
-        retries: 1
+        retries: -1
         delay: 0
         until:
           - container_loop_info.exists

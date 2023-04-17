@@ -248,6 +248,7 @@
       ansible.builtin.shell: "grep -i 'http' /tmp/tailscale.up.log"
       register: grep_stdout
       until: grep_stdout.rc == 0
+      # 30 day 1 month
       retries: 259200
       delay: 10
 
@@ -270,7 +271,8 @@
         jid: "{{ async_shell.ansible_job_id }}"
       register: status_stdout
       until: status_stdout.finished
-      retries: 1000
+      # 10 min
+      retries: 60
       delay: 10
 
     - name: clear stdout file

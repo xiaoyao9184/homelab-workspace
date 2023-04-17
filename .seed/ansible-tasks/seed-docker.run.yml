@@ -357,7 +357,7 @@
                 "com.github.xiaoyao9184.docker-seed.creator": "{{ seed_creator }}"
             register: result_key_container
             until: "result_key_container is not failed"
-            retries: 1000
+            retries: 3
             delay: 10
 
           - name: seed-docker.run|copy seed_id.name container

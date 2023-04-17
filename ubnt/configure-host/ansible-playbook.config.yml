@@ -23,7 +23,7 @@
           - delete system static-host-mapping host-name
       register: delete_result
       until: "delete_result is not failed"
-      retries: 2
+      retries: 3
       delay: 1
 
     - name: configure host by dhcp_csv

@@ -23,7 +23,7 @@
           - delete service dns forwarding options
       register: delete_result
       until: "delete_result is not failed"
-      retries: 2
+      retries: 3
       delay: 1
 
     - name: configure dns by domain_csv

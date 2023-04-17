@@ -21,8 +21,6 @@
     list: "{{ _mounts | default([],true) }}"
     item_default:
       unmount: false
-      retries: 5
-      delay: 5
       name: "{{ mount.name }}"
     item_update:
       point: "{{ server }}:{{ mount.point }}"
@@ -45,8 +43,6 @@
     list: "{{ _mounts | default([],true) }}"
     item_default:
       unmount: false
-      retries: 5
-      delay: 5
       name: "{{ kv.key }}"
     item_update:
       point: "{{ server }}:{{ mount.point }}"

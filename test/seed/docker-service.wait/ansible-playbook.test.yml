@@ -28,7 +28,7 @@
       vars:
         services:
           test-service-wait:
-            retries: 2
+            retries: 1
             delay: 10
             until:
               - not service_loop_info.exists
@@ -38,7 +38,8 @@
       delegate_to: "{{ groups['docker-manager'] | first }}"
       community.docker.docker_swarm_service:
         name: test-service-wait
-        image: rudloff/alltube:latest
+        image: alpine:latest
+        command: "tail -f /dev/null"
 
     - name: wait service running
       include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/docker-service.wait.yml"
@@ -53,7 +54,8 @@
       delegate_to: "{{ groups['docker-manager'] | first }}"
       community.docker.docker_swarm_service:
         name: test-service-wait
-        image: rudloff/alltube:latest
+        image: alpine:latest
+        command: "tail -f /dev/null"
         placement:
           constraints:
             - node.labels.none == true

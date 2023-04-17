@@ -85,14 +85,14 @@
             option: "vers=4,loud,rw,sync"
             unmount: true
             delay: 5
-            retries: 5
+            retries: 1
           - name: on_localhost
             point: "/test-data"
             mount: "{{ playbook_dir }}/.nfs/test-data"
             option: "vers=4,loud,rw,sync"
             unmount: true
             delay: 5
-            retries: 5
+            retries: 1
 
     - name: stop container
       community.docker.docker_container:

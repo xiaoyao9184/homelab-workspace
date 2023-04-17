@@ -43,7 +43,8 @@
           - version: '3'
             services:
               test-stack-wait:
-                image: rudloff/alltube:latest
+                image: alpine:latest
+                command: "tail -f /dev/null"
 
     - name: wait stack running
       include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/docker-stack.wait.yml"
@@ -65,9 +66,11 @@
           - version: '3.8'
             services:
               test-stack-wait:
-                image: rudloff/alltube:latest
+                image: alpine:latest
+                command: "tail -f /dev/null"
               test-stack-wait2:
-                image: rudloff/alltube:latest
+                image: alpine:latest
+                command: "tail -f /dev/null"
 
     - name: wait stack running
       include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/docker-stack.wait.yml"

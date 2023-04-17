@@ -27,7 +27,7 @@
       vars:
         containers:
           test-container-wait:
-            retries: 2
+            retries: 1
             delay: 10
             until:
               - not container_loop_info.exists
@@ -36,7 +36,8 @@
       community.docker.docker_container:
         detach: true
         name: test-container-wait
-        image: rudloff/alltube:latest
+        image: alpine:latest
+        command: "tail -f /dev/null"
 
     - name: wait container running
       include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/docker-container.wait.yml"
@@ -56,7 +57,7 @@
       vars:
         containers:
           test-container-wait:
-            retries: 2
+            retries: 1
             delay: 10
             until:
               - container_loop_info.exists
