@@ -1,0 +1,86 @@
+---
+
+
+- name: docker-task.set|set _task
+  run_once: true
+  ansible.builtin.set_fact:
+    _task:
+      name: "{{ task.name | default(omit) }}"
+      search: "{{ task.search | default('.*',true) }}"
+      type: "{{ task.type | default(omit) }}"
+      filter: "{{ task.filter | default([],true) }}"
+      result: "{{ task.result | default(omit) }}"
+
+- when:
+    - _task.type is undefined
+  block:
+
+    - name: docker-task.set|info stack all task
+      run_once: true
+      delegate_to: "{{ groups['docker-manager'] | first }}"
+      community.docker.docker_stack_task_info:
+        name: "{{ _task.name }}"
+      register: _task_all_info
+      ignore_errors: true
+
+    - name: docker-task.set|filter stack task
+      run_once: true
+      ansible.builtin.set_fact:
+        _task_info: "{{ _task_all_info.results | default ([],true) | selectattr('Name','search',_task.search) }}"
+        _task_all_info: !!null
+
+- when:
+    - _task.type is defined
+    - _task.type == 'stack'
+  block:
+
+    - name: docker-task.set|shell stack task info
+      run_once: true
+      delegate_to: "{{ groups['docker-manager'] | first }}"
+      shell: "docker stack ps {{ ['-f'] | product(_task.filter) | flatten | join(' ') }} --format '{{ '{{' }} json . {{ '}}' }}' {{ _task.name }}"
+      register: _task_info_stack
+      ignore_errors: true
+
+    - name: docker-task.set|append stack task info
+      run_once: true
+      loop: "{{ _task_info_stack.stdout_lines | default([],true) }}"
+      vars:
+        list: "{{ _task_info | default([],true) }}"
+        append: "{{ item | from_json }}"
+      ansible.builtin.set_fact:
+        _task_info: "{{ list + [append] }}"
+        _task_info_stack: !!null
+
+- when:
+    - _task.type is defined
+    - _task.type == 'service'
+  block:
+
+    - name: docker-task.set|shell service task info
+      run_once: true
+      delegate_to: "{{ groups['docker-manager'] | first }}"
+      shell: "docker service ps {{ ['-f'] | product(_task.filter) | flatten | join(' ') }} --format '{{ '{{' }}  json . {{ '}}' }}' {{ _task.name }}"
+      register: _task_info_service
+      ignore_errors: true
+
+    - name: docker-task.set|append service task info
+      run_once: true
+      loop: "{{ _task_info_service.stdout_lines | default([],true) }}"
+      vars:
+        list: "{{ _task_info | default([],true) }}"
+        append: "{{ item | from_json }}"
+      ansible.builtin.set_fact:
+        _task_info: "{{ list + [append] }}"
+        _task_info_service: !!null
+
+- name: docker-task.set|print _task_info
+  run_once: true
+  ansible.builtin.debug:
+    var: _task_info
+
+- name: docker-task.set|set _task.result
+  run_once: true
+  when: _task.result is defined
+  ansible.builtin.set_fact:
+    "{{ _task.result }}": "{{ _task_info }}"
+    _task_info: !!null
