@@ -3,63 +3,68 @@
 
 
 - name: docker-service.exec|set _service
+  run_once: true
   ansible.builtin.set_fact:
-    _service: 
-      type: "{{ service.type | default('stack') }}"
+    _service:
       name: "{{ service.name }}"
-      project: "{{ service.project | default('NONE') }}"
-      namespace: "{{ service.namespace | default('NONE') }}"
+      filter:
+        - "label=com.docker.swarm.service.name={{ service.name }}"
+      container_ids: []
       command: "{{ service.command | regex_replace('\\\\\\\n') }}"
-      result: "{{ service.result }}"
+      result: "{{ service.result | default(omit) }}"
 
-- name: docker-service.exec|set _filter stack
-  when: _service.type == 'stack'
-  ansible.builtin.set_fact:
-    _filter: 
-      - "label=com.docker.stack.namespace={{ _service.namespace }}"
-      - "label=com.docker.swarm.service.name={{ _service.namespace }}_{{ _service.name }}"
-
-- name: docker-service.exec|set _filter compose 
-  when: _service.type == 'compose'
-  ansible.builtin.set_fact:
-    _filter: 
-      - "label=com.docker.compose.project={{ _service.project }}"
-      - "label=com.docker.compose.service={{ _service.name }}"
-
+# Get container id on multiple docker nodes
 - name: docker-service.exec|get container id
-  when: _service.name is defined
-  shell: "docker ps -q -f {{ _filter | join(' -f ') }} | head -1"
+  shell: "docker ps -q -f {{ _service.filter | join(' -f ') }}"
   register: _container_id
-  until: 
+
+- name: docker-service.exec|set _service.container_id
+  when:
+    - _container_id is defined
     - _container_id is not failed
     - _container_id.stdout != ''
-  retries: 1000
-  delay: 10
-  
-- name: docker-service.exec|set _service.container_id
-  when: _container_id is defined
-  ansible.builtin.set_fact:
-    _service: "{{ _service | combine(update, recursive=True) }}"
   vars:
     update:
-      container_id: "{{ _container_id.stdout }}"
+      container_ids: "{{ _container_id.stdout_lines }}"
+  ansible.builtin.set_fact:
+    _service: "{{ _service | combine(update, recursive=True) }}"
+    _container_id: !!null
 
 - name: docker-service.exec|print _service
   debug:
     var: _service
 
+# Exec command on multiple docker nodes multiple containers
 - name: docker-service.exec|exec container command
+  loop: "{{ _service.container_ids }}"
+  loop_control:
+    loop_var: container_id
   community.docker.docker_container_exec:
-    container: "{{ _service.container_id }}"
+    container: "{{ container_id }}"
     command: "{{ _service.command }}"
-  register: "_service_result"
+  register: "_service_container_result"
+
+# Merge multiple docker nodes '_service_container_result' variables
+- name: docker-service.exec|append _service_container_result from each docker host
+  run_once: true
+  loop: "{{ groups['docker'] }}"
+  loop_control:
+    loop_var: hostitem
+  vars:
+    list: "{{ _service_result | default([],true) }}"
+    append: "{{ hostvars[hostitem]._service_container_result.results if (hostvars[hostitem]._service_container_result.results | default(None,true) != None) else [] }}"
+  ansible.builtin.set_fact:
+    _service_result: "{{ (list + append) | unique }}"
 
 - name: docker-service.exec|set _service.result
+  run_once: true
+  when: _service.result is defined
   ansible.builtin.set_fact:
     "{{ _service.result }}": "{{ _service_result }}"
+    _service_result: !!null
+    _service_container_result: !!null
 
 - name: docker-service.exec|reset _service
+  run_once: true
   ansible.builtin.set_fact:
-    _container_id: !!null
-    _filter: !!null
     _service: !!null
