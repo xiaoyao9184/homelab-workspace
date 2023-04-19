@@ -1,0 +1,49 @@
+---
+
+- name: test
+  vars:
+    run_debug: |
+      ansible-playbook \
+        -vvv \
+        --inventory $PWD/ansible-inventories \
+        $PWD/../../../test/seed/docker-volume.wait/ansible-playbook.test.yml
+    run_normal: |
+      ansible-playbook \
+        --inventory $PWD/ansible-inventories \
+        $PWD/../../../test/seed/docker-volume.wait/ansible-playbook.test.yml
+  environment:
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
+  hosts: docker
+  tasks:
+
+    - name: remove volume
+      community.docker.docker_volume:
+        name: test-volume-wait
+        state: absent
+
+    - name: wait volume not exists
+      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/docker-volume.wait.yml"
+      vars:
+        volumes:
+          test-volume-wait:
+            retries: 1
+            delay: 10
+            until:
+              - not volume_loop_info.exists
+
+    - name: add volume
+      community.docker.docker_volume:
+        name: test-volume-wait
+
+    - name: wait volume exists
+      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/docker-volume.wait.yml"
+      vars:
+        volumes:
+          test-volume-wait:
+            retries: -1
+            delay: 10
+
+    - name: remove volume
+      community.docker.docker_volume:
+        name: test-volume-wait
+        state: absent

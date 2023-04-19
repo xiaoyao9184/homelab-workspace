@@ -1,0 +1,36 @@
+version: '3.8'
+
+secrets:
+  password:
+    name: stack_sec-test-password
+    file: ./secret_data
+
+configs:
+  conf:
+    name: stack_cfg-test-conf
+    file: ./config_data
+
+volumes:
+  data:
+    name: stack_vol-test-data
+  collectd:
+    name: stack_vol-test-collectd
+
+networks:
+  net:
+    name: stack_net-test
+
+services:
+  test-compose-stack:
+    image: influxdb:1.8
+    # env_file: external_env-all.env
+    secrets:
+      - password
+    configs:
+      - source: conf
+        target: /etc/test/test.conf
+    volumes:
+      - data:/var/lib/influxdb
+      - collectd:/usr/share/collectd/types.db
+    networks:
+      - net

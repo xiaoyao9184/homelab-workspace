@@ -1,0 +1,78 @@
+---
+
+- name: test
+  vars:
+    run_debug: |
+      ansible-playbook \
+        -vvv \
+        --inventory $PWD/ansible-inventories \
+        $PWD/../../../test/seed/docker-service.wait/ansible-playbook.test.yml
+    run_normal: |
+      ansible-playbook \
+        --inventory $PWD/ansible-inventories \
+        $PWD/../../../test/seed/docker-service.wait/ansible-playbook.test.yml
+  environment:
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
+  hosts: docker
+  tasks:
+
+    - name: remove service
+      run_once: true
+      delegate_to: "{{ groups['docker-manager'] | first }}"
+      community.docker.docker_swarm_service:
+        name: test-service-wait
+        state: absent
+
+    - name: wait service not running
+      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/docker-service.wait.yml"
+      vars:
+        services:
+          test-service-wait:
+            retries: 2
+            delay: 10
+            until:
+              - not service_loop_info.exists
+
+    - name: run service
+      run_once: true
+      delegate_to: "{{ groups['docker-manager'] | first }}"
+      community.docker.docker_swarm_service:
+        name: test-service-wait
+        image: rudloff/alltube:latest
+
+    - name: wait service running
+      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/docker-service.wait.yml"
+      vars:
+        services:
+          test-service-wait:
+            retries: -1
+            delay: 10
+
+    - name: set placement preferences
+      run_once: true
+      delegate_to: "{{ groups['docker-manager'] | first }}"
+      community.docker.docker_swarm_service:
+        name: test-service-wait
+        image: rudloff/alltube:latest
+        placement:
+          constraints:
+            - node.labels.none == true
+
+    - name: wait service placement preferences
+      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/docker-service.wait.yml"
+      vars:
+        search: "node.labels.none == true"
+        services:
+          test-service-wait:
+            retries: 2
+            delay: 10
+            until:
+              - service_loop_info.exists
+              - search in service_loop_info.service.Spec.TaskTemplate.Placement.Constraints
+
+    - name: remove service
+      run_once: true
+      delegate_to: "{{ groups['docker-manager'] | first }}"
+      community.docker.docker_swarm_service:
+        name: test-service-wait
+        state: absent

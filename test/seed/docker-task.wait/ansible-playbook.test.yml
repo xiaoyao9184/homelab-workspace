@@ -1,0 +1,90 @@
+---
+
+- name: test
+  vars:
+    run_debug: |
+      ansible-playbook \
+        -vvv \
+        --inventory $PWD/ansible-inventories \
+        $PWD/../../../test/seed/docker-task.wait/ansible-playbook.test.yml
+    run_normal: |
+      ansible-playbook \
+        --inventory $PWD/ansible-inventories \
+        $PWD/../../../test/seed/docker-task.wait/ansible-playbook.test.yml
+  environment:
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
+  hosts: docker
+  tasks:
+
+    - name: remove stack
+      run_once: true
+      delegate_to: "{{ groups['docker-manager'] | first }}"
+      community.docker.docker_stack:
+        name: test-task-wait
+        state: absent
+
+    - name: wait task not running
+      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/docker-task.wait.yml"
+      vars:
+        tasks:
+          test-task-wait:
+            search: '^test-task-wait_service1\.'
+            retries: 1
+            delay: 10
+            until:
+              - task_loop_info | length == 0
+
+    - name: run task by deploy stack
+      run_once: true
+      delegate_to: "{{ groups['docker-manager'] | first }}"
+      community.docker.docker_stack:
+        state: present
+        name: test-task-wait
+        compose:
+          - version: '3'
+            services:
+              service1:
+                image: alpine:latest
+                command: "tail -f /dev/null"
+
+    - name: wait task running
+      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/docker-task.wait.yml"
+      vars:
+        tasks:
+          test-task-wait:
+            search: '^test-task-wait_service1\.'
+            retries: -1
+            delay: 10
+
+    - name: update task by redeploy stack
+      run_once: true
+      delegate_to: "{{ groups['docker-manager'] | first }}"
+      community.docker.docker_stack:
+        state: present
+        name: test-task-wait
+        compose:
+          - version: '3.8'
+            services:
+              service1:
+                image: alpine:latest
+                command: "tail -f /dev/null"
+                deploy:
+                  replicas: 2
+
+    - name: wait task running
+      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/docker-task.wait.yml"
+      vars:
+        tasks:
+          test-task-wait:
+            search: '^test-task-wait_service1\.'
+            retries: 1
+            delay: 10
+            until:
+              - task_loop_info | length == 2
+
+    - name: remove stack
+      run_once: true
+      delegate_to: "{{ groups['docker-manager'] | first }}"
+      community.docker.docker_stack:
+        name: test-task-wait
+        state: absent

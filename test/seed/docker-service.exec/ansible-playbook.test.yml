@@ -1,0 +1,156 @@
+---
+
+- name: test
+  vars:
+    run_debug: |
+      ansible-playbook \
+        -vvv \
+        --inventory $PWD/ansible-inventories \
+        $PWD/../../../test/seed/docker-service.exec/ansible-playbook.test.yml
+    run_normal: |
+      ansible-playbook \
+        --inventory $PWD/ansible-inventories \
+        $PWD/../../../test/seed/docker-service.exec/ansible-playbook.test.yml
+  environment:
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
+  hosts: docker
+  tasks:
+
+    - name: remove service
+      run_once: true
+      delegate_to: "{{ groups['docker-manager'] | first }}"
+      community.docker.docker_swarm_service:
+        name: test-service-exec
+        state: absent
+
+    - name: wait service not running
+      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/docker-service.wait.yml"
+      vars:
+        services:
+          test-service-exec:
+            retries: 1
+            delay: 10
+            until:
+              - not service_loop_info.exists
+
+    - name: run replicas services on multiple nodes
+      run_once: true
+      delegate_to: "{{ groups['docker-manager'] | first }}"
+      community.docker.docker_swarm_service:
+        name: test-service-exec
+        image: alpine:latest
+        command: "tail -f /dev/null"
+        replicas: 2
+        placement:
+          replicas_max_per_node: 1
+
+    - name: wait service running
+      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/docker-service.wait.yml"
+      vars:
+        services:
+          test-service-exec:
+            retries: -1
+            delay: 10
+
+    - name: exec service
+      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/docker-service.exec.yml"
+      vars:
+        service:
+          name: test-service-exec
+          command: ls -la /
+          result: service_exec_result1
+
+    - name: fail service exec
+      when:
+        - service_exec_result1 | selectattr('rc','equalto',0) | length != 2
+      ansible.builtin.fail:
+        msg: "fail service exec 1"
+
+    - name: run replicas services on one node
+      run_once: true
+      delegate_to: "{{ groups['docker-manager'] | first }}"
+      community.docker.docker_swarm_service:
+        name: test-service-exec
+        image: alpine:latest
+        command: "tail -f /dev/null"
+        replicas: 2
+        placement:
+          replicas_max_per_node: 2
+          constraints:
+            - node.role == manager
+
+    - name: wait service running
+      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/docker-service.wait.yml"
+      vars:
+        services:
+          test-service-exec:
+            retries: -1
+            delay: 10
+            task: service_task_info
+            until:
+              - service_task_info | selectattr('DesiredState','equalto','Running') | groupby('Node') | community.general.dict | dict2items | length == 1
+              - (service_task_info | selectattr('DesiredState','equalto','Running') | groupby('Node') | community.general.dict | dict2items | first).value | length == 2
+
+    - name: exec service
+      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/docker-service.exec.yml"
+      vars:
+        service:
+          name: test-service-exec
+          command: ls -la /
+          result: service_exec_result2
+
+    - name: fail service exec
+      when:
+        - service_exec_result2 | selectattr('rc','equalto',0) | length != 2
+      ansible.builtin.fail:
+        msg: "fail service exec 2"
+
+    - name: remove service
+      run_once: true
+      delegate_to: "{{ groups['docker-manager'] | first }}"
+      community.docker.docker_swarm_service:
+        name: test-service-exec
+        state: absent
+
+    - name: run replicas services on none node
+      run_once: true
+      delegate_to: "{{ groups['docker-manager'] | first }}"
+      community.docker.docker_swarm_service:
+        name: test-service-exec
+        image: alpine:latest
+        command: "tail -f /dev/null"
+        replicas: 2
+        placement:
+          replicas_max_per_node: 2
+          constraints:
+            - node.role == manager
+            - node.labels.none == true
+
+    - name: wait service running
+      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/docker-service.wait.yml"
+      vars:
+        services:
+          test-service-exec:
+            retries: -1
+            delay: 10
+
+    - name: exec service
+      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/docker-service.exec.yml"
+      vars:
+        service:
+          name: test-service-exec
+          command: ls -la /
+          result: service_exec_result3
+
+    - name: fail service exec
+      when:
+        - service_exec_result3 | length != 0
+      ansible.builtin.fail:
+        msg: "fail service exec 3"
+
+    - name: remove service
+      run_once: true
+      delegate_to: "{{ groups['docker-manager'] | first }}"
+      community.docker.docker_swarm_service:
+        name: test-service-exec
+        state: absent

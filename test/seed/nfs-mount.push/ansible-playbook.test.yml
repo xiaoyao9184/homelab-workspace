@@ -1,0 +1,114 @@
+---
+
+- name: test
+  vars:
+    run_debug: |
+      ansible-playbook \
+        -vvv \
+        --ask-become-pass \
+        --inventory $PWD/ansible-inventories \
+        $PWD/../../../test/seed/nfs-mount.push/ansible-playbook.test.yml
+    run_normal: |
+      ansible-playbook \
+        --ask-become-pass \
+        --inventory $PWD/ansible-inventories \
+        $PWD/../../../test/seed/nfs-mount.push/ansible-playbook.test.yml
+  environment:
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
+  hosts: docker
+  run_once: true
+  tasks:
+
+    - name: mkdir build path
+      run_once: true
+      delegate_to: localhost
+      ansible.builtin.file:
+        path: "{{ playbook_dir }}/build"
+        state: directory
+
+    - name: remove container
+      community.docker.docker_container:
+        name: test-nfs-wait
+        state: absent
+
+    - name: create exports
+      ansible.builtin.copy:
+        content: |
+          /data        *(fsid=0,rw,no_root_squash,no_subtree_check,insecure)
+          /data/test-data     *(rw,no_root_squash,no_subtree_check,insecure)
+        dest: "{{ playbook_dir }}/build/exports"
+
+    - name: add external_vol
+      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/docker-volumes.add.yml"
+      vars:
+        volumes:
+          external_vol-test-nfs-data:
+            driver: local
+          external_vol-test-nfs-data-2:
+            driver: local
+
+    - name: run container
+      community.docker.docker_container:
+        detach: true
+        name: test-nfs-wait
+        image: erichough/nfs-server:2.2.1
+        env:
+          TZ: Asia/Hong_Kong
+          NFS_LOG_LEVEL: DEBUG
+          NFS_DISABLE_VERSION_3: 'true'
+        volumes:
+          - "external_vol-test-nfs-data:/data"
+          - "external_vol-test-nfs-data-2:/data/test-data"
+          - /lib/modules:/lib/modules:ro
+          - "{{ playbook_dir }}/build/exports:/etc/exports"
+        capabilities:
+          - SYS_ADMIN
+          - SYS_MODULE
+          - CAP_SYS_ADMIN
+        ports:
+          - 2049:2049
+          - 2049:2049/udp
+        user: root
+        privileged: true
+
+    - name: push nfs mount
+      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/nfs-mounts.push.yml"
+      vars:
+        mounts:
+          - name: on_localhost
+            point: "/test-data"
+            mount: "{{ playbook_dir }}/build/nfs/test-data"
+            option: "vers=4,loud,rw,sync"
+            unmount: true
+            src: "{{ playbook_dir }}/ansible-playbook.test.yml"
+            dest: "ansible-playbook.test.yml"
+            directory_mode: '0777'
+          - name: on_localhost
+            loop: true
+            point: "/"
+            mount: "{{ playbook_dir }}/build/nfs/test-data"
+            option: "vers=4,loud,rw,sync"
+            unmount: true
+            src: "{{ playbook_dir }}/ansible-playbook.test.yml"
+            dest: "ansible-playbook.test.yml"
+            directory_mode: '0777'
+
+    - name: stop container
+      community.docker.docker_container:
+        name: test-nfs-wait
+        state: stopped
+
+    - name: remove container
+      community.docker.docker_container:
+        name: test-nfs-wait
+        state: absent
+
+    - name: remove volume
+      community.docker.docker_volume:
+        name: external_vol-test-nfs-data
+        state: absent
+
+    - name: remove volume
+      community.docker.docker_volume:
+        name: external_vol-test-nfs-data-2
+        state: absent

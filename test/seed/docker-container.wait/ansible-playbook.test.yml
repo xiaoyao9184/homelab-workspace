@@ -1,0 +1,68 @@
+---
+
+- name: test
+  vars:
+    run_debug: |
+      ansible-playbook \
+        -vvv \
+        --inventory $PWD/ansible-inventories \
+        $PWD/../../../test/seed/docker-container.wait/ansible-playbook.test.yml
+    run_normal: |
+      ansible-playbook \
+        --inventory $PWD/ansible-inventories \
+        $PWD/../../../test/seed/docker-container.wait/ansible-playbook.test.yml
+  environment:
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
+  hosts: docker
+  run_once: true
+  tasks:
+
+    - name: remove container
+      community.docker.docker_container:
+        name: test-container-wait
+        state: absent
+
+    - name: wait container not running
+      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/docker-container.wait.yml"
+      vars:
+        containers:
+          test-container-wait:
+            retries: 2
+            delay: 10
+            until:
+              - not container_loop_info.exists
+
+    - name: run container
+      community.docker.docker_container:
+        detach: true
+        name: test-container-wait
+        image: rudloff/alltube:latest
+
+    - name: wait container running
+      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/docker-container.wait.yml"
+      vars:
+        containers:
+          test-container-wait:
+            retries: -1
+            delay: 10
+
+    - name: stop container
+      community.docker.docker_container:
+        name: test-container-wait
+        state: stopped
+
+    - name: wait container not running
+      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/docker-container.wait.yml"
+      vars:
+        containers:
+          test-container-wait:
+            retries: 2
+            delay: 10
+            until:
+              - container_loop_info.exists
+              - not (container_loop_info.container.State.Running)
+
+    - name: remove container
+      community.docker.docker_container:
+        name: test-container-wait
+        state: absent

@@ -1,0 +1,128 @@
+---
+
+- name: test
+  vars:
+    run_debug: |
+      ansible-playbook \
+        -vvv \
+        --inventory $PWD/ansible-inventories \
+        $PWD/../../../test/seed/docker-task.set/ansible-playbook.test.yml
+    run_normal: |
+      ansible-playbook \
+        --inventory $PWD/ansible-inventories \
+        $PWD/../../../test/seed/docker-task.set/ansible-playbook.test.yml
+  environment:
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
+  hosts: docker
+  tasks:
+
+    - name: remove stack
+      run_once: true
+      delegate_to: "{{ groups['docker-manager'] | first }}"
+      community.docker.docker_stack:
+        name: test-task-set
+        state: absent
+
+    - name: wait task not running
+      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/docker-task.wait.yml"
+      vars:
+        tasks:
+          test-task-set:
+            search: '^test-task-set_service1\.'
+            retries: 1
+            delay: 10
+            until:
+              - task_loop_info | length == 0
+
+    - name: run task by deploy stack
+      run_once: true
+      delegate_to: "{{ groups['docker-manager'] | first }}"
+      community.docker.docker_stack:
+        state: present
+        name: test-task-set
+        compose:
+          - version: '3'
+            services:
+              service1:
+                image: alpine:latest
+                command: "tail -f /dev/null"
+                deploy:
+                  replicas: 2
+
+    - name: search stack task
+      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/docker-task.set.yml"
+      vars:
+        task:
+          name: test-task-set
+          search: '^test-task-set_service1\.'
+          result: test_info0
+
+    - name: get stack task
+      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/docker-task.set.yml"
+      vars:
+        task:
+          name: test-task-set
+          type: stack
+          result: test_info1
+
+    - name: fail stack
+      when:
+        - test_info1 | length != 2
+        - test_info1 | selectattr('DesiredState','equalto','Running') | length != 2
+      ansible.builtin.fail:
+        msg: "fail get stack task"
+
+    - name: remove stack
+      run_once: true
+      delegate_to: "{{ groups['docker-manager'] | first }}"
+      community.docker.docker_stack:
+        name: test-task-set
+        state: absent
+
+    - name: remove service
+      run_once: true
+      delegate_to: "{{ groups['docker-manager'] | first }}"
+      community.docker.docker_swarm_service:
+        name: test-task-set
+        state: absent
+
+    - name: wait service not running
+      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/docker-service.wait.yml"
+      vars:
+        services:
+          test-task-set:
+            retries: 1
+            delay: 10
+            until:
+              - not service_loop_info.exists
+
+    - name: run service
+      run_once: true
+      delegate_to: "{{ groups['docker-manager'] | first }}"
+      community.docker.docker_swarm_service:
+        name: test-task-set
+        image: alpine:latest
+        command: "tail -f /dev/null"
+        replicas: 2
+
+    - name: get service task
+      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/docker-task.set.yml"
+      vars:
+        task:
+          name: test-task-set
+          type: service
+          result: test_info2
+
+    - name: fail service
+      when:
+        - test_info2 | length != 2
+        - test_info2 | selectattr('DesiredState','equalto','Running') | length != 2
+      ansible.builtin.fail:
+        msg: "fail get service task"
+
+    - name: remove service
+      run_once: true
+      delegate_to: "{{ groups['docker-manager'] | first }}"
+      community.docker.docker_swarm_service:
+        name: test-task-set
+        state: absent

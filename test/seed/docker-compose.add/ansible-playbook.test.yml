@@ -1,0 +1,37 @@
+---
+
+- name: test
+  vars:
+    run_debug: |
+      ansible-playbook \
+        -vvv \
+        --inventory $PWD/ansible-inventories \
+        $PWD/../../../test/seed/docker-compose.add/ansible-playbook.test.yml
+    run_normal: |
+      ansible-playbook \
+        --inventory $PWD/ansible-inventories \
+        $PWD/../../../test/seed/docker-compose.add/ansible-playbook.test.yml
+  environment:
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
+  hosts: docker
+  tasks:
+
+    # - name: add stack compose
+    #   include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/docker-compose.add.yml"
+    #   vars:
+    #     compose:
+    #       type: stack
+    #       name: "test-compose-stack"
+    #       path: "{{ playbook_dir }}"
+    #       files:
+    #         - "docker-compose-swarm.yml"
+
+    - name: remove stack compose
+      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/docker-compose.rm.yml"
+      vars:
+        compose:
+          type: stack
+          name: "test-compose-stack"
+          path: "{{ playbook_dir }}"
+          files:
+            - "docker-compose-swarm.yml"

@@ -1,0 +1,29 @@
+---
+
+- name: test
+  vars:
+    run_debug: |
+      ansible-playbook \
+        -vvv \
+        --inventory $PWD/ansible-inventories \
+        $PWD/../../../test/seed/docker-volumes.add/ansible-playbook.test.yml
+    run_normal: |
+      ansible-playbook \
+        --inventory $PWD/ansible-inventories \
+        $PWD/../../../test/seed/docker-volumes.add/ansible-playbook.test.yml
+  environment:
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
+  hosts: docker
+  tasks:
+
+    - debug: msg="{{ test_swarm.vol }}"
+
+    - name: add volumes
+      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/docker-volumes.add.yml"
+      vars:
+        volumes: "{{ test_swarm.vol | default([],true) }}"
+
+    - name: rm volumes
+      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/docker-volumes.rm.yml"
+      vars:
+        volumes: "{{ test_swarm.vol | default([],true) }}"

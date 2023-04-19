@@ -1,0 +1,95 @@
+---
+
+- name: test
+  vars:
+    run_debug: |
+      ansible-playbook \
+        -vvv \
+        --inventory $PWD/ansible-inventories \
+        $PWD/../../../test/seed/docker-port.wait/ansible-playbook.test.yml
+    run_normal: |
+      ansible-playbook \
+        --inventory $PWD/ansible-inventories \
+        $PWD/../../../test/seed/docker-port.wait/ansible-playbook.test.yml
+  environment:
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
+  hosts: docker
+  run_once: true
+  tasks:
+
+    - name: remove container
+      community.docker.docker_container:
+        name: test-port-wait
+        state: absent
+
+    - name: create a network
+      community.docker.docker_network:
+        name: net_test-port-wait
+        attachable: true
+
+    - name: run container
+      community.docker.docker_container:
+        detach: true
+        name: test-port-wait
+        image: taoyou/iperf3-alpine:latest
+        networks:
+          - name: net_test-port-wait
+
+    - name: wait port open
+      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/docker-port.wait.yml"
+      vars:
+        ports:
+          test-port-wait:
+            network: net_test-port-wait
+            hosts:
+              test-port-wait: 5201
+          test-port-wait2:
+            network: net_test-port-wait
+            hosts:
+              - host: test-port-wait
+                port: 5201
+                delay: 0
+                timeout: 20
+
+    - name: remove container
+      community.docker.docker_container:
+        name: "wait-port.test-port-wait"
+        state: absent
+
+    - name: remove container
+      community.docker.docker_container:
+        name: "wait-port.test-port-wait2"
+        state: absent
+
+    - name: stop container
+      community.docker.docker_container:
+        name: test-port-wait
+        state: stopped
+
+    - name: remove container
+      community.docker.docker_container:
+        name: test-port-wait
+        state: absent
+
+    - name: delete a network
+      community.docker.docker_network:
+        name: net_test-port-wait
+        state: absent
+        force: true
+
+    - name: wait port open
+      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/docker-port.wait.yml"
+      vars:
+        ports:
+          test-port-wait3:
+            hosts:
+              - host: test-port-wait
+                port: 5201
+                delay: 0
+                timeout: 20
+      ignore_errors: true
+
+    # - name: remove container
+    #   community.docker.docker_container:
+    #     name: "wait-port.test-port-wait3"
+    #     state: absent

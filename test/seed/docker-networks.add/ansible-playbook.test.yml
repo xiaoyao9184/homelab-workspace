@@ -1,0 +1,29 @@
+---
+
+- name: test
+  vars:
+    run_debug: |
+      ansible-playbook \
+        -vvv \
+        --inventory $PWD/ansible-inventories \
+        $PWD/../../../test/seed/docker-networks.add/ansible-playbook.test.yml
+    run_normal: |
+      ansible-playbook \
+        --inventory $PWD/ansible-inventories \
+        $PWD/../../../test/seed/docker-networks.add/ansible-playbook.test.yml
+  environment:
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
+  hosts: docker
+  tasks:
+
+    - debug: msg="{{ test_swarm.net }}"
+
+    - name: add networks
+      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/docker-networks.add.yml"
+      vars:
+        networks: "{{ test_swarm.net | default([],true) }}"
+
+    - name: rm networks
+      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/docker-networks.rm.yml"
+      vars:
+        networks: "{{ test_swarm.net | default([],true) }}"

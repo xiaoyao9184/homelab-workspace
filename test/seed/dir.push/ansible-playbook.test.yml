@@ -1,0 +1,39 @@
+---
+
+- name: test
+  vars:
+    run_debug: |
+      ansible-playbook \
+        -vvv \
+        --inventory $PWD/ansible-inventories \
+        $PWD/../../../test/seed/dir.push/ansible-playbook.test.yml
+    run_normal: |
+      ansible-playbook \
+        --inventory $PWD/ansible-inventories \
+        $PWD/../../../test/seed/dir.push/ansible-playbook.test.yml
+  environment:
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
+  hosts: docker
+  tasks:
+
+    - name: mkdir build path
+      run_once: true
+      delegate_to: localhost
+      ansible.builtin.file:
+        path: "{{ playbook_dir }}/build"
+        state: directory
+
+    - debug: msg="{{ 'docker-manager' in group_names }}"
+
+    - debug: msg="{{ test_swarm.dir_push }}"
+
+    - name: copy to dir
+      vars:
+        dirs:
+          sync:
+            - src: "{{ playbook_dir }}/docker-compose-swarm.yml"
+              dest: "{{ playbook_dir }}/build/docker-compose-swarm.yml"
+              delegate_to: "{{ groups['docker-manager'] | first }}"
+              run_once: true
+          cp: "{{ test_swarm.dir_push | default([],true) }}"
+      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/dir.push.yml"

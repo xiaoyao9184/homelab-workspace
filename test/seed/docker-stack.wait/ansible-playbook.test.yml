@@ -1,0 +1,88 @@
+---
+
+- name: test
+  vars:
+    run_debug: |
+      ansible-playbook \
+        -vvv \
+        --inventory $PWD/ansible-inventories \
+        $PWD/../../../test/seed/docker-stack.wait/ansible-playbook.test.yml
+    run_normal: |
+      ansible-playbook \
+        --inventory $PWD/ansible-inventories \
+        $PWD/../../../test/seed/docker-stack.wait/ansible-playbook.test.yml
+  environment:
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
+  hosts: docker
+  tasks:
+
+    - name: remove stack
+      run_once: true
+      delegate_to: "{{ groups['docker-manager'] | first }}"
+      community.docker.docker_stack:
+        name: test-stack-wait
+        state: absent
+
+    - name: wait stack not running
+      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/docker-stack.wait.yml"
+      vars:
+        stacks:
+          test-stack-wait:
+            retries: 1
+            delay: 10
+            until:
+              - stack_loop_info | default(None,true) == None
+
+    - name: run stack by deploy stack
+      run_once: true
+      delegate_to: "{{ groups['docker-manager'] | first }}"
+      community.docker.docker_stack:
+        state: present
+        name: test-stack-wait
+        compose:
+          - version: '3'
+            services:
+              test-stack-wait:
+                image: rudloff/alltube:latest
+
+    - name: wait stack running
+      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/docker-stack.wait.yml"
+      vars:
+        stacks:
+          test-stack-wait:
+            retries: -1
+            delay: 10
+            until:
+              - stack_loop_info | default(None,true) != None
+
+    - name: update stack by redeploy stack
+      run_once: true
+      delegate_to: "{{ groups['docker-manager'] | first }}"
+      community.docker.docker_stack:
+        state: present
+        name: test-stack-wait
+        compose:
+          - version: '3.8'
+            services:
+              test-stack-wait:
+                image: rudloff/alltube:latest
+              test-stack-wait2:
+                image: rudloff/alltube:latest
+
+    - name: wait stack running
+      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/docker-stack.wait.yml"
+      vars:
+        stacks:
+          test-stack-wait:
+            retries: 2
+            delay: 10
+            until:
+              - stack_loop_info | default(None,true) != None
+              - stack_loop_info.Services | int == 2
+
+    - name: remove stack
+      run_once: true
+      delegate_to: "{{ groups['docker-manager'] | first }}"
+      community.docker.docker_stack:
+        name: test-stack-wait
+        state: absent

@@ -1,0 +1,45 @@
+---
+
+- name: test
+  vars:
+    run_debug: |
+      ansible-playbook \
+        -vvv \
+        --inventory $PWD/ansible-inventories \
+        $PWD/../../../test/seed/docker-composes.create/ansible-playbook.test.yml
+    run_normal: |
+      ansible-playbook \
+        --inventory $PWD/ansible-inventories \
+        $PWD/../../../test/seed/docker-composes.create/ansible-playbook.test.yml
+  environment:
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
+  hosts: docker
+  tasks:
+
+    - name: mkdir build path
+      run_once: true
+      delegate_to: localhost
+      ansible.builtin.file:
+        path: "{{ playbook_dir }}/build"
+        state: directory
+
+    - name: create compose
+      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/docker-composes.create.yml"
+      vars:
+        composes:
+          - dest: "{{ playbook_dir }}/build/docker-compose-swarm.yml"
+            type: stack
+            data:
+              version: "3.8"
+              networks:
+                influxdb:
+                  name: influxdb_default
+                  external: true
+          - dest: "{{ playbook_dir }}/build/docker-compose-{{ inventory_hostname }}.yml"
+            type: compose
+            data:
+              version: "3.8"
+              networks:
+                influxdb:
+                  name: influxdb_default
+                  external: true
