@@ -10,13 +10,19 @@
   tasks:
 
     - name: clone nvm
-      git:
-        repo: "{{ git_url }}"
-        dest: "~/.nvm"
-        version: "v{{ nvm_version }}"
-      vars:
-        nvm_version: "{{ loop_var.nvm_version }}"
-        git_url: "{{ loop_var.git_url | default('https://github.com/creationix/nvm.git') }}"
       loop: "{{ nvm.install }}"
       loop_control:
         loop_var: loop_var
+      vars:
+        nvm_version: "{{ loop_var.nvm_version }}"
+        git_url: "{{ loop_var.git_url | default('https://github.com/creationix/nvm.git') }}"
+      ansible.builtin.git:
+        repo: "{{ git_url }}"
+        dest: "~/.nvm"
+        version: "v{{ nvm_version }}"
+
+    - name: create default-packages file
+      when: nvm.default_packages is defined
+      ansible.builtin.copy:
+        content: "{{ nvm.default_packages }}"
+        dest: "~/.nvm/default-packages"
