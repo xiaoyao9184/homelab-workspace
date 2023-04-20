@@ -19,6 +19,7 @@
       vars:
         nvm_version: "{{ loop_var.nvm_version }}"
         nvm_node_version: "{{ loop_var.nvm_node_version }}"
+        nvm_git_repository: "{{ loop_var.git_url }}"
       loop: "{{ nvm.install }}"
       loop_control:
         loop_var: loop_var
