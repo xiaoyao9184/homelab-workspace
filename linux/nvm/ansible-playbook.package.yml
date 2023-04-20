@@ -1,0 +1,32 @@
+# nvm not update global packages when install duplicate the existing nodejs
+# https://github.com/nvm-sh/nvm/issues/2828
+---
+
+- name: package
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --inventory $PWD/ansible-inventories \
+        $PWD/../../../linux/nvm/ansible-playbook.package.yml
+  hosts: linux
+  tasks:
+
+    - name: cartesian product install and package to list
+      run_once: true 
+      ansible.builtin.set_fact:
+        _list: "{{ nvm.install | product(nvm.package) | map('zip', ['install', 'package']) | map('map', 'reverse') | map('community.general.dict') }}"
+
+    - name: install package
+      loop: "{{ _list }}"
+      loop_control:
+        loop_var: _item
+      vars:
+        package: "{{ _item.package }}"
+        install: "{{ _item.install }}"
+        npm_default:
+          executable: "/home/{{ ansible_user_id }}/.nvm/versions/node/v{{ install.nvm_node_version }}/bin/npm"
+          state: present
+        npm_item: "{{ npm_default | combine(package, recursive=True) }}"
+      environment:
+        PATH: "{{ ansible_env.PATH }}:/home/{{ ansible_user_id }}/.nvm/versions/node/v{{ install.nvm_node_version }}/bin"
+      community.general.npm: "{{ npm_item }}"
