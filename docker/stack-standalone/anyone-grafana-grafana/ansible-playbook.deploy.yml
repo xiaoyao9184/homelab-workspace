@@ -57,7 +57,7 @@
             mount: "/mnt/nfs/grafana-provisioning"
             option: "vers=4,loud,rw,sync"
             unmount: true
-        mounts: "{{ grafana.nfs_wait if (grafana.nfs_wait | length == 0) else default }}"
+        mounts: "{{ grafana.nfs_wait if (grafana.nfs_wait | length != 0) else default }}"
 
     - name: add external_vol
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-volumes.add.yml"

@@ -103,7 +103,7 @@
     #   include_tasks: "{{ ws.local }}/.seed/ansible-tasks/nfs-mount.wait.yml"
     #   vars:
     #     default: []
-    #     mounts: "{{ gitlab.runner.nfs_wait if (gitlab.runner.nfs_wait | length == 0) else default }}"
+    #     mounts: "{{ gitlab.runner.nfs_wait if (gitlab.runner.nfs_wait | length != 0) else default }}"
 
     # - name: add external_vol
     #   include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-volumes.add.yml"

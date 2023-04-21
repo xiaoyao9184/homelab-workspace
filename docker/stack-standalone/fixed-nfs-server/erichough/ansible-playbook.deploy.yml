@@ -11,12 +11,12 @@
   hosts: docker:&docker-nfs-node
   tasks:
 
-    - name: fail for not support env
+    - name: fail for not support host
       when:
         # - inventory_hostname != 'localhost'
         - ansible_env.WSL_DISTRO_NAME | default('NONE') == 'NONE'
       ansible.builtin.fail:
-        msg: "Only support window wsl2 docker-desktop see {{ dir.local }}/docker-compose-swarm.yml.j2"
+        msg: "Only support window wsl2 docker-desktop see {{ playbook_dir }}/docker-compose-swarm.yml.j2"
 
     - name: set ws
       include_tasks:
