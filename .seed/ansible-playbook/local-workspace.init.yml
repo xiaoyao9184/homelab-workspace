@@ -10,11 +10,11 @@
         $PWD/../../../.seed/ansible-playbook/local-workspace.init.yml
     default:
       package:
-        - stormssh
         - sshpass
         - rsync
         - git
       pip:
+        - stormssh
         - jsondiff
         - jmespath
 
