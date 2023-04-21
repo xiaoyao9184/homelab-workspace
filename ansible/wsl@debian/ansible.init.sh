@@ -1,4 +1,6 @@
 
+PATH=$HOME/.local/bin:$PATH
+
 echo "input local sudo password"
 ansible-playbook \
     --ask-become-pass \

@@ -4,8 +4,11 @@ if [[ -z "$(command -v wslpath)" ]]; then
     sudo apt install gnupg2 apt-transport-https wget
     wget -O - https://pkg.wslutiliti.es/public.key | sudo tee -a /etc/apt/trusted.gpg.d/wslu.asc
 
-    debian_code=$(env -i bash -c '. /etc/os-release ; echo $VERSION_CODENAME')
-    echo "deb https://pkg.wslutiliti.es/debian $debian_code main" | sudo tee -a /etc/apt/sources.list
+    id=$(env -i bash -c '. /etc/os-release ; echo $ID')
+    if [[ "$id" == "debian" ]]; then
+        debian_code=$(env -i bash -c '. /etc/os-release ; echo $VERSION_CODENAME')
+        echo "deb https://pkg.wslutiliti.es/debian $debian_code main" | sudo tee -a /etc/apt/sources.list
+    fi
 
     sudo apt update
     sudo apt install -y wslu
