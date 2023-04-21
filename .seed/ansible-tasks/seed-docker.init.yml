@@ -48,6 +48,12 @@
   retries: 3
   delay: 5
 
+- name: seed-docker.init|add group for docker
+  become: true
+  ansible.builtin.group:
+    name: docker
+    state: present
+
 - name: seed-docker.init|add user to docker
   become: true
   ansible.builtin.user:
