@@ -42,10 +42,12 @@
             o: bind
       vol_push:
         - name: "{{ vol_name }}"
+          remote_src: true
           src: "{{ ws.remote }}/.seed/ansible-playbook/local-port.wait.yml"
           dest: ".seed/ansible-playbook/local-port.wait.yml"
           directory_mode: '0777'
         - name: "{{ vol_name }}"
+          remote_src: true
           src: "{{ ws.remote }}/.seed/ansible-tasks/host-port.wait.yml"
           dest: ".seed/ansible-tasks/host-port.wait.yml"
           directory_mode: '0777'
