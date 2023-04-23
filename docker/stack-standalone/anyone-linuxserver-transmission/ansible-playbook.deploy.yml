@@ -4,6 +4,7 @@
   vars:
     run_wsl: |
       ansible-playbook \
+        --ask-become-pass \
         --inventory $PWD/ansible-inventories \
         $PWD/../../../docker/stack-standalone/anyone-linuxserver-transmission/ansible-playbook.deploy.yml
   environment:

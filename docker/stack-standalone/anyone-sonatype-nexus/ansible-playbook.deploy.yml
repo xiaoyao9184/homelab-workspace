@@ -4,6 +4,7 @@
   vars:
     run_wsl: |
       ansible-playbook \
+        --ask-become-pass \
         --inventory $PWD/ansible-inventories \
         $PWD/../../../docker/stack-standalone/anyone-sonatype-nexus/ansible-playbook.deploy.yml
   environment:
@@ -47,7 +48,7 @@
             mount: "/mnt/nfs/nexus-data"
             option: "vers=4,loud,rw,sync"
             unmount: true
-        mounts: "{{ aria2.nfs_wait if (aria2.nfs_wait | length != 0) else default }}"
+        mounts: "{{ nexus.nfs_wait if (nexus.nfs_wait | length != 0) else default }}"
 
     - name: add external_vol
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-volumes.add.yml"
