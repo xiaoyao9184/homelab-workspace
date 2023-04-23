@@ -39,6 +39,8 @@
         _template_list: "{{ compose.template }}"
 
     - name: docker-compose.add|template file
+      run_once: true
+      delegate_to: "{{ groups['docker-manager'] | first }}"
       loop: "{{ _template_list }}"
       loop_control:
         loop_var: _template_item
