@@ -56,5 +56,5 @@
               src: "{{ dir.local }}/docker-compose.yml.j2"
               dest: "{{ dir.remote }}/docker-compose.yml"
             vars:
-              TOKEN: "{{ traefik.token }}"
+              TOKEN: "{{ traefik.tmp.token }}"
               NETWORKS: "{{ traefik.tmp.networks | default([],true) }}"
