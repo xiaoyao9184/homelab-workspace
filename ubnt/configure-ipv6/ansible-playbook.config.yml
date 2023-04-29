@@ -10,7 +10,7 @@
   hosts: ubnt
   tasks:
 
-    - name: configure ipv6
+    - name: configure slaac ipv6
       vars:
         eth_name: "{{ configure.ipv6.eth_name }}"
         pd_len: "{{ configure.ipv6.pd_len }}"
@@ -19,9 +19,10 @@
         lines:
           - set interfaces ethernet {{ eth_name }} pppoe 0 ipv6 enable
           - set interfaces ethernet {{ eth_name }} pppoe 0 ipv6 address autoconf
-          # - set interfaces ethernet {{ eth_name }} pppoe 0 dhcpv6-pd prefix-only
+          # enable local network ipv6 address
+          - set interfaces ethernet {{ eth_name }} pppoe 0 dhcpv6-pd prefix-only
           - set interfaces ethernet {{ eth_name }} pppoe 0 dhcpv6-pd pd 0 prefix-length {{ pd_len }}
-          # - set interfaces ethernet {{ eth_name }} pppoe 0 dhcpv6-pd pd 0 interface {{ pd_if }} prefix-id ff
+          # hex '1' to max(64 bit - prefix-length) 
           - set interfaces ethernet {{ eth_name }} pppoe 0 dhcpv6-pd pd 0 interface {{ pd_if }} prefix-id 1
           - set interfaces ethernet {{ eth_name }} pppoe 0 dhcpv6-pd pd 0 interface {{ pd_if }} host-address ::1
           - set interfaces ethernet {{ eth_name }} pppoe 0 dhcpv6-pd pd 0 interface {{ pd_if }} service slaac
