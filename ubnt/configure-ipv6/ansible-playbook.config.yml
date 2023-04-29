@@ -24,3 +24,5 @@
           - set interfaces ethernet {{ eth_name }} pppoe 0 dhcpv6-pd pd 0 interface {{ pd_if }} prefix-id 1
           - set interfaces ethernet {{ eth_name }} pppoe 0 dhcpv6-pd pd 0 interface {{ pd_if }} host-address ::1
           - set interfaces ethernet {{ eth_name }} pppoe 0 dhcpv6-pd pd 0 interface {{ pd_if }} service slaac
+          # disable dns from ISP
+          - set interfaces ethernet {{ eth_name }} pppoe 0 dhcpv6-pd pd 0 interface {{ pd_if }} no-dns
