@@ -1,0 +1,16 @@
+---
+
+
+- name: config
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --inventory $PWD/ansible-inventories \
+        $PWD/../../../ubnt/configure-hwnat/ansible-playbook.config.yml
+  hosts: ubnt
+  tasks:
+
+    - name: enable hwnat
+      community.network.edgeos_config:
+        lines:
+          - set system offload hwnat enable
