@@ -1,0 +1,22 @@
+---
+
+- name: run
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --ask-become-pass \
+        --inventory $PWD/ansible-inventories \
+        $PWD/../../../docker/container/cloudflared/ansible-playbook.run.yml
+  environment:
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
+  hosts: "{{ 'docker:&docker-cloudflared-node' if (groups['docker-cloudflared-node'] is defined) else 'docker' }}"
+  tasks:
+
+    - name: run container
+      become: true
+      community.docker.docker_container:
+        detach: true
+        ports: "tunnel --no-autoupdate run --token {{ cloudflared.token }}"
+        name: cloudflared
+        restart_policy: always
+        image: cloudflare/cloudflared:latest
