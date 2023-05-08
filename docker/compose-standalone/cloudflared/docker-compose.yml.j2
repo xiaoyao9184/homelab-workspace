@@ -1,0 +1,25 @@
+version: "3.8"
+
+networks:
+  cloudflared:
+
+volumes:
+  data:
+    name: external_vol-caddy-data
+    external: true
+
+services:
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    command: tunnel --config /home/nonroot/.cloudflared/config.yml
+    env_file: external_env-all.env
+    volumes:
+      - data:/home/nonroot/.cloudflared/
+    networks:
+      - cloudflared
+{% if VARS.NETWORKS | length > 0 %}
+      {{ VARS.NETWORKS | to_nice_yaml(indent=2) | trim | indent(6) }}
+{% endif %}
+    # network_mode: "host"
+    container_name: cloudflared
+    restart: always
