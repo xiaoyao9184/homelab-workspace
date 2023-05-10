@@ -9,6 +9,7 @@
     list: "{{ _networks | default([],true) }}"
     item:
       name: "{{ network.name | default(omit) }}"
+      scope: "{{ network.scope | default(omit) }}"
       retries: "{{ network.retries | default(1000) }}"
       delay: "{{ network.delay | default(10) }}"
       until: "{{ network.until | default(omit) }}"
@@ -25,6 +26,7 @@
     network: "{{ kv.value }}"
     item:
       name: "{{ name | default(omit) }}"
+      scope: "{{ network.scope | default(omit) }}"
       retries: "{{ network.retries | default(1000) }}"
       delay: "{{ network.delay | default(10) }}"
       until: "{{ network.until | default(omit) }}"

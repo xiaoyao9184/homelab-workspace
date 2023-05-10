@@ -1,0 +1,74 @@
+---
+
+- name: test
+  vars:
+    run_debug: |
+      ansible-playbook \
+        -vvv \
+        --inventory $PWD/ansible-inventories \
+        $PWD/../../../test/seed/docker-network.wait/ansible-playbook.test.yml
+    run_normal: |
+      ansible-playbook \
+        --inventory $PWD/ansible-inventories \
+        $PWD/../../../test/seed/docker-network.wait/ansible-playbook.test.yml
+  environment:
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
+  hosts: docker:!docker-manager
+  run_once: true
+  tasks:
+ 
+    - name: clear overlay network
+      delegate_to: "{{ groups['docker-manager'] | first }}"
+      community.docker.docker_network:
+        name: net_test-network-wait
+        state: absent
+        force: true
+
+    - name: clear local network
+      community.docker.docker_network:
+        name: net_test-network-wait2
+        state: absent
+        force: true
+
+
+    - name: create overlay network
+      delegate_to: "{{ groups['docker-manager'] | first }}"
+      community.docker.docker_network:
+        name: net_test-network-wait
+        driver: overlay
+        attachable: true
+
+    - name: wait overlay network
+      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/docker-network.wait.yml"
+      vars:
+        networks:
+          net_test-network-wait:
+            scope: swarm
+            retries: -1
+            delay: 0
+ 
+    - name: delete overlay network
+      delegate_to: "{{ groups['docker-manager'] | first }}"
+      community.docker.docker_network:
+        name: net_test-network-wait
+        state: absent
+        force: true
+
+    - name: create local network
+      community.docker.docker_network:
+        name: net_test-network-wait2
+        attachable: true
+
+    - name: wait local network
+      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/docker-network.wait.yml"
+      vars:
+        networks:
+          net_test-network-wait2:
+            retries: -1
+            delay: 0
+ 
+    - name: delete local network
+      community.docker.docker_network:
+        name: net_test-network-wait2
+        state: absent
+        force: true

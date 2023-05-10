@@ -12,10 +12,13 @@
       ansible.builtin.set_fact:
         _network_loop:
           name: "{{ network.name }}"
+          scope: "{{ network.scope | default(omit) }}"
           retries: "{{ network.retries | default(1000) }}"
           delay: "{{ network.delay | default(10) }}"
           until: "{{ network.until | default(default_until) }}"
           fail: "{{ network.fail | default(default_fail) }}"
+          run_once: "{{ true if(network.scope | default('',true) == 'swarm') else omit }}"
+          delegate_to: "{{ groups['docker-manager'] | first if(network.scope | default('',true) == 'swarm') else omit }}"
 
     - name: docker-network.loop|sleep for first
       when: _network_retry | default(None,true) == None
@@ -23,6 +26,8 @@
         seconds: "{{ _network_loop.delay | int }}"
 
     - name: docker-network.loop|get network info
+      delegate_to: "{{ _network_loop.delegate_to | default(omit) }}"
+      run_once: "{{ _network_loop.run_once | default(false) }}"
       community.docker.docker_network_info:
         name: "{{ _network_loop.name }}"
       register: network_loop_info
