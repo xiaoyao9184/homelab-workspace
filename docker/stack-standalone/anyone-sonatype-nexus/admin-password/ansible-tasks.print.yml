@@ -37,9 +37,9 @@
 - name: admin-password.print|set _password.result
   when:
     - exec_result is defined
-    - exec_result.stdout is defined
+    - exec_result | type_debug == 'list'
   ansible.builtin.set_fact:
-    "{{ _password.result }}": "{{ exec_result .stdout_lines[-1] }}"
+    "{{ _password.result }}": "{{ exec_result | json_query('[].stdout_lines[-1]') }}"
 
 - name: admin-password.print|print _password.result
   debug:
