@@ -116,6 +116,7 @@
         ports:
           - name: "{{ dir.names | join('_') }}"
             network: external_net-jenkins
+            type: stack
             hosts:
               jenkins: 8080
 

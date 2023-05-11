@@ -115,6 +115,7 @@
         ports:
           - name: "{{ dir.names | join('_') }}"
             network: external_net-domoticz
+            type: stack
             hosts:
               domoticz: 8080
 

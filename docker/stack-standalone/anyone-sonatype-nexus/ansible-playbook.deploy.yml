@@ -109,6 +109,7 @@
         ports:
           - name: "{{ dir.names | join('_') }}"
             network: external_net-nexus
+            type: stack
             hosts:
               nexus3: 8081
 
