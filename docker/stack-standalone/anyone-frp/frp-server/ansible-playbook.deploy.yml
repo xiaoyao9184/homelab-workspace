@@ -52,7 +52,7 @@
       vars:
         default:
           external_cfg-frp-server:
-            file: "{{ dir.remote }}/config/frps.ini"
+            file: "{{ dir.remote }}/../config/frps.ini"
         configs: "{{ frp.server.cfg | default(default,true)}}"
 
     # - name: add external_sec
