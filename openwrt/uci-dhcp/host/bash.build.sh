@@ -39,12 +39,8 @@ do
     leasetime=$(echo "$leasetime" | tr -d '"' | tr -d '\r' )
     ip=$(echo "$ip_addr" | tr -d '"' | tr -d '\r' )
     mac=$(echo "$mac" | tr -d '"' | tr -d '\r' )
-    name=$(echo "$comment" | tr -d '"' | tr -d '\r' )
+    name=$(echo "$cl_name" | tr -d '"' | tr -d '\r' )
     hash=$(echo -n "$mac" | gzip -c | tail -c8 | hexdump -n4 -e '"%u"')
-    if [[ -z "$name" ]]
-    then
-        name=$(echo "$cl_name" | tr -d '"' | tr -d '\r' )
-    fi
 
     template=$(cat << EOF
 uci add dhcp host # =cfg${hash}
