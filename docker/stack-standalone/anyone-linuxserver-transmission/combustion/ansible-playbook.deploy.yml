@@ -19,71 +19,66 @@
         apply:
           run_once: true
 
+    - name: set dir
+      include_tasks:
+        file: "{{ ws.local }}/.seed/ansible-tasks/dir.set.yml"
+        apply:
+          run_once: true
+      vars:
+        length: 2
+
     - name: set install url
+      run_once: true
       ansible.builtin.set_fact:
         combustion:
           url: "{{ github.url_prefix | default('') }}https://github.com/Secretmapper/combustion/archive/release.zip"
           archive: "~/.transmission/combustion-release.zip"
           webui: "~/.transmission/combustion-release"
 
-    - name: mkdir archive
+    - name: mkdir archive on localhost
       delegate_to: localhost
+      run_once: true
       ansible.builtin.file:
         path: "~/.transmission"
         state: directory
 
-    - name: stat archive
+    - name: stat archive on localhost
       delegate_to: localhost
+      run_once: true
       ansible.builtin.stat:
         path: "{{ combustion.archive }}"
       register: stat_archive
 
-    - name: download archive
+    - name: download archive on localhost
       delegate_to: localhost
+      run_once: true
       when: not stat_archive.stat.exists
       ansible.builtin.get_url:
         url: "{{ combustion.url }}"
         dest: "{{ combustion.archive }}"
 
-    - when: transmission.combustion.delegate | default(None) == None
-      block:
-
-        - name: mkdir archive on remote
-          ansible.builtin.file:
-            path: "~/.transmission"
-            state: directory
-
-        - name: copy archive to remote
-          ansible.builtin.copy:
-            src: "{{ combustion.archive }}"
-            dest: "{{ combustion.archive }}"
-
-    - name: mkdir webui
-      delegate_to: "{{ transmission.combustion.delegate | default(omit) }}"
+    - name: mkdir webui on localhost
+      delegate_to: localhost
+      run_once: true
       ansible.builtin.file:
         path: "{{ combustion.webui }}"
         state: directory
 
-    - name: unzip archive
-      delegate_to: "{{ transmission.combustion.delegate | default(omit) }}"
+    - name: unzip archive on localhost
+      delegate_to: localhost
+      run_once: true
       ansible.builtin.unarchive:
         src: "{{ combustion.archive }}"
         dest: "{{ combustion.webui }}"
 
     - name: copy webui to volume
-      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-volumes.push.yml"
+      include_tasks: 
+        file: "{{ ws.local }}/.seed/ansible-tasks/docker-volumes.push.yml"
+        apply:
+          run_once: true
       vars:
         volumes:
           external_vol-transmission-config:
-            remote_src: "{{ true if (transmission.combustion.delegate | default(None) == None) else false }}"
             src: "{{ combustion.webui }}/combustion-release/"
             dest: "./webui/combustion/"
             directory_mode: '0744'
-
-    - name: remove webui archive
-      loop:
-        - "{{ combustion.archive }}"
-        - "{{ combustion.webui }}"
-      ansible.builtin.file:
-        path: "{{ item }}"
-        state: absent
