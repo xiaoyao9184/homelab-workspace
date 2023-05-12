@@ -127,7 +127,7 @@
         - name: docker-volume.push|set docker cp by temporary dest
           ansible.builtin.set_fact:
             _volume_container_copy:
-              src: "{{ _volume_temporary_copy.dest }}{{ '' if (_volume_temporary_copy_result.state == 'file') else '/.' }}"
+              src: "{{ _volume_temporary_copy.dest }}{{ '' if (_volume_temporary_copy_result.state | default('',true) == 'file') else '/.' }}"
               dest: "/seed_vol/{{ _volume.cp.dest }}"
             _volume_temporary_copy: !!null
             _volume_temporary_copy_result: !!null
