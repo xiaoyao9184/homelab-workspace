@@ -8,6 +8,5 @@
     "nameserver":"8.8.8.8",
     "mode":"tcp_and_udp",
     "plugin":"v2ray-plugin",
-    // "plugin":"xray-plugin",
     "plugin_opts":"server"
 }
