@@ -20,7 +20,7 @@
 - when: compose.template is defined
   block:
 
-    - name: docker-compose.rm|stack template option
+    - name: docker-compose.add|stack template option
       when: _compose.type == 'stack'
       ansible.builtin.set_fact:
         _template_opt:
