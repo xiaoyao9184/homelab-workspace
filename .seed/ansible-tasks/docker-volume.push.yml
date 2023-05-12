@@ -162,6 +162,12 @@
       retries: 3
       delay: 10
 
+    - name: docker-volume.push|mkdir in container
+      when: _volume_container_copy.dest is regex("\/$")
+      community.docker.docker_container_exec:
+        container: "{{ _volume.name }}"
+        command: "mkdir -p {{ _volume_container_copy.dest }}"
+
     - name: docker-volume.push|copy to container
       ansible.builtin.shell: "docker cp {{ _volume_container_copy.src }} {{ _volume.name }}:/{{ _volume_container_copy.dest }}"
 
