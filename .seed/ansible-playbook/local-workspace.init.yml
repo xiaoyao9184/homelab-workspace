@@ -13,6 +13,7 @@
         - sshpass
         - rsync
         - git
+        - zip
       pip:
         - stormssh
         - jsondiff
