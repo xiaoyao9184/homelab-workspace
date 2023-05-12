@@ -40,7 +40,7 @@
       vars:
         default:
           external_cfg-shadowsocks-go:
-            file: "{{ dir.remote }}/config/go.json"
+            file: "{{ dir.remote }}/../config/go.json"
         configs: "{{ shadowsocks.go.cfg | default(default,true) }}"
 
     - name: build env_file

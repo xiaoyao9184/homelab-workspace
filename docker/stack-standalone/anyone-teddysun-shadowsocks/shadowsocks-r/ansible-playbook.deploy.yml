@@ -40,7 +40,7 @@
       vars:
         default:
           external_cfg-shadowsocks-r:
-            file: "{{ dir.remote }}/config/r.json"
+            file: "{{ dir.remote }}/../config/r.json"
         configs: "{{ shadowsocks.r.cfg | default(default,true) }}"
 
     - name: build env_file

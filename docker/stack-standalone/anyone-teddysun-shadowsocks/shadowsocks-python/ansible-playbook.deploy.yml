@@ -40,7 +40,7 @@
       vars:
         default:
           external_cfg-shadowsocks-python:
-            file: "{{ dir.remote }}/config/libev.json"
+            file: "{{ dir.remote }}/../config/libev.json"
         configs: "{{ shadowsocks.python.cfg | default(default,true) }}"
 
     - name: build env_file

@@ -1,6 +1,6 @@
 {
     "server":"0.0.0.0",
-    "server_port":9000,
+    "server_port":9004,
     "password":"password0",
     "timeout":300,
     "method":"aes-256-gcm",
@@ -8,6 +8,5 @@
     "nameserver":"8.8.8.8",
     "mode":"tcp_and_udp",
     "plugin":"v2ray-plugin",
-    // "plugin":"xray-plugin",
     "plugin_opts":"server"
 }

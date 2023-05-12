@@ -39,8 +39,8 @@
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-configs.add.yml"
       vars:
         default:
-          external_cfg-shadowsocks-r:
-            file: "{{ dir.remote }}/config/rust.json"
+          external_cfg-shadowsocks-rust:
+            file: "{{ dir.remote }}/../config/rust.json"
         configs: "{{ shadowsocks.rust.cfg | default(default,true) }}"
 
     - name: build env_file
