@@ -65,6 +65,12 @@
             driver: local
         volumes: "{{ influxdb.vol | default(default,true) }}"
 
+    - name: push to volume
+      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-volumes.push.yml"
+      vars:
+        default: []
+        volumes: "{{ influxdb.vol_push | default(default,true) }}"
+
     - name: add external_net
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-networks.add.yml"
       vars:
