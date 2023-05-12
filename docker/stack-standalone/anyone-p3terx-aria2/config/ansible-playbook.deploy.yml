@@ -1,0 +1,96 @@
+---
+
+
+- name: deploy
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --inventory $PWD/ansible-inventories \
+        $PWD/../../../docker/stack-standalone/anyone-p3terx-aria2/config/ansible-playbook.deploy.yml
+  environment:
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
+  hosts: "{{ 'docker:&docker-aria2-node' if (groups['docker-aria2-node'] is defined) else 'docker' }}"
+  tasks:
+
+    - name: set ws
+      include_tasks:
+        file: "{{ playbook_dir }}/../../../../.seed/ansible-tasks/ws.set.yml"
+        # https://github.com/ansible/ansible/issues/72099
+        apply:
+          run_once: true
+
+    - name: set dir
+      include_tasks:
+        file: "{{ ws.local }}/.seed/ansible-tasks/dir.set.yml"
+        apply:
+          run_once: true
+      vars:
+        length: 2
+
+    - name: mkdir .aria2 on localhost
+      delegate_to: localhost
+      run_once: true
+      ansible.builtin.file:
+        path: "~/.aria2"
+        state: directory
+
+    # - name: git clone on localhost
+    #   delegate_to: localhost
+    #   run_once: true
+    #   ansible.builtin.git:
+    #     repo: "{{ github.url_prefix | default('') }}https://github.com/P3TERX/aria2.conf.git"
+    #     dest: "~/.aria2/aria2.conf"
+
+    - name: find aria2.conf script on localhost
+      delegate_to: localhost
+      run_once: true
+      ansible.builtin.find:
+        paths: "~/.aria2/aria2.conf"
+        patterns:
+          - '*.sh'
+          - 'core'
+      register: file_script_copy
+
+    - name: find aria2.conf script on localhost
+      delegate_to: localhost
+      run_once: true
+      ansible.builtin.find:
+        paths: "~/.aria2/aria2.conf"
+        use_regex: true
+        patterns: '^(?!.*\.sh)(?!core).*'
+      register: file_other_copy
+
+    - name: mkdir aria2.conf.temp on localhost
+      delegate_to: localhost
+      run_once: true
+      ansible.builtin.file:
+        path: "~/.aria2/aria2.conf.temp/script"
+        state: directory
+
+    - name: copy aria2.conf.temp script on localhost
+      delegate_to: localhost
+      run_once: true
+      loop: "{{ file_script_copy.files }}"
+      ansible.builtin.copy:
+        src: "{{ item.path }}"
+        dest: "~/.aria2/aria2.conf.temp/script"
+
+    - name: copy aria2.conf other on localhost
+      delegate_to: localhost
+      run_once: true
+      loop: "{{ file_other_copy.files }}"
+      ansible.builtin.copy:
+        src: "{{ item.path }}"
+        dest: "~/.aria2/aria2.conf.temp/"
+    
+    - name: copy aria2.conf.temp temp to volume
+      include_tasks:
+        file: "{{ ws.local }}/.seed/ansible-tasks/docker-volumes.push.yml"
+        apply:
+          run_once: true
+      vars:
+        volumes:
+          external_vol-aria2-config:
+            src: "~/.aria2/aria2.conf.temp/"
+            dest: "./"
+            directory_mode: '0744'
