@@ -19,10 +19,19 @@
         apply:
           run_once: true
 
+    - name: set dir
+      include_tasks:
+        file: "{{ ws.local }}/.seed/ansible-tasks/dir.set.yml"
+        apply:
+          run_once: true
+      vars:
+        length: 2
+
     - when: transmission.transmissionic.version is defined
       block:
 
         - name: set install url by inventory
+          run_once: true
           vars:
             _ver: "{{ transmission.transmissionic.version }}"
           ansible.builtin.set_fact:
@@ -37,12 +46,14 @@
 
         - name: get github latest release
           delegate_to: localhost
+          run_once: true
           ansible.builtin.uri:
             url: "https://api.github.com/repos/6c65726f79/Transmissionic/releases/latest"
             return_content: true
           register: json_reponse
 
         - name: set install url by github
+          run_once: true
           vars:
             _ver: "{{ json_reponse.json.name }}"
             _webui_assets: "{{ json_reponse.json.assets | selectattr('name', 'match', 'Transmissionic-webui') }}"
@@ -54,64 +65,50 @@
               webui: "~/.transmission/Transmissionic-webui-{{ _ver }}"
               delegate: "{{ transmission.transmissionic.delegate | default(None) }}"
 
-    - name: mkdir archive
+    - name: mkdir .transmission on localhost
       delegate_to: localhost
+      run_once: true
       ansible.builtin.file:
         path: "~/.transmission"
         state: directory
 
-    - name: stat archive
+    - name: stat archive on localhost
       delegate_to: localhost
+      run_once: true
       ansible.builtin.stat:
         path: "{{ transmissionic.archive }}"
       register: stat_archive
 
-    - name: download archive
+    - name: download archive on localhost
       delegate_to: localhost
+      run_once: true
       when: not stat_archive.stat.exists
       ansible.builtin.get_url:
         url: "{{ transmissionic.url }}"
         dest: "{{ transmissionic.archive }}"
 
-    - when: transmission.transmissionic.delegate | default(None) == None
-      block:
-
-        - name: mkdir archive on remote
-          ansible.builtin.file:
-            path: "~/.transmission"
-            state: directory
-
-        - name: copy archive to remote
-          ansible.builtin.copy:
-            src: "{{ transmissionic.archive }}"
-            dest: "{{ transmissionic.archive }}"
-
-    - name: mkdir webui
-      delegate_to: "{{ transmission.transmissionic.delegate | default(omit) }}"
+    - name: mkdir webui on localhost
+      delegate_to: localhost
+      run_once: true
       ansible.builtin.file:
         path: "{{ transmissionic.webui }}"
         state: directory
 
-    - name: unzip archive
-      delegate_to: "{{ transmission.transmissionic.delegate | default(omit) }}"
+    - name: unzip archive on localhost
+      delegate_to: localhost
+      run_once: true
       ansible.builtin.unarchive:
         src: "{{ transmissionic.archive }}"
         dest: "{{ transmissionic.webui }}"
 
     - name: copy webui to volume
-      include_tasks: "{{ ws.local }}/.seed/ansible-tasks/docker-volumes.push.yml"
+      include_tasks:
+        file: "{{ ws.local }}/.seed/ansible-tasks/docker-volumes.push.yml"
+        apply:
+          run_once: true
       vars:
         volumes:
           external_vol-transmission-config:
-            remote_src: "{{ true if (transmission.transmissionic.delegate | default(None) == None) else false }}"
             src: "{{ transmissionic.webui }}/web/"
             dest: "./webui/transmissionic/"
             directory_mode: '0744'
-
-    - name: remove webui archive
-      loop:
-        - "{{ transmissionic.archive }}"
-        - "{{ transmissionic.webui }}"
-      ansible.builtin.file:
-        path: "{{ item }}"
-        state: absent
