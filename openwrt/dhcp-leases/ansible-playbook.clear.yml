@@ -1,0 +1,26 @@
+---
+
+
+- name: clear
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --inventory $PWD/ansible-inventories \
+        $PWD/../../../openwrt/dhcp-leases/ansible-playbook.clear.yml
+  hosts: openwrt
+  roles:
+    - gekmihesg.openwrt
+  tasks:
+
+    - name: get leases file
+      ansible.builtin.shell: uci get dhcp.@dnsmasq[0].leasefile
+      register: file_leases
+
+    - name: empty leases file
+      ansible.builtin.shell: "> {{ file_leases.stdout }}"
+
+    - name: restart dnsmasq
+      service:
+        name: dnsmasq
+        state: restarted
+        enabled: yes
