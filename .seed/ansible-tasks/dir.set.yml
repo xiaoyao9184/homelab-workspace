@@ -124,4 +124,5 @@
       ansible.builtin.set_fact:
         _current_local_dir: "{{ _current_local_dir | dirname }}"
 
-    - include_tasks: dir.set.yml
+    - run_once: false
+      include_tasks: dir.set.yml

@@ -110,4 +110,5 @@
       ansible.builtin.set_fact:
         _current_local_ws: "{{ _current_local_ws | dirname }}"
 
-    - include_tasks: ws.set.yml
+    - run_once: false
+      include_tasks: ws.set.yml
