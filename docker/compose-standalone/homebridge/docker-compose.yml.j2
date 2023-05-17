@@ -1,0 +1,39 @@
+version: '3.8'
+
+volumes:
+  data:
+    name: external_vol-homebridge-data
+    external: true
+
+networks:
+  homebridge:
+
+services:
+  homebridge:
+    image: oznu/homebridge:ubuntu
+    env_file: external_env-all.env
+    # environment:
+    #   - PGID=1000
+    #   - PUID=1000
+    volumes:
+      - data:/homebridge
+      - {{ VARS.BIND_CONF }}:/homebridge/config.json
+    networks:
+{% if VARS.NETWORKS | type_debug == "dict" %}
+      homebridge:
+{% else %}
+      - homebridge
+{% endif %}
+{% if VARS.PORTS | length > 0 %}
+    ports:
+    #   - "8581:8581"
+    #   - "52100-52150:52100-52150"
+      {{ VARS.PORTS | to_nice_yaml(indent=2) | trim | indent(6) }}
+{% endif %}
+{% if VARS.DEVICES | length > 0 %}
+    devices:
+      {{ VARS.DEVICES | to_nice_yaml(indent=2) | trim | indent(6) }}
+{% endif %}
+    # network_mode: "host"
+    container_name: homebridge
+    restart: always
