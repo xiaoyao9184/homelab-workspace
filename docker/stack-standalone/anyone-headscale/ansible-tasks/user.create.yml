@@ -2,63 +2,76 @@
 
 
 - name: user.create|set _user
+  run_once: true
   vars:
+    name_default: anyone-headscale_headscale
     wait_default:
-      name: anyone-headscale_headscale
+      name: "{{ name_default }}"
       retries: -1
       delay: 0
     wait_update: "{{ user.wait | default({}) }}"
-    exec_default:
-      name: anyone-headscale_headscale
-      command: []
-      result: exec_result
-    exec_update: "{{ user.exec | default({}) }}"
   ansible.builtin.set_fact:
     _user:
       ws: "{{ user.ws }}"
       wait: "{{ wait_default | combine(wait_update, recursive=True) }}"
-      name: "{{ user.name | default(['default']) }}"
-      exec: "{{ exec_default | combine(exec_update, recursive=True) }}"
+      name: "{{ user.name | default(name_default) }}"
+      # create param
+      #   [user]
+      param: "{{ user.param | default(['default']) }}"
+      # create command
+      #   param: [user]
+      #   command: ""
+      command: []
       result: "{{ user.result | default('create_result') }}"
 
 - name: user.create|wait service
-  include_tasks: "{{ _user.ws.local }}/.seed/ansible-tasks/docker-service.wait.yml"
   vars:
     services:
       - "{{ _user.wait }}"
+  include_tasks: "{{ _user.ws.local }}/.seed/ansible-tasks/docker-service.wait.yml"
 
-- name: user.create|append _user.exec
-  loop: "{{ _user.name }}"
+- name: user.create|map _user.param to command
+  run_once: true
+  loop: "{{ _user.param }}"
   vars:
-    command_list: "{{ _user.exec.command | default([],true) }}"
-    command_item: "headscale user create {{ item }}"
+    command_list: "{{ _user.command | default([],true) }}"
+    command_item:
+      param: "{{ item }}"
+      command: "headscale user create {{ item }}"
     update:
-      exec:
-        command: "{{ command_list + [command_item] }}"
+      command: "{{ command_list + [command_item] }}"
   ansible.builtin.set_fact:
     _user: "{{ _user | combine(update, recursive=True) }}"
 
 - name: user.create|print _user
+  run_once: true
   debug:
     var: _user
 
-- name: user.create|exec service
-  include_tasks: "{{ _user.ws.local }}/.seed/ansible-tasks/docker-service.exec.yml"
+- name: user.create|batch create user
   vars:
-    service: "{{ _user.exec }}"
+    service:
+      name: "{{ _user.name }}"
+      command: "{{ _user.command | map(attribute='command') }}"
+      result: _user_create_result
+  when: service.command | length > 0
+  include_tasks: "{{ _user.ws.local }}/.seed/ansible-tasks/docker-service.exec.yml"
 
-# exec_result results item is command
+# _user_create_result item is command
 - name: user.create|set _user.result
-  when:
-    - exec_result is defined
-    - exec_result.results is defined
+  run_once: true
+  vars:
+    list: "{{ _user_create_result | json_query('[].{key: item,value: stdout_lines[-1]}') | default([],true) }}"
   ansible.builtin.set_fact:
-    "{{ _user.result }}": "{{ exec_result | json_query('results[].{key: item,value: stdout_lines[-1]}') | items2dict }}"
+    "{{ _user.result }}": "{{ list }}"
+    _user_create_result: !!null
 
 - name: user.create|print _user.result
+  run_once: true
   debug:
     var: "{{ _user.result }}"
 
 - name: user.create|reset _user
+  run_once: true
   ansible.builtin.set_fact:
     _user: !!null

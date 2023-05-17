@@ -8,28 +8,33 @@
         $PWD/../../../docker/stack-standalone/anyone-headscale/headscale/preauthkey/ansible-playbook.expire.yml
   vars_prompt:
     - name: preauthkey_key
-      prompt: What key preauthkey for expire(split ',' format {key} | @{user})?
+      prompt: What key preauthkey for expire(split ',' format {key} | @{user} empty all)?
       private: no
-      default:
+      default: ''
   environment:
     PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
   hosts: "{{ 'docker:&docker-headscale-node' if (groups['docker-headscale-node'] is defined) else 'docker' }}"
   tasks:
 
     - name: set key user
+      run_once: true
       ansible.builtin.set_fact:
         _preauthkey_expire_list: "{{ preauthkey_key | split(',') | select() }}"
         _preauthkey_key_user_list: []
 
     - name: format key user
+      run_once: true
       loop: "{{ _preauthkey_expire_list }}"
       vars:
-        _item_split: "{{ item | split('@') }}"
-        _item:
-          key: "{{ _item_split[0] | default(omit) }}"
-          user: "{{ _item_split[1] if (_item_split | length == 2) else 'default' }}"
+        item_split: "{{ item | split('@') }}"
+        item_key: "{{ item_split[0] }}"
+        item_user: "{{ item_split[1] if (item_split | length == 2) else '' }}"
+        item_obj:
+          key: "{{ item_key | default(omit,true) }}"
+          user: "{{ item_user | default('default',true) }}"
+      when: item_obj.key is defined or item_obj.user is defined
       ansible.builtin.set_fact:
-        _preauthkey_key_user_list: "{{ _preauthkey_key_user_list + [_item] }}"
+        _preauthkey_key_user_list: "{{ _preauthkey_key_user_list + [item_obj] }}"
 
     - name: set ws
       include_tasks:
@@ -64,5 +69,5 @@
       vars:
         preauthkey:
           ws: "{{ ws }}"
-          key_user: "{{ _preauthkey_key_user_list | select() }}"
+          param: "{{ _preauthkey_key_user_list | select() }}"
           result: preauthkey_result

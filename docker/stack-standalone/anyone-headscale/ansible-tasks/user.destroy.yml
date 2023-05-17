@@ -2,83 +2,99 @@
 
 
 - name: user.destroy|set _user
+  run_once: true
   vars:
+    name_default: anyone-headscale_headscale
     wait_default:
-      name: anyone-headscale_headscale
+      name: "{{ name_default }}"
       retries: -1
       delay: 0
     wait_update: "{{ user.wait | default({}) }}"
-    exec_default:
-      name: anyone-headscale_headscale
-      command: []
-      result: exec_result
-    exec_update: "{{ user.exec | default({}) }}"
   ansible.builtin.set_fact:
     _user:
       ws: "{{ user.ws }}"
       wait: "{{ wait_default | combine(wait_update, recursive=True) }}"
-      list_command: "headscale user list -o json"
-      name: "{{ user.name | default([]) | select() }}"
-      exec: "{{ exec_default | combine(exec_update, recursive=True) }}"
+      name: "{{ user.name | default(name_default) }}"
+      # destroy param
+      #   [user]
+      param: "{{ user.param | default([]) | select() }}"
+      # destroy command
+      #   param: [user]
+      #   command: ""
+      command: []
       result: "{{ user.result | default('expire_result') }}"
 
-- name: user.create|wait service
-  include_tasks: "{{ _user.ws.local }}/.seed/ansible-tasks/docker-service.wait.yml"
+- name: user.destroy|wait service
   vars:
     services:
       - "{{ _user.wait }}"
+  include_tasks: "{{ _user.ws.local }}/.seed/ansible-tasks/docker-service.wait.yml"
 
-- when: _user.name | length == 0
+# autofill all user to parameters
+- when: _user.param | length == 0
   block:
 
     - name: user.destroy|list user
-      include_tasks: "{{ _user.ws.local }}/.seed/ansible-tasks/docker-service.exec.yml"
       vars:
         service:
-          name: "{{ _user.exec.name }}"
-          command: "{{ _user.list_command }}"
-          result: list_result
+          name: "{{ _user.name }}"
+          command: headscale user list -o json
+          result: _user_list_user_result
+      include_tasks: "{{ _user.ws.local }}/.seed/ansible-tasks/docker-service.exec.yml"
 
-    - name: user.destroy|set _user.name
+    - name: user.destroy|append user to _user.param
+      run_once: true
       vars:
+        user_result: "{{ _user_list_user_result | map(attribute='stdout') | map('from_json') | flatten }}"
+        user_param: "{{ user_result | json_query('[].name') | default([],true) }}"
         update:
-          name: "{{ list_result.stdout | from_json | json_query('[].name') | default([],true) }}"
+          param: "{{ _user.param + user_param }}"
       ansible.builtin.set_fact:
         _user: "{{ _user | combine(update, recursive=True) }}"
+        _user_list_user_result: !!null
 
-- name: user.destroy|append _user.exec
-  loop: "{{ _user.name }}"
+- name: user.destroy|map _user.param to command
+  run_once: true
+  loop: "{{ _user.param }}"
   vars:
-    command_list: "{{ _user.exec.command | default([],true) }}"
-    command_item: "headscale user destroy {{ item }} --force"
+    command_list: "{{ _user.command | default([],true) }}"
+    command_item:
+      param: "{{ item }}"
+      command: "headscale user destroy {{ item }} --force"
     update:
-      exec:
-        command: "{{ command_list + [command_item] }}"
-  when: item != ''
+      command: "{{ command_list + [command_item] }}"
   ansible.builtin.set_fact:
     _user: "{{ _user | combine(update, recursive=True) }}"
 
 - name: user.destroy|print _user
+  run_once: true
   debug:
     var: _user
 
-- name: user.destroy|exec service
-  include_tasks: "{{ _user.ws.local }}/.seed/ansible-tasks/docker-service.exec.yml"
+- name: user.destroy|batch destroy user
   vars:
-    service: "{{ _user.exec }}"
+    service:
+      name: "{{ _user.name }}"
+      command: "{{ _user.command | map(attribute='command') }}"
+      result: _user_destroy_result
+  when: service.command | length > 0
+  include_tasks: "{{ _user.ws.local }}/.seed/ansible-tasks/docker-service.exec.yml"
 
-# exec_result results item is command
+# _user_destroy_result item is command
 - name: user.destroy|set _user.result
-  when:
-    - exec_result is defined
-    - exec_result.results is defined
+  run_once: true
+  vars:
+    list: "{{ _user_destroy_result | json_query('[].{key: item,value: stdout_lines[-1]}') | default([],true) }}"
   ansible.builtin.set_fact:
-    "{{ _user.result }}": "{{ exec_result | json_query('results[].{key: item,value: stdout_lines[-1]}') | items2dict }}"
+    "{{ _user.result }}": "{{ list }}"
+    _user_destroy_result: !!null
 
 - name: user.destroy|print _user.result
+  run_once: true
   debug:
     var: "{{ _user.result }}"
 
 - name: user.destroy|reset _user
+  run_once: true
   ansible.builtin.set_fact:
     _user: !!null

@@ -17,19 +17,24 @@
   tasks:
 
     - name: set key
+      run_once: true
       ansible.builtin.set_fact:
         _node_register_list: "{{ node_key | split(',') | select() }}"
         _node_key_user_list: []
 
     - name: format key
+      run_once: true
       loop: "{{ _node_register_list }}"
       vars:
-        _item_split: "{{ item | split('@') }}"
-        _item:
-          key: "{{ _item_split[0] }}"
-          user: "{{ _item_split[1] if (_item_split | length == 2) else 'default' }}"
+        item_split: "{{ item | split('@') }}"
+        item_key: "{{ item_split[0] }}"
+        item_user: "{{ item_split[1] if (item_split | length == 2) else '' }}"
+        item_obj:
+          key: "{{ item_key | default(omit,true) }}"
+          user: "{{ item_user | default('default',true) }}"
+      when: item_obj.key is defined
       ansible.builtin.set_fact:
-        _node_key_user_list: "{{ _node_key_user_list + [_item] }}"
+        _node_key_user_list: "{{ _node_key_user_list + [item_obj] }}"
 
     - name: set ws
       include_tasks:
@@ -64,5 +69,5 @@
       vars:
         node:
           ws: "{{ ws }}"
-          key_user: "{{ _node_key_user_list }}"
+          param: "{{ _node_key_user_list }}"
           result: node_result

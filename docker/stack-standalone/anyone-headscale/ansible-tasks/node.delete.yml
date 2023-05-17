@@ -2,118 +2,145 @@
 
 
 - name: node.delete|set _node
+  run_once: true
   vars:
+    name_default: anyone-headscale_headscale
     wait_default:
-      name: anyone-headscale_headscale
+      name: "{{ name_default }}"
       retries: -1
       delay: 0
     wait_update: "{{ node.wait | default({}) }}"
-    exec_default:
-      name: anyone-headscale_headscale
-      command: []
-      result: exec_result
-    exec_update: "{{ node.exec | default({}) }}"
   ansible.builtin.set_fact:
     _node:
       ws: "{{ node.ws }}"
       wait: "{{ wait_default | combine(wait_update, recursive=True) }}"
-      list_command: []
-      id: "{{ node.id | default([]) }}"
-      user: "{{ node.user | default([]) }}"
-      exec: "{{ exec_default | combine(exec_update, recursive=True) }}"
+      name: "{{ node.name | default(name_default) }}"
+      # delete param
+      #   id: ""
+      #   user: ""
+      param: "{{ node.param | default([]) | select() }}"
+      # delete command
+      #   param:
+      #     id: ""
+      #     user: ""
+      #   command: ""
+      command: []
       result: "{{ node.result | default('expire_result') }}"
 
 - name: node.delete|wait service
-  include_tasks: "{{ _node.ws.local }}/.seed/ansible-tasks/docker-service.wait.yml"
   vars:
     services:
       - "{{ _node.wait }}"
+  include_tasks: "{{ _node.ws.local }}/.seed/ansible-tasks/docker-service.wait.yml"
 
-- when:
-    - _node.id | length == 0
-    - _node.user | length == 0
+# autofill all user to parameters
+- when: _node.param | length == 0
   block:
 
     - name: node.delete|list user
-      include_tasks: "{{ _node.ws.local }}/.seed/ansible-tasks/docker-service.exec.yml"
       vars:
         service:
-          name: "{{ _node.exec.name }}"
-          command: "headscale user list -o json"
-          result: list_result
+          name: "{{ _node.name }}"
+          command: headscale user list -o json
+          result: _node_list_user_result
+      include_tasks: "{{ _node.ws.local }}/.seed/ansible-tasks/docker-service.exec.yml"
 
-    - name: node.delete|append _node.user
+    - name: node.delete|append user to _node.param
+      run_once: true
       vars:
-        user: "{{ list_result.stdout | from_json | json_query('[].name') | default([],true) }}"
+        user_result: "{{ _node_list_user_result | map(attribute='stdout') | map('from_json') | flatten }}"
+        user_param: "{{ user_result | json_query('[].{user: name}') | default([],true) }}"
         update:
-          user: "{{ user }}"
+          param: "{{ _node.param + user_param }}"
       ansible.builtin.set_fact:
         _node: "{{ _node | combine(update, recursive=True) }}"
+        _node_list_user_result: !!null
 
-- when: _node.user | length > 0
+# separate no 'id' parameters
+- when: _node.param | selectattr('id','undefined') | length > 0
   block:
 
-    - name: node.delete|append _node.list_command
-      loop: "{{ _node.user }}"
+    - name: node.delete|map user to list user preauthkey command
+      run_once: true
+      loop: "{{ _node.param | selectattr('id','undefined') }}"
       vars:
-        command_list: "{{ _node.list_command | default([],true) }}"
-        command_item: "headscale node list -u {{ item }} -o json"
-        update:
-          list_command: "{{ command_list + [command_item] }}"
+        command_item: "headscale node list -u {{ item.user }} -o json"
+        command_list: "{{ _node_by_user_command | default([],true) }}"
+      when: item.user | default(None,true) != None
       ansible.builtin.set_fact:
-        _node: "{{ _node | combine(update, recursive=True) }}"
+        _node_by_user_command: "{{ command_list + [command_item] }}"
 
-    - name: node.delete|list node
-      include_tasks: "{{ _node.ws.local }}/.seed/ansible-tasks/docker-service.exec.yml"
+    - name: node.delete|batch list user node
       vars:
         service:
-          name: "{{ _node.exec.name }}"
-          command: "{{ _node.list_command }}"
-          result: list_result
+          name: "{{ _node.name }}"
+          command: "{{ _node_by_user_command }}"
+          result: _node_list_id_result
+      when: service.command | default(None,true) != None
+      include_tasks: "{{ _node.ws.local }}/.seed/ansible-tasks/docker-service.exec.yml"
 
-    - name: _node.delete|append _node.id
-      loop: "{{ list_result.results }}"
-      when: item.stdout != 'null'
+    - name: node.delete|append id,user to _node.param
+      run_once: true
       vars:
-        id: "{{ item.stdout | from_json | json_query('[].id') | default([],true) }}"
+        node_result: "{{ _node_list_id_result | map(attribute='stdout') | map('from_json') | flatten }}"
+        node_param: "{{ node_result | json_query('[].{id: id, user: user.name}') | default([],true) }}"
         update:
-          id: "{{ _node.id + id }}"
+          param: "{{ _node.param + node_param }}"
       ansible.builtin.set_fact:
         _node: "{{ _node | combine(update, recursive=True) }}"
 
-- name: node.expire|append _node.exec
-  loop: "{{ _node.id }}"
+    - name: node.delete|remove user from _user.param
+      run_once: true
+      vars:
+        update:
+          param: "{{ _node.param | selectattr('id','defined') }}"
+      ansible.builtin.set_fact:
+        _node: "{{ _node | combine(update, recursive=True) }}"
+        _node_by_user_command: !!null
+        _node_list_id_result: !!null
+
+- name: node.expire|map _node.param to command
+  run_once: true
+  loop: "{{ _node.param }}"
   vars:
-    command_list: "{{ _node.exec.command | default([],true) }}"
-    command_item: "headscale node delete --identifier {{ item }} --force"
+    command_list: "{{ _node.command | default([],true) }}"
+    command_item:
+      param: "{{ item }}"
+      command: "headscale node delete --identifier {{ item.id }} --force"
     update:
-      exec:
-        command: "{{ command_list + [command_item] }}"
-  when: item != ''
+      command: "{{ command_list + [command_item] }}"
   ansible.builtin.set_fact:
     _node: "{{ _node | combine(update, recursive=True) }}"
 
 - name: node.delete|print _node
+  run_once: true
   debug:
     var: _node
 
-- name: node.delete|exec service
-  include_tasks: "{{ _node.ws.local }}/.seed/ansible-tasks/docker-service.exec.yml"
+- name: node.delete|batch delete node
   vars:
-    service: "{{ _node.exec }}"
+    service:
+      name: "{{ _node.name }}"
+      command: "{{ _node.command | map(attribute='command') }}"
+      result: _node_delete_result
+  when: service.command | length > 0
+  include_tasks: "{{ _node.ws.local }}/.seed/ansible-tasks/docker-service.exec.yml"
 
-# exec_result results item is command not param
+# _node_delete_result item is command
 - name: node.delete|set _node.result
-  when:
-    - exec_result is defined
-    - exec_result.results is defined
+  run_once: true
+  vars:
+    list: "{{ _node_delete_result | json_query('[].{key: item,value: stdout_lines[-1]}') | default([],true) }}"
   ansible.builtin.set_fact:
-    "{{ _node.result }}": "{{ exec_result | json_query('results[].{key: item,value: stdout_lines[-1]}') | items2dict }}"
+    "{{ _node.result }}": "{{ list }}"
+    _node_delete_result: !!null
 
 - name: node.delete|print _node.result
+  run_once: true
   debug:
     var: "{{ _node.result }}"
 
 - name: node.delete|reset _node
+  run_once: true
   ansible.builtin.set_fact:
     _node: !!null

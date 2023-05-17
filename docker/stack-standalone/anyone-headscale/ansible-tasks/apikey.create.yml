@@ -2,63 +2,76 @@
 
 
 - name: apikey.create|set _apikey
+  run_once: true
   vars:
+    name_default: anyone-headscale_headscale
     wait_default:
-      name: anyone-headscale_headscale
+      name: "{{ name_default }}"
       retries: -1
       delay: 0
     wait_update: "{{ apikey.wait | default({}) }}"
-    exec_default:
-      name: anyone-headscale_headscale
-      command: []
-      result: exec_result
-    exec_update: "{{ apikey.exec | default({}) }}"
   ansible.builtin.set_fact:
     _apikey:
       ws: "{{ apikey.ws }}"
       wait: "{{ wait_default | combine(wait_update, recursive=True) }}"
-      count: "{{ apikey.count | default(1) }}"
-      exec: "{{ exec_default | combine(exec_update, recursive=True) }}"
-      result: "{{ apikey.result | default('create_result') }}"
+      name: "{{ apikey.name | default(name_default) }}"
+      # create param
+      #   count
+      param: "{{ apikey.param | default(1) }}"
+      # create command
+      #   param: count
+      #   command: ""
+      command: []
+      result: "{{ user.result | default('create_result') }}"
 
 - name: apikey.create|wait service
-  include_tasks: "{{ _apikey.ws.local }}/.seed/ansible-tasks/docker-service.wait.yml"
   vars:
     services:
       - "{{ _apikey.wait }}"
+  include_tasks: "{{ _apikey.ws.local }}/.seed/ansible-tasks/docker-service.wait.yml"
 
 - name: apikey.create|append _apikey.exec
-  loop: "{{ range(0, (_apikey.count | int), 1) | list }}"
+  run_once: true
+  loop: "{{ range(0, (_apikey.param | int), 1) | list }}"
   vars:
-    command_list: "{{ _apikey.exec.command | default([],true) }}"
-    command_item: "headscale apikey create"
+    command_list: "{{ _apikey.command | default([],true) }}"
+    command_item:
+      param: "{{ item }}"
+      command: "headscale apikey create"
     update:
-      exec:
-        command: "{{ command_list + [command_item] }}"
+      command: "{{ command_list + [command_item] }}"
   ansible.builtin.set_fact:
     _apikey: "{{ _apikey | combine(update, recursive=True) }}"
 
 - name: apikey.create|print _apikey
+  run_once: true
   debug:
     var: _apikey
 
-- name: apikey.create|exec service
-  include_tasks: "{{ _apikey.ws.local }}/.seed/ansible-tasks/docker-service.exec.yml"
+- name: apikey.create|batch create apikey
   vars:
-    service: "{{ _apikey.exec }}"
+    service:
+      name: "{{ _apikey.name }}"
+      command: "{{ _apikey.command | map(attribute='command') }}"
+      result: _apikey_create_result
+  when: service.command | length > 0
+  include_tasks: "{{ _apikey.ws.local }}/.seed/ansible-tasks/docker-service.exec.yml"
 
-# exec_result results item is command
+# _apikey_create_result item is command
 - name: apikey.create|set _apikey.result
-  when:
-    - exec_result is defined
-    - exec_result.results is defined
+  run_once: true
+  vars:
+    list: "{{ _apikey_create_result | json_query('[].{key: item,value: stdout_lines[-1]}') | default([],true) }}"
   ansible.builtin.set_fact:
-    "{{ _apikey.result }}": "{{ exec_result | json_query('results[].stdout_lines[-1]') }}"
+    "{{ _apikey.result }}": "{{ list }}"
+    _apikey_create_result: !!null
 
 - name: apikey.create|print _apikey.result
+  run_once: true
   debug:
     var: "{{ _apikey.result }}"
 
 - name: apikey.create|reset _apikey
+  run_once: true
   ansible.builtin.set_fact:
     _apikey: !!null

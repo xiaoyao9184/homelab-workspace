@@ -8,7 +8,7 @@
         $PWD/../../../docker/stack-standalone/anyone-headscale/headscale/preauthkey/ansible-playbook.create.yml
   vars_prompt:
     - name: preauthkey_expire
-      prompt: What expire preauthkey for create(split ',' format {expire}[@{user}])?
+      prompt: What expire preauthkey for create(split ',' format {expire}[@{user}] empty user mean default)?
       private: no
       default: 240h@default
   environment:
@@ -17,19 +17,24 @@
   tasks:
 
     - name: set expire
+      run_once: true
       ansible.builtin.set_fact:
         _preauthkey_create_list: "{{ preauthkey_expire | split(',') | select() }}"
         _preauthkey_expire_user_list: []
 
     - name: format expire
+      run_once: true
       loop: "{{ _preauthkey_create_list }}"
       vars:
-        _item_split: "{{ item | split('@') }}"
-        _item:
-          expire: "{{ _item_split[0] | default('1h',true) }}"
-          user: "{{ _item_split[1] if (_item_split | length == 2) else 'default' }}"
+        item_split: "{{ item | split('@') }}"
+        item_expire: "{{ item_split[0] }}"
+        item_user: "{{ item_split[1] if (item_split | length == 2) else '' }}"
+        item_obj:
+          expire: "{{ item_expire | default('1h',true) }}"
+          user: "{{ item_user | default('default',true) }}"
+      when: item_obj.expire is defined
       ansible.builtin.set_fact:
-        _preauthkey_expire_user_list: "{{ _preauthkey_expire_user_list + [_item] }}"
+        _preauthkey_expire_user_list: "{{ _preauthkey_expire_user_list + [item_obj] }}"
 
     - name: set ws
       include_tasks:
@@ -64,5 +69,5 @@
       vars:
         preauthkey:
           ws: "{{ ws }}"
-          expire_user: "{{ _preauthkey_expire_user_list }}"
+          param: "{{ _preauthkey_expire_user_list }}"
           result: preauthkey_result

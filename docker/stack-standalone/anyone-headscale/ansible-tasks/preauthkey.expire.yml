@@ -2,126 +2,145 @@
 
 
 - name: preauthkey.expire|set _preauthkey
+  run_once: true
   vars:
+    name_default: anyone-headscale_headscale
     wait_default:
-      name: anyone-headscale_headscale
+      name: "{{ name_default }}"
       retries: -1
       delay: 0
     wait_update: "{{ preauthkey.wait | default({}) }}"
-    exec_default:
-      name: anyone-headscale_headscale
-      command: []
-      result: exec_result
-    exec_update: "{{ preauthkey.exec | default({}) }}"
   ansible.builtin.set_fact:
     _preauthkey:
       ws: "{{ preauthkey.ws }}"
       wait: "{{ wait_default | combine(wait_update, recursive=True) }}"
-      list_command: []
-      key_user: "{{ preauthkey.key_user | default([]) | select() }}"
-      exec: "{{ exec_default | combine(exec_update, recursive=True) }}"
+      name: "{{ preauthkey.name | default(name_default) }}"
+      # expire param
+      #   key: ""
+      #   user: ""
+      param: "{{ preauthkey.param | default([]) | select() }}"
+      # expire command
+      #   param:
+      #     key: ""
+      #     user: ""
+      #   command: ""
+      command: []
       result: "{{ preauthkey.result | default('expire_result') }}"
 
 - name: preauthkey.expire|wait service
-  include_tasks: "{{ _preauthkey.ws.local }}/.seed/ansible-tasks/docker-service.wait.yml"
   vars:
     services:
       - "{{ _preauthkey.wait }}"
+  include_tasks: "{{ _preauthkey.ws.local }}/.seed/ansible-tasks/docker-service.wait.yml"
 
-- when:
-    - _preauthkey.key_user | length == 0
+# autofill all user to parameters
+- when: _preauthkey.param | length == 0
   block:
 
     - name: preauthkey.expire|list user
-      include_tasks: "{{ _preauthkey.ws.local }}/.seed/ansible-tasks/docker-service.exec.yml"
       vars:
         service:
-          name: "{{ _preauthkey.exec.name }}"
-          command: "headscale user list -o json"
-          result: list_result
+          name: "{{ _preauthkey.name }}"
+          command: headscale user list -o json
+          result: _preauthkey_list_user_result
+      include_tasks: "{{ _preauthkey.ws.local }}/.seed/ansible-tasks/docker-service.exec.yml"
 
-    - name: preauthkey.expire|append _preauthkey.key_user
+    - name: preauthkey.expire|append user to _preauthkey.param
+      run_once: true
       vars:
-        user: "{{ list_result.stdout | from_json | json_query('[].{user: name}') | default([],true) }}"
+        user_result: "{{ _preauthkey_list_user_result | map(attribute='stdout') | map('from_json') | flatten }}"
+        user_param: "{{ user_result | json_query('[].{user: name}') | default([],true) }}"
         update:
-          key_user: "{{ user }}"
+          param: "{{ _preauthkey.param + user_param }}"
       ansible.builtin.set_fact:
         _preauthkey: "{{ _preauthkey | combine(update, recursive=True) }}"
+        _preauthkey_list_user_result: !!null
 
-- name: preauthkey.expire|separate _preauthkey.key_user
-  vars:
-    user: "{{ _preauthkey.key_user | selectattr('key','undefined') }}"
-    key_user: "{{ _preauthkey.key_user | selectattr('key','defined') }}"
-    update:
-      key_user: "{{ key_user }}"
-      user: "{{ user }}"
-  ansible.builtin.set_fact:
-    _preauthkey: "{{ _preauthkey | combine(update, recursive=True) }}"
-
-- when: _preauthkey.user | length > 0
+# separate no 'key' parameters
+- when: _preauthkey.param | selectattr('key','undefined') | length > 0
   block:
 
-    - name: preauthkey.expire|append _preauthkey.list_command
-      loop: "{{ _preauthkey.user }}"
+    - name: preauthkey.expire|map user to list user preauthkey command
+      run_once: true
+      loop: "{{ _preauthkey.param | selectattr('key','undefined') }}"
       vars:
-        command_list: "{{ _preauthkey.list_command | default([],true) }}"
         command_item: "headscale preauthkey list -u {{ item.user }} -o json"
-        update:
-          list_command: "{{ command_list + [command_item] }}"
+        command_list: "{{ _preauthkey_by_user_command | default([],true) }}"
+      when: item.user | default(None,true) != None
       ansible.builtin.set_fact:
-        _preauthkey: "{{ _preauthkey | combine(update, recursive=True) }}"
+        _preauthkey_by_user_command: "{{ command_list + [command_item] }}"
 
-    - name: preauthkey.expire|list preauthkey
-      include_tasks: "{{ _preauthkey.ws.local }}/.seed/ansible-tasks/docker-service.exec.yml"
+    - name: preauthkey.expire|batch list user preauthkey
       vars:
         service:
-          name: "{{ _preauthkey.exec.name }}"
-          command: "{{ _preauthkey.list_command }}"
-          result: list_result
+          name: "{{ _preauthkey.name }}"
+          command: "{{ _preauthkey_by_user_command }}"
+          result: _preauthkey_list_key_result
+      when: service.command | default(None,true) != None
+      include_tasks: "{{ _preauthkey.ws.local }}/.seed/ansible-tasks/docker-service.exec.yml"
 
-    - name: preauthkey.expire|append _preauthkey.key_user
-      loop: "{{ list_result.results }}"
-      when: item.stdout != 'null'
+    - name: preauthkey.expire|append key,user to _preauthkey.param
+      run_once: true
       vars:
-        key_user: "{{ item.stdout | from_json | json_query('[].{key: key, user: user}') | default([],true) }}"
+        preauthkey_result: "{{ _preauthkey_list_key_result | map(attribute='stdout') | map('from_json') | flatten }}"
+        preauthkey_param: "{{ preauthkey_result | json_query('[].{key: key, user: user}') | default([],true) }}"
         update:
-          key_user: "{{ _preauthkey.key_user + key_user }}"
+          param: "{{ _preauthkey.param + preauthkey_param }}"
       ansible.builtin.set_fact:
         _preauthkey: "{{ _preauthkey | combine(update, recursive=True) }}"
 
-- name: preauthkey.expire|append _preauthkey.exec
-  loop: "{{ _preauthkey.key_user }}"
+    - name: preauthkey.expire|remove user from _preauthkey.param
+      run_once: true
+      vars:
+        update:
+          param: "{{ _preauthkey.param | selectattr('key','defined') }}"
+      ansible.builtin.set_fact:
+        _preauthkey: "{{ _preauthkey | combine(update, recursive=True) }}"
+        _preauthkey_by_user_command: !!null
+        _preauthkey_list_key_result: !!null
+
+- name: preauthkey.expire|map _preauthkey.param to command
+  run_once: true
+  loop: "{{ _preauthkey.param }}"
   vars:
-    command_list: "{{ _preauthkey.exec.command | default([],true) }}"
-    command_item: "headscale preauthkey expire {{ item.key }} -u {{ item.user }} --force"
+    command_list: "{{ _preauthkey.command | default([],true) }}"
+    command_item:
+      param: "{{ item }}"
+      command: "headscale preauthkey expire {{ item.key }} -u {{ item.user }} --force"
     update:
-      exec:
-        command: "{{ command_list + [command_item] }}"
-  when: item != ''
+      command: "{{ command_list + [command_item] }}"
   ansible.builtin.set_fact:
     _preauthkey: "{{ _preauthkey | combine(update, recursive=True) }}"
 
 - name: preauthkey.expire|print _preauthkey
+  run_once: true
   debug:
     var: _preauthkey
 
-- name: preauthkey.expire|exec service
-  include_tasks: "{{ _preauthkey.ws.local }}/.seed/ansible-tasks/docker-service.exec.yml"
+- name: preauthkey.expire|batch expire preauthkey
   vars:
-    service: "{{ _preauthkey.exec }}"
+    service:
+      name: "{{ _preauthkey.name }}"
+      command: "{{ _preauthkey.command | map(attribute='command') }}"
+      result: _preauthkey_expire_result
+  when: service.command | length > 0
+  include_tasks: "{{ _preauthkey.ws.local }}/.seed/ansible-tasks/docker-service.exec.yml"
 
-# exec_result results item is command
+# _preauthkey_expire_result item is command
 - name: preauthkey.expire|set _preauthkey.result
-  when:
-    - exec_result is defined
-    - exec_result.results is defined
+  run_once: true
+  vars:
+    list: "{{ _preauthkey_expire_result | json_query('[].{key: item,value: stdout_lines[-1]}') | default([],true) }}"
   ansible.builtin.set_fact:
-    "{{ _preauthkey.result }}": "{{ exec_result | json_query('results[].{key: item,value: stdout_lines[-1]}') | items2dict }}"
+    "{{ _preauthkey.result }}": "{{ list }}"
+    _preauthkey_expire_result: !!null
 
 - name: preauthkey.expire|print _preauthkey.result
+  run_once: true
   debug:
     var: "{{ _preauthkey.result }}"
 
-- name: preauthkey.expire|reset preauthkey_result
+- name: preauthkey.expire|reset _preauthkey
+  run_once: true
   ansible.builtin.set_fact:
     _preauthkey: !!null

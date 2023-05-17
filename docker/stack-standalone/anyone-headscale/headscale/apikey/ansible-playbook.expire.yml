@@ -49,5 +49,5 @@
       vars:
         apikey:
           ws: "{{ ws }}"
-          prefix: "{{ apikey_prefix | split(',') | select() }}"
+          param: "{{ apikey_prefix | split(',') | select() }}"
           result: apikey_result

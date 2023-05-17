@@ -8,29 +8,33 @@
         $PWD/../../../docker/stack-standalone/anyone-headscale/headscale/node/ansible-playbook.delete.yml
   vars_prompt:
     - name: node_id
-      prompt: What is node id(split ',' format {id} | @{user})?
+      prompt: What is node id(split ',' format {id} | @{user} empty all)?
       private: no
-      default: '@default'
+      default: ''
   environment:
     PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
   hosts: "{{ 'docker:&docker-headscale-node' if (groups['docker-headscale-node'] is defined) else 'docker' }}"
   tasks:
 
     - name: set id user
+      run_once: true
       ansible.builtin.set_fact:
         _node_delete_list: "{{ node_id | split(',') | select() }}"
-        _node_id_list: []
-        _node_user_list: []
+        _node_id_user_list: []
 
     - name: format id user
+      run_once: true
       loop: "{{ _node_delete_list }}"
       vars:
-        _item_split: "{{ item | split('@') }}"
-        _item_id: "{{ _item_split[0] if (_item_split | length == 2) else item }}"
-        _item_user: "{{ _item_split[1] if (_item_split | length == 2) else '' }}"
+        item_split: "{{ item | split('@') }}"
+        item_id: "{{ item_split[0] }}"
+        item_user: "{{ item_split[1] if (item_split | length == 2) else '' }}"
+        item_obj:
+          id: "{{ item_id | default(omit,true) }}"
+          user: "{{ item_user | default('default',true) }}"
+      when: item_obj.id is defined or item_obj.user is defined
       ansible.builtin.set_fact:
-        _node_id_list: "{{ _node_id_list + [_item_id] }}"
-        _node_user_list: "{{ _node_user_list + [_item_user] }}"
+        _node_id_user_list: "{{ _node_id_user_list + [item_obj] }}"
 
     - name: set ws
       include_tasks:
@@ -65,6 +69,5 @@
       vars:
         node:
           ws: "{{ ws }}"
-          id: "{{ _node_id_list }}"
-          user: "{{ _node_user_list }}"
+          param: "{{ _node_id_user_list }}"
           result: node_result

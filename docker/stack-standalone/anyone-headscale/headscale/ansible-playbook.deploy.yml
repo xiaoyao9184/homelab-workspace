@@ -131,6 +131,7 @@
       vars:
         apikey:
           ws: "{{ ws }}"
+          param: 1
           result: apikey_create
 
     - name: create headscale user
@@ -138,6 +139,8 @@
       vars:
         user:
           ws: "{{ ws }}"
+          param:
+            - default
           result: user_create
 
     - name: create headscale preauthkey
@@ -145,4 +148,7 @@
       vars:
         preauthkey:
           ws: "{{ ws }}"
+          param:
+            - expire: 240h
+              user: default
           result: preauthkey_create

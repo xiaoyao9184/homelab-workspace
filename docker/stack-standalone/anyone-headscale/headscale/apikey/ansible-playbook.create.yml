@@ -49,5 +49,5 @@
       vars:
         apikey:
           ws: "{{ ws }}"
-          count: "{{ apikey_count }}"
+          param: "{{ apikey_count }}"
           result: apikey_result

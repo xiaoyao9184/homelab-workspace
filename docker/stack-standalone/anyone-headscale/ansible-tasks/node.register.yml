@@ -2,63 +2,79 @@
 
 
 - name: node.register|set _node
+  run_once: true
   vars:
+    name_default: anyone-headscale_headscale
     wait_default:
-      name: anyone-headscale_headscale
+      name: "{{ name_default }}"
       retries: -1
       delay: 0
     wait_update: "{{ node.wait | default({}) }}"
-    exec_default:
-      name: anyone-headscale_headscale
-      command: []
-      result: exec_result
-    exec_update: "{{ node.exec | default({}) }}"
   ansible.builtin.set_fact:
     _node:
       ws: "{{ node.ws }}"
       wait: "{{ wait_default | combine(wait_update, recursive=True) }}"
-      key_user: "{{ node.key_user }}"
-      exec: "{{ exec_default | combine(exec_update, recursive=True) }}"
-      result: "{{ node.result | default('register_result') }}"
+      name: "{{ node.name | default(name_default) }}"
+      # register param
+      #   key: ""
+      #   user: ""
+      param: "{{ node.param }}"
+      # register command
+      #   param:
+      #     key: ""
+      #     user: ""
+      #   command: ""
+      command: []
+      result: "{{ node.result | default('expire_result') }}"
 
 - name: node.register|wait service
-  include_tasks: "{{ _node.ws.local }}/.seed/ansible-tasks/docker-service.wait.yml"
   vars:
     services:
       - "{{ _node.wait }}"
+  include_tasks: "{{ _node.ws.local }}/.seed/ansible-tasks/docker-service.wait.yml"
 
-- name: node.register|append _node.exec
-  loop: "{{ _node.key_user }}"
+- name: node.register|map _node.param tp command
+  run_once: true
+  loop: "{{ _node.param }}"
   vars:
-    command_list: "{{ _node.exec.command | default([],true) }}"
-    command_item: "headscale node register --key {{ item.key }} -u {{ item.user }}"
+    command_list: "{{ _node.command | default([],true) }}"
+    command_item:
+      param: "{{ item }}"
+      command: "headscale node register --key {{ item.key }} -u {{ item.user }}"
     update:
-      exec:
-        command: "{{ command_list + [command_item] }}"
+      command: "{{ command_list + [command_item] }}"
   ansible.builtin.set_fact:
     _node: "{{ _node | combine(update, recursive=True) }}"
 
 - name: node.register|print _node
+  run_once: true
   debug:
     var: _node
 
-- name: node.register|exec service
-  include_tasks: "{{ _node.ws.local }}/.seed/ansible-tasks/docker-service.exec.yml"
+- name: node.register|batch create node
   vars:
-    service: "{{ _node.exec }}"
+    service:
+      name: "{{ _node.name }}"
+      command: "{{ _node.command | map(attribute='command') }}"
+      result: _node_register_result
+  when: service.command | length > 0
+  include_tasks: "{{ _node.ws.local }}/.seed/ansible-tasks/docker-service.exec.yml"
 
-# exec_result results item is command
+# _node_register_result item is command
 - name: node.register|set _node.result
-  when:
-    - exec_result is defined
-    - exec_result.results is defined
+  run_once: true
+  vars:
+    list: "{{ _node_register_result | json_query('[].{key: item,value: stdout_lines[-1]}') | default([],true) }}"
   ansible.builtin.set_fact:
-    "{{ _node.result }}": "{{ exec_result | json_query('results[].{key: item,value: stdout_lines[-1]}') | items2dict }}"
+    "{{ _node.result }}": "{{ list }}"
+    _node_register_result: !!null
 
 - name: node.register|print _node.result
+  run_once: true
   debug:
     var: "{{ _node.result }}"
 
 - name: node.register|reset _node
+  run_once: true
   ansible.builtin.set_fact:
     _node: !!null
