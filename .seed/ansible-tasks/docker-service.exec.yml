@@ -39,10 +39,27 @@
   loop: "{{ _service.container_ids }}"
   loop_control:
     loop_var: container_id
-  community.docker.docker_container_exec:
-    container: "{{ container_id }}"
-    command: "{{ _service.command }}"
-  register: "_service_container_result"
+  vars:
+    container:
+      name: "{{ container_id }}"
+      command: "{{ _service.command if (_service.command | default([],true) | length != 0) else None }}"
+      result: _service_container_result
+  when: container.command | default(None,true) != None
+  include_tasks: docker-container.exec.yml
+
+- name: docker-service.exec|map _service_container_result to list
+  when: _service.command | type_debug != "list"
+  vars:
+    list: "{{ [_service_container_result] if (_service_container_result | default(None,true) != None) else [] }}"
+  ansible.builtin.set_fact:
+    _service_container_result: "{{ list }}"
+
+- name: docker-service.exec|map _service_container_result.results to list
+  when: _service.command | type_debug == "list"
+  vars:
+    list: "{{ _service_container_result.results if (_service_container_result.results | default(None,true) != None) else [] }}"
+  ansible.builtin.set_fact:
+    _service_container_result: "{{ list }}"
 
 # Merge multiple docker nodes '_service_container_result' variables
 - name: docker-service.exec|append _service_container_result from each docker host
@@ -52,7 +69,7 @@
     loop_var: hostitem
   vars:
     list: "{{ _service_result | default([],true) }}"
-    append: "{{ hostvars[hostitem]._service_container_result.results if (hostvars[hostitem]._service_container_result.results | default(None,true) != None) else [] }}"
+    append: "{{ hostvars[hostitem]._service_container_result if (hostvars[hostitem]._service_container_result | default(None,true) != None) else [] }}"
   ansible.builtin.set_fact:
     _service_result: "{{ (list + append) | unique }}"
 
