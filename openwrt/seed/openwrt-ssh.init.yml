@@ -9,8 +9,12 @@
   ansible.builtin.set_fact:
     _ssh:
       # get ssh public key path
-      pub_file: "~/.ssh/{{ ssh_group }}/id_rsa.pub"
-      remote_user: "{{ ssh_user }}"
+      pub_file: "~/.ssh/{{ ssh.basename }}/id_rsa.pub"
+      remote_user: "{{ ssh.username }}"
+
+- name: openwrt-ssh.approve|print _ssh
+  ansible.builtin.debug:
+    var: _ssh
 
 - name: openwrt-ssh.init|ensure authorized keys for remote user is installed
   ansible.builtin.lineinfile:

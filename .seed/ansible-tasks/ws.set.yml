@@ -12,10 +12,10 @@
   - when: _current_local_ws | default(None) == None
     block:
 
-      - name: ws.set|set _current_local_ws by local.workspace
-        when: local.workspace is defined
+      - name: ws.set|set _current_local_ws by local.workspace.path
+        when: local.workspace.path is defined
         ansible.builtin.set_fact:
-          _current_local_ws: "{{ local.workspace }}"
+          _current_local_ws: "{{ local.workspace.path }}"
 
       - name: ws.set|set _current_local_ws by dir
         when: dir is defined
@@ -50,7 +50,7 @@
     vars:
       local_realpath: "{{ _current_local_ws | realpath }}"
       remote_default: "~/.seed/{{ local_realpath | basename }}"
-      remote_workspace: "{{ remote.workspace | default(remote_default) }}"
+      remote_workspace: "{{ remote.workspace.path | default(remote_default) }}"
     ansible.builtin.set_fact:
       _realpath_local_ws: "{{ local_realpath }}"
       _realpath_remote_ws: "{{ remote_workspace }}"

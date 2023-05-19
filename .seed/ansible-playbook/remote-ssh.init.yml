@@ -15,42 +15,60 @@
   run_once: true
   pre_tasks:
 
-    - name: input group
-      when: seed_group is undefined
+    - name: set fact for init ssh
+      ansible.builtin.set_fact:
+        seed_ssh:
+          basename: "{{ remote.ssh.basename | default('') }}"
+          username: "{{ remote.ssh.username | default('') }}"
+
+    - name: input customize basename for init ssh
+      when:
+        - seed_ssh.basename | default(None,true) == None
       ansible.builtin.pause:
-        prompt: "What is seed host group(all host use one ssh key)?"
+        prompt: "What is ssh key dirname for init ssh(folder name,default random)?"
       register: prompt
 
-    - name: set group
-      when: seed_group is undefined
+    - name: update seed_ssh for init ssh
+      when: 
+        - seed_ssh.basename | default(None,true) == None
+      vars:
+        update:
+          basename: "{{ prompt.user_input | default(lookup('community.general.random_string', upper=false, special=false),true) }}"
       ansible.builtin.set_fact:
-        seed_group: "{{ prompt.user_input }}"
+        seed_ssh: "{{ seed_ssh | combine(update, recursive=True) }}"
 
-    - name: input user
-      when: seed_user is undefined
+    - name: input customize username for init ssh
+      when:
+        - seed_ssh.username | default(None,true) == None
       ansible.builtin.pause:
-        prompt: "What is seed host user(all host use one user)?"
+        prompt: "What is ssh key username for init ssh(ssh username,default 'root')?"
       register: prompt
 
-    - name: set user
-      when: seed_user is undefined
+    - name: update seed_ssh for init ssh
+      when: 
+        - seed_ssh.username | default(None,true) == None
+      vars:
+        update:
+          username: "{{ prompt.user_input | default('root',true) }}"
       ansible.builtin.set_fact:
-        seed_user: "{{ prompt.user_input }}"
+        seed_ssh: "{{ seed_ssh | combine(update, recursive=True) }}"
 
   tasks:
 
     - include_tasks: "{{ playbook_dir }}/../ansible-tasks/seed-ssh.create.yml"
       vars:
-        ssh_group: "{{ seed_group }}"
-        ssh_user: "{{ seed_user }}"
-        ansible_group: "{{ local.init.ssh.hosts | default('') }}"
-        keyscan_type: "{{ local.init.ssh.keyscan | default('') }}"
+        ssh:
+          basename: "{{ seed_ssh.basename }}"
+          username: "{{ seed_ssh.username }}"
+          ansible_group: "{{ remote.ssh.group | default('') }}"
+          keyscan_type: "{{ remote.ssh.keyscan | default('') }}"
 
     - debug:
         msg:
-          - "{{ hostvars['localhost'].seed_group }}"
-          - "{{ hostvars['localhost'].seed_user }}"
-        verbosity: 3
+          - "ssh local initialized"
+          - "user: {{ seed_ssh.username }}"
+          - "path: ~/.ssh/{{ seed_ssh.basename }}/"
+          - "config: ~/.ssh/config"
 
 
 - name: init ssh at ssh
@@ -59,20 +77,26 @@
   gather_facts: no
   pre_tasks:
 
-    - name: set task_path
+    - name: set seed_ssh from localhost
       vars:
         remote: "{{ hostvars['localhost'].remote }}"
         task_default: "{{ playbook_dir }}/../ansible-tasks/seed-ssh.approve.yml"
       ansible.builtin.set_fact:
-        task_path: "{{ remote.init.ssh | default(task_default) }}"
-        seed_group: "{{ hostvars['localhost'].seed_group }}"
-        seed_user: "{{ hostvars['localhost'].seed_user }}"
+        seed_ssh:
+          basename: "{{ hostvars['localhost'].seed_ssh.basename }}"
+          username: "{{ hostvars['localhost'].seed_ssh.username }}"
+          taskpath: "{{ remote.ssh.task | default(task_default) }}"
 
   tasks:
 
-    - include_tasks: "{{ task_path }}"
+    - include_tasks: "{{ seed_ssh.taskpath }}"
       vars:
-        ssh_group: "{{ seed_group }}"
-        ssh_user: "{{ seed_user }}"
+        ssh:
+          basename: "{{ seed_ssh.basename }}"
+          username: "{{ seed_ssh.username }}"
 
-    - debug: msg="ok of host {{ ansible_host }}"
+    - debug:
+        msg:
+          - "ssh remote initialized"
+          - "host: {{ ansible_host }}"
+          - "task: {{ seed_ssh.taskpath }}"

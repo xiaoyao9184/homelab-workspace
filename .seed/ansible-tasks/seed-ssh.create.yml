@@ -1,34 +1,17 @@
 ---
 
-- name: seed-ssh.create|check ssh_user
-  when:
-    - ssh_user | default(None) == ''
-  ansible.builtin.pause:
-    prompt: "What is ssh user?"
-    echo: true
-  register: prompt_ssh_user
-
-- name: seed-ssh.create|check ssh_group
-  when:
-    - ssh_group | default(None) == ''
-  ansible.builtin.pause:
-    prompt: "What is ssh group(also an dir name of ssh key)?"
-    echo: true
-  register: prompt_ssh_group
 
 - name: seed-ssh.create|set _ssh
   ansible.builtin.set_fact:
     _ssh:
-      username: "{{ ssh_user | default(prompt_ssh_user.user_input) }}"
-      basename: "{{ ssh_group | default(prompt_ssh_group.user_input) }}"
-      ansible_group: "{{ ansible_group | default('ssh',true) }}"
-      keyscan_type: "{{ keyscan_type | default('ed25519',true) }}"
+      basename: "{{ ssh.basename | default(lookup('community.general.random_string', upper=false, special=false),true) }}"
+      username: "{{ ssh.username | default('root',true) }}"
+      ansible_group: "{{ ssh.ansible_group | default('ssh',true) }}"
+      keyscan_type: "{{ ssh.keyscan_type | default('ed25519',true) }}"
 
-# - name: seed-ssh.create|register variable to SEED host
-#   ansible.builtin.add_host:
-#     name: "SEED"
-#     username: "{{ _ssh.username }}"
-#     basename: "{{ _ssh.basename }}"
+- name: seed-ssh.create|print _ssh
+  ansible.builtin.debug:
+    var: _ssh
 
 - name: seed-ssh.create|create a directory for ssh
   ansible.builtin.file:
@@ -62,24 +45,7 @@
     # user_known_hosts_file: "~/.ssh/known_hosts"
     state: present
 
-- name: seed-ssh.create|set _known_host_list
-  ansible.builtin.set_fact:
-    _known_host_list: []
-
-# - name: seed-ssh.create|add item known_name to _known_host_list
-#   loop: "{{ groups[_ssh.ansible_group] }}"
-#   loop_control:
-#     loop_var: name
-#   vars:
-#     host_only: "{{ hostvars[name].ansible_host | default(name,true) }}"
-#     host_port: "[{{ host_only }}]:{{ hostvars[name].ansible_port }}"
-#     known_item:
-#       host_name: "{{ name }}"
-#       known_name: "{{ host_port if (hostvars[name].ansible_port is defined) else host_only }}"
-#   ansible.builtin.set_fact:
-#     _known_host_list: "{{ _known_host_list + [known_item] }}"
-
-- name: seed-ssh.create|get ssh ecdsa fingerprint for host
+- name: seed-ssh.create|scan ssh fingerprint for host
   loop: "{{ groups[_ssh.ansible_group] }}"
   loop_control:
     loop_var: name
@@ -90,23 +56,37 @@
   register: keyscan_key_list
   ignore_errors: yes
 
-- name: seed-ssh.create|append _known_host_list
-  loop: "{{ keyscan_key_list.results }}"
+- name: seed-ssh.create|init _known_host_list
+  ansible.builtin.set_fact:
+    _known_host_list: []
+
+- name: seed-ssh.create|append ssh fingerprint to _known_host_list
+  loop: "{{ keyscan_key_list.results | default([],true) }}"
   loop_control:
     loop_var: keyscan_key_item
   when: keyscan_key_list is not failed
   vars:
     name: "{{ keyscan_key_item.name }}"
-    host_only: "{{ hostvars[name].ansible_host | default(name,true) }}"
-    host_port: "[{{ host_only }}]:{{ hostvars[name].ansible_port }}"
-    known_item:
-      host_name: "{{ name }}"
-      known_name: "{{ host_port if (hostvars[name].ansible_port is defined) else host_only }}"
-      known_key: "{{ keyscan_key_item.stdout }}"
+    hostname_without_port: "{{ hostvars[name].ansible_host | default(name,true) }}"
+    hostname_with_port: "[{{ hostname_without_port }}]:{{ hostvars[name].ansible_port | default(22,true) }}"
+    keyscan_original: "{{ keyscan_key_item.stdout }}"
+    keyscan_split: "{{ keyscan_original | split(' ') }}"
+    keyscan_without_port: "{{ ([hostname_without_port] + keyscan_split[1:]) | join(' ') }}"
+    keyscan_with_port: "{{ ([hostname_with_port] + keyscan_split[1:]) | join(' ') }}"
+    list_when:
+      - when: "{{ hostvars[name].ansible_port | default(22,true) | int == 22 }}"
+        item:
+          known_name: "{{ hostname_without_port }}"
+          known_key: "{{ keyscan_without_port }}"
+      - when: "{{ hostvars[name].ansible_port is defined }}"
+        item:
+          known_name: "{{ hostname_with_port }}"
+          known_key: "{{ keyscan_with_port }}"
+    append: "{{ list_when | selectattr('when') | map(attribute='item') }}"
   ansible.builtin.set_fact:
-    _known_host_list: "{{ _known_host_list + [known_item] }}"
+    _known_host_list: "{{ _known_host_list + append }}"
 
-- name: seed-ssh.create|set ssh ecdsa fingerprint to known_hosts
+- name: seed-ssh.create|append ssh fingerprint to known_hosts
   loop: "{{ _known_host_list }}"
   loop_control:
     loop_var: known_host_item
@@ -116,13 +96,6 @@
     name: "{{ known_host_item.known_name }}"
     key: "{{ known_host_item.known_key }}"
   ignore_errors: yes
-
-- name: seed-ssh.create|print info
-  debug:
-    msg:
-      - "user: {{ lookup('env', 'USER') }}"
-      - "path: ~/.ssh/{{ _ssh.basename }}/"
-      - "config: ~/.ssh/config"
 
 - name: seed-ssh.create|reset _ssh
   ansible.builtin.set_fact:

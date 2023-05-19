@@ -18,8 +18,8 @@
       - docker-compose
   ansible.builtin.set_fact:
     _docker:
-      package: "{{ system_package | default(default_package,true) }}"
-      pip: "{{ system_pip | default(default_pip,true) }}"
+      package: "{{ system.package | default(default_package,true) }}"
+      pip: "{{ system.pip | default(default_pip,true) }}"
 
 - name: seed-docker.init|install system package
   become: true
@@ -53,6 +53,9 @@
   ansible.builtin.group:
     name: docker
     state: present
+
+- name: seed-docker.init|gather fact
+  ansible.builtin.setup:
 
 - name: seed-docker.init|add user to docker
   become: true

@@ -14,34 +14,45 @@
   run_once: true
   pre_tasks:
 
-    - name: set group to docker automatic
+    - name: set fact for init system
+      ansible.builtin.set_fact:
+        seed_system:
+          group: "{{ remote.system.group | default('') }}"
+
+    - name: update seed_system for automatic init docker system
       when:
-        - remote.init.system is undefined
+        - remote.system.group is undefined
         - groups.docker is defined
       ansible.builtin.set_fact:
-        ansible_group: "docker"
-    # TODO add init.group for user setting group
-    - name: input group
-      when: ansible_group is undefined
+        seed_system:
+          group: "docker"
+
+    - name: input customize group for init system
+      when:
+        - seed_system.group | default(None,true) == None
       ansible.builtin.pause:
-        prompt: "What is ansible host group for init system(empty skip)?"
+        prompt: "What is ansible host group for init system(empty 'NONE' skip init)?"
       register: prompt
 
-    - name: set group
-      when: ansible_group is undefined
+    - name: update seed_system for init system
+      when: 
+        - seed_system.group | default(None,true) == None
+      vars:
+        update:
+          group: "{{ prompt.user_input | default('NONE',true) }}"
       ansible.builtin.set_fact:
-        ansible_group: "{{ prompt.user_input | default('SKIP',true) }}"
+        seed_system: "{{ seed_system | combine(update, recursive=True) }}"
 
   tasks:
 
     - debug:
         msg:
-          - "{{ hostvars['localhost'].ansible_group }}"
-        verbosity: 3
+          - "system local initialized"
+          - "group: {{ seed_system.group }}"
 
 
-- name: "init system at {{ hostvars['localhost'].ansible_group }}"
-  hosts: "{{ hostvars['localhost'].ansible_group }}"
+- name: "init system at {{ hostvars['localhost'].seed_system.group }}"
+  hosts: "{{ hostvars['localhost'].seed_system.group }}"
   # become: true
   # disable gather_facts for miss python on target
   gather_facts: false
@@ -50,18 +61,25 @@
   #   PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
   pre_tasks:
 
-    - name: set task_path
+    - name: set seed_system from localhost
       vars:
         remote: "{{ hostvars['localhost'].remote }}"
         task_default: "{{ playbook_dir }}/../ansible-tasks/seed-docker.init.yml"
       ansible.builtin.set_fact:
-        task_path: "{{ remote.init.system | default(task_default) }}"
+        seed_system:
+          group: "{{ hostvars['localhost'].seed_system.group }}"
+          taskpath: "{{ remote.system.task | default(task_default) }}"
 
   tasks:
 
-    - include_tasks: "{{ task_path }}"
+    - include_tasks: "{{ seed_system.taskpath }}"
       vars:
-        system_package: "{{ remote.init.package | default('') }}"
-        system_pip: "{{ remote.init.pip | default('') }}"
+        system:
+          package: "{{ remote.system.package | default('') }}"
+          pip: "{{ remote.system.pip | default('') }}"
 
-    - debug: msg="ok of host {{ ansible_host }}"
+    - debug:
+        msg:
+          - "system remote initialized"
+          - "host: {{ ansible_host }}"
+          - "task: {{ seed_system.taskpath }}"
