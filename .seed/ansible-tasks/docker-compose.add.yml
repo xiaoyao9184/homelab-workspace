@@ -20,12 +20,14 @@
 - when: compose.template is defined
   block:
 
-    - name: docker-compose.add|stack template option
-      when: _compose.type == 'stack'
+    - name: docker-compose.add|set template option
+      vars:
+        run_once: "{{ _compose.type == 'stack' }}"
+        delegate_to: "{{ ( groups['docker-manager'] | first ) if (_compose.type == 'stack') else omit }}"
       ansible.builtin.set_fact:
         _template_opt:
-          run_once: true
-          delegate_to: "{{ groups['docker-manager'] | first }}"
+          run_once: "{{ run_once }}"
+          delegate_to: "{{ delegate_to }}"
 
     - name: docker-compose.add|one template
       when: compose.template | type_debug == "dict"
@@ -39,8 +41,8 @@
         _template_list: "{{ compose.template }}"
 
     - name: docker-compose.add|template file
-      run_once: true
-      delegate_to: "{{ groups['docker-manager'] | first }}"
+      run_once: "{{ _template_opt.run_once | default(false) }}"
+      delegate_to: "{{ _template_opt.delegate_to | default(omit) }}"
       loop: "{{ _template_list }}"
       loop_control:
         loop_var: _template_item
