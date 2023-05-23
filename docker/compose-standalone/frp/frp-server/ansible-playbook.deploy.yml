@@ -27,7 +27,7 @@
           sync:
             - src: "{{ dir.local }}/../config/frps.ini"
               dest: "{{ dir.remote }}/../config/frps.ini"
-          cp: "{{ rp.server.dir_push | default([],true) }}"
+          cp: "{{ frp.server.dir_push | default([],true) }}"
 
     # https://medium.com/@jonsbun/why-need-to-be-careful-when-mounting-single-files-into-a-docker-container-4f929340834
     - name: overwrite bind ini
