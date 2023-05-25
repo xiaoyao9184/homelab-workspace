@@ -1,0 +1,4 @@
+[submodule ".config"]
+	path = .config
+	url = ../homelab-config.git
+	branch = master
