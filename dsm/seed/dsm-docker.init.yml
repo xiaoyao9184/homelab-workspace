@@ -15,7 +15,7 @@
       - docker-compose
   ansible.builtin.set_fact:
     _docker:
-      pip: "{{ system_pip | default(default_pip,true) }}"
+      pip: "{{ system.pip | default(default_pip,true) }}"
       pip_install: "{{ pip.install | default('ansible',true) }}"
 
 - name: dsm-docker.init|ensurepip pip
