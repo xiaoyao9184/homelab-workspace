@@ -87,7 +87,7 @@
         apply:
           run_once: true
 
-    - name: copy to dir
+    - name: push to dir
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dirs.push.yml"
       vars:
         dirs:

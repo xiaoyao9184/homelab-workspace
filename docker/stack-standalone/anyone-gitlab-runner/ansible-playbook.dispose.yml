@@ -38,7 +38,7 @@
           command: gitlab-runner unregister --all-runners
           result: "runner_unregister"
 
-    - name: copy to dir
+    - name: push to dir
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dirs.push.yml"
       vars:
         dirs:

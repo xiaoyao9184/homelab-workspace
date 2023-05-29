@@ -27,7 +27,7 @@
       delegate_to: localhost
       ansible.builtin.git: "{{ item }}"
 
-    - name: copy to dir
+    - name: push to dir
       include_tasks: "{{ ws.local }}/.seed/ansible-tasks/dirs.push.yml"
       vars:
         dirs:
