@@ -1,0 +1,17 @@
+---
+
+
+- name: report
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --inventory $PWD/ansible-inventories \
+        $PWD/../../../softwave/gitstats/ansible-playbook.report.yml
+  hosts: localhost
+  connection: local
+  tasks:
+
+    - name: run report
+      ansible.builtin.shell: "{{ playbook_dir }}/bash.report.sh"
+      environment:
+        mapping_stats: "{{ gitstats.stats_csv }}"
