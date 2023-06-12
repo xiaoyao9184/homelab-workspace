@@ -7,7 +7,7 @@
       ansible-playbook \
         --ask-pass \
         --inventory $PWD/ansible-inventories \
-        $PWD/../../../windows/chocolatey/ansible-playbook.whoami.yml
+        $PWD/../../../windows/test/ansible-playbook.whoami.yml
   hosts: windows
   tasks:
 
