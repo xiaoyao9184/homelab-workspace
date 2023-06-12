@@ -1,0 +1,39 @@
+---
+
+
+- name: build
+  vars:
+    run_wsl: |
+      ansible-playbook \
+        --inventory $PWD/ansible-inventories \
+        $PWD/../../../windows/chocolatey/ansible-playbook.build.yml
+    ansible_connection: local
+  hosts: windows
+  tasks:
+
+    - name: print chocolatey install command
+      ansible.builtin.pause:
+        seconds: 1
+        prompt: |
+
+          Use this for install chocolatey
+          //////////////////////////////////////////////////
+          Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
+          //////////////////////////////////////////////////
+
+    - name: template chocolatey package.config
+      loop: "{{ chocolatey.packages | dict2items }}"
+      loop_control:
+        loop_var: group_item
+      vars:
+        packages: "{{ group_item.value }}"
+      ansible.builtin.template:
+        src: "{{ playbook_dir }}/package.config.j2"
+        dest: "{{ inventory_dir }}/../choco/{{ group_item.key }}.config"
+
+    - name: template chocolatey choco.install.ps1
+      vars:
+        package_groups: "{{ chocolatey.packages.keys() }}"
+      ansible.builtin.template:
+        src: "{{ playbook_dir }}/choco.install.ps1.j2"
+        dest: "{{ inventory_dir }}/../choco/choco.install.ps1"
