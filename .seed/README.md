@@ -35,12 +35,12 @@ first clone subrepo
 git subrepo clone git@gitlab.lan:homelab/seed-ansible-path.git \
     .seed \
     -b master \
-    -m "Init .seed"
+    -m "git subrepo clone .seed"
 ```
 
 loop pull
 ```bash
-git subrepo pull .seed -b master -m "Update .seed"
+git subrepo pull .seed -b master -m "git subrepo pull .seed"
 ```
 
 also can push like [owner](#owner)
