@@ -1,0 +1,52 @@
+---
+
+- name: test
+  vars:
+    run_debug: |
+      ansible-playbook \
+        -vvv \
+        --inventory $PWD/ansible-inventories \
+        $PWD/../../../test/seed/include_tasks.delegate_to/ansible-playbook.test.yml
+    run_normal: |
+      ansible-playbook \
+        --inventory $PWD/ansible-inventories \
+        $PWD/../../../test/seed/include_tasks.delegate_to/ansible-playbook.test.yml
+  environment:
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
+  hosts: docker
+  run_once: true
+  tasks:
+
+    - name: omit fact
+      vars:
+        host_delegate_to: "{{ omit }}"
+        host_run_once: "{{ omit }}"
+      ansible.builtin.set_fact:
+        _static:
+          delegate_to: node2
+          run_once: false
+        _dynamic:
+          delegate_to: "{{ host_delegate_to }}"
+          run_once: "{{ host_run_once }}"
+        
+    - name: static apply
+      include_tasks:
+        file: ansible-tasks.test.yml
+        apply:
+          delegate_to: "{{ _static.delegate_to | default(omit) }}"
+          run_once: "{{ _static.run_once | default(false) }}"
+
+    # bug of https://github.com/ansible/ansible/issues/81174
+    - name: dynamic apply default omit
+      include_tasks:
+        file: ansible-tasks.test.yml
+        apply:
+          delegate_to: "{{ _dynamic.delegate_to | default(omit) }}"
+          run_once: "{{ _dynamic.run_once | default(false) }}"
+
+    - name: dynamic apply default empty
+      include_tasks:
+        file: ansible-tasks.test.yml
+        apply:
+          delegate_to: "{{ _dynamic.delegate_to | default('') }}"
+          run_once: "{{ _dynamic.run_once | default(false) }}"

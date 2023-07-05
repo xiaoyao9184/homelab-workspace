@@ -1,0 +1,7 @@
+---
+
+- name: stat path
+  ansible.builtin.stat:
+    path: "/home"
+  register: device_stat
+  ignore_errors: true
