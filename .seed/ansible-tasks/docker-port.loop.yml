@@ -154,7 +154,7 @@
       include_tasks:
         file: docker-volumes.push.yml
         apply:
-          delegate_to: "{{ _port_loop.delegate_to | default(omit) }}"
+          delegate_to: "{{ _port_loop.delegate_to | default('') }}"
           run_once: "{{ _port_loop.run_once | default(false) }}"
 
     - name: docker-port.loop|add workspace volume
@@ -166,7 +166,7 @@
       include_tasks:
         file: docker-volumes.add.yml
         apply:
-          delegate_to: "{{ _port_loop.delegate_to | default(omit) }}"
+          delegate_to: "{{ _port_loop.delegate_to | default('') }}"
           run_once: "{{ _port_loop.run_once | default(false) }}"
 
     # simple way for seed-docker.run
@@ -210,7 +210,7 @@
           include_tasks:
             file: docker-container.wait.yml
             apply:
-              delegate_to: "{{ _port_loop.delegate_to | default(omit) }}"
+              delegate_to: "{{ _port_loop.delegate_to | default('') }}"
               run_once: "{{ _port_loop.run_once | default(false) }}"
 
       rescue:
