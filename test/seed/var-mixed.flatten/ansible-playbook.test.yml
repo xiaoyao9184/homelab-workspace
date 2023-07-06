@@ -1,0 +1,96 @@
+---
+
+- name: test
+  vars:
+    run_debug: |
+      ansible-playbook \
+        -vvv \
+        --inventory $PWD/ansible-inventories \
+        $PWD/../../../test/seed/var-mixed.flatten/ansible-playbook.test.yml
+    run_normal: |
+      ansible-playbook \
+        --inventory $PWD/ansible-inventories \
+        $PWD/../../../test/seed/var-mixed.flatten/ansible-playbook.test.yml
+  environment:
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
+  hosts: docker
+  run_once: true
+  gather_facts: no
+  tasks:
+
+    - name: fact list all
+      ansible.builtin.set_fact:
+        list_all: 
+          - name: undefined
+            # value:
+          - name: defined empty
+            value:
+          - name: defined null
+            value: !!null
+          - name: defined
+            value:
+              - name: flatten name
+                value:
+                  str: "flatten attribute"
+
+    - name: fact list loop
+      ansible.builtin.set_fact:
+        list_loop:
+          - "{{ list_all | selectattr('value', 'defined') | map(attribute='value') }}"
+          - "{{ list_all | selectattr('value', 'defined') | map(attribute='value') | select('==', None) }}"
+
+    - name: debug loop var
+      loop: "{{ list_loop }}"
+      debug:
+        var: item
+
+    - name: debug loop msg
+      debug:
+        msg:
+          - "sub list attribute defined : {{ list_all | selectattr('value', 'defined') | map(attribute='value') }}"
+          - "sub list attribute none    : {{ list_all | selectattr('value', 'defined') | map(attribute='value') | select('==', None) }}"
+
+    - name: debug (have null item)
+      vars:
+        list_defined: "{{ list_all | selectattr('value', 'defined') | map(attribute='value') }}"
+        list_none: "{{ list_defined | select('==', None) }}"
+      when: list_none | length > 0
+      debug:
+        msg: "have null item"
+    
+    - name: debug (miss null item)
+      vars:
+        list_defined: "{{ list_all | selectattr('value', 'defined') | map(attribute='value') | reject('==', None) }}"
+        list_none: "{{ list_defined | select('==', None) }}"
+      when: list_none | length > 0
+      debug:
+        msg: "have null item"
+
+
+    - name: flatten (have null item)
+      vars:
+        list_defined: "{{ list_all | selectattr('value', 'defined') | map(attribute='value') }}"
+        list_none: "{{ list_defined | select('==', None) }}"
+        mixed:
+          list: "{{ list_defined }}"
+          default:
+            - "d1"
+            - "d2"
+          register: test_var
+      when: list_none | length == 0
+      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/var-mixed.flatten.yml"
+
+    - name: flatten (miss null item)
+      vars:
+        list_defined: "{{ list_all | selectattr('value', 'defined') | map(attribute='value') | reject('==', None) }}"
+        list_none: "{{ list_defined | select('==', None) }}"
+        mixed:
+          list: "{{ list_defined }}"
+          default:
+            - "d1"
+            - "d2"
+          register: test_var
+      when: list_none | length == 0
+      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/var-mixed.flatten.yml"
+          
+
