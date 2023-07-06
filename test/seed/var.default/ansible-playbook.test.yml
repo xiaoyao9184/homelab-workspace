@@ -1,0 +1,45 @@
+---
+
+- name: test
+  vars:
+    run_debug: |
+      ansible-playbook \
+        -vvv \
+        --inventory $PWD/ansible-inventories \
+        $PWD/../../../test/seed/var.default/ansible-playbook.test.yml
+    run_normal: |
+      ansible-playbook \
+        --inventory $PWD/ansible-inventories \
+        $PWD/../../../test/seed/var.default/ansible-playbook.test.yml
+  environment:
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
+  hosts: docker
+  run_once: true
+  gather_facts: no
+  tasks:
+
+    - name: fact list
+      ansible.builtin.set_fact:
+        list:
+          - index: 1
+            # value:
+          - index: 2
+            value:
+          - index: 3
+            value: !!null
+          - index: 4
+            value: ''
+          - index: 5
+            value: 
+              - a
+
+    - name: loop list
+      loop: "{{ list }}"
+      ansible.builtin.debug:
+        msg:
+          - "{{ item.index }} undefined       default: {{ item.value | default('yes',false) }}"
+          - "{{ item.index }} undefined/empty default: {{ item.value | default('yes',true) }}"
+          - "{{ item.index }} undefined       check: {{ item.value is undefined }}"
+          - "{{ item.index }}   defined       check: {{ item.value is defined }}"
+          - "{{ item.index }}   defined+None  check: {{ item.value | default([],false) == None }}"
+
