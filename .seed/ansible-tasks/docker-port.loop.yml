@@ -1,66 +1,63 @@
 ---
 
-# local mode
-# - run in docker(controller run by docker-seed)
-# - connect to local(target host is local)
-# - port type is not stack(swarm network maybe only exists on the manager node)
-- name: docker-port.loop|check local_mode
-  loop:
-    - "{{ lookup('ansible.builtin.env', 'SEED_NAME') != '' }}"
-    - "{{ ansible_connection | default('',true) == 'local' }}"
-    - "{{ port.type | default('',true) != 'stack' }}"
-  vars:
-    last: "{{ local_mode | default(true) }}"
-  ansible.builtin.set_fact:
-    local_mode: "{{ last and item }}"
-
-- name: docker-port.loop|set _port_loop when local_mode
-  vars:
-    net_wait_item:
-      name: "{{ port.network | default(omit) }}"
-      scope: "{{ 'swarm' if(port.type | default('',true) == 'stack') else omit}}"
-      retries: -1
-      delay: 0
-    net_connect_opt:
-      container: "{{ lookup('ansible.builtin.env', 'SEED_NAME') }}"
-      network: "{{ port.network | default(omit) }}"
-  when: local_mode
-  ansible.builtin.set_fact:
-    _port_loop:
-      net_wait: "{{ [net_wait_item] if(port.network is defined) else [] }}"
-      net_connect: "{{ net_connect_opt if(port.network is defined) else omit }}"
-      hosts: "{{ port.hosts }}"
-
-- name: docker-port.loop|set _port_loop when not local_mode
-  when: not local_mode
+- name: docker-port.loop|set _port_loop
   vars:
     net_wait_item:
       name: "{{ port.network | default(omit) }}"
       scope: "{{ 'swarm' if(port.type | default('',true) == 'stack') else omit }}"
       retries: -1
       delay: 0
-    host_delegate_to: "{{ (groups['docker-manager'] | first) if(net_wait_item.scope | default('',true) == 'swarm') else omit }}"
-    host_run_once: "{{ true if(net_wait_item.scope | default('',true) == 'swarm') else omit }}"
-    ws_meta_path: "{{ ws.local }}/seed.json"
-    ws_meta_obj: "{{ lookup('file', ws_meta_path) | from_json }}"
-    ws_name: "{{ ws_meta_obj.workspace.name if (ws_meta_obj.workspace.name is defined) else port.name }}"
-    vol_name: "workspace-volume.{{ ws_name }}"
-    net_name: "{{ port.network | default(omit) }}"
-    cntr_name: "wait-port.{{ port.name }}"
   ansible.builtin.set_fact:
     _port_loop:
       net_wait: "{{ [net_wait_item] if(port.network is defined) else [] }}"
-      delegate_to: "{{ host_delegate_to }}"
-      run_once: "{{ host_run_once }}"
-      dir_push:
-        - src: "{{ ws.local }}/.seed/ansible-playbook/local-port.wait.yml"
-          dest: "{{ ws.remote }}/.seed/ansible-playbook/local-port.wait.yml"
-          run_once: "{{ host_run_once | default(omit) }}"
-          delegate_to: "{{ host_delegate_to | default(omit) }}"
-        - src: "{{ ws.local }}/.seed/ansible-tasks/host-port.wait.yml"
-          dest: "{{ ws.remote }}/.seed/ansible-tasks/host-port.wait.yml"
-          run_once: "{{ host_run_once | default(omit) }}"
-          delegate_to: "{{ host_delegate_to | default(omit) }}"
+      # local, remote, delegate
+      mode: remote
+
+# local mode
+# - run in docker(controller run by docker-seed)
+# - connect to local(target host is local)
+- name: docker-port.loop|update _port_loop.mode to local
+  vars:
+    update:
+      mode: 'local'
+  when:
+    - lookup('ansible.builtin.env', 'SEED_NAME') != ''
+    - ansible_connection | default('',true) == 'local'
+  ansible.builtin.set_fact:
+    _port_loop: "{{ _port_loop | combine(update, recursive=True) }}"
+
+# delegate mode
+# - port type is stack(swarm network maybe only exists on the manager node)
+- name: docker-port.loop|update _port_loop.mode to delegate
+  vars:
+    update:
+      mode: 'delegate'
+  when:
+    - port.type | default('',true) == 'stack'
+  ansible.builtin.set_fact:
+    _port_loop: "{{ _port_loop | combine(update, recursive=True) }}"
+
+- name: docker-port.loop|local|append _port_loop
+  vars:
+    net_connect_opt:
+      container: "{{ lookup('ansible.builtin.env', 'SEED_NAME') }}"
+      network: "{{ port.network | default(omit) }}"
+    update:
+      net_connect: "{{ net_connect_opt if(port.network is defined) else omit }}"
+      hosts: "{{ port.hosts }}"
+  when: _port_loop.mode == 'local'
+  ansible.builtin.set_fact:
+    _port_loop: "{{ _port_loop | combine(update, recursive=True) }}"
+
+- name: docker-port.loop|delegate|append _port_loop
+  vars:
+    ws_meta_path: "{{ ws.local }}/seed.json"
+    ws_meta_obj: "{{ lookup('file', ws_meta_path) | from_json }}"
+    ws_name: "{{ ws_meta_obj.workspace.name if (ws_meta_obj.workspace.name is defined) else port.name }}"
+    net_name: "{{ port.network | default(omit) }}"
+    vol_name: "workspace-volume.{{ ws_name }}"
+    cntr_name: "wait-port.{{ port.name }}"
+    update:
       vol:
         - name: "{{ vol_name }}"
           driver: local
@@ -95,6 +92,56 @@
             - not (container_loop_info.container.State.Running)
             - container_loop_info.container.State.Status == 'exited'
             - container_loop_info.container.State.ExitCode == 0
+  when: _port_loop.mode == 'delegate'
+  ansible.builtin.set_fact:
+    _port_loop: "{{ _port_loop | combine(update, recursive=True) }}"
+
+- name: docker-port.loop|remote|append _port_loop
+  vars:
+    ws_meta_path: "{{ ws.local }}/seed.json"
+    ws_meta_obj: "{{ lookup('file', ws_meta_path) | from_json }}"
+    ws_name: "{{ ws_meta_obj.workspace.name if (ws_meta_obj.workspace.name is defined) else port.name }}"
+    net_name: "{{ port.network | default(omit) }}"
+    vol_name: "workspace-volume.{{ ws_name }}"
+    cntr_name: "wait-port.{{ port.name }}"
+    update:
+      vol:
+        - name: "{{ vol_name }}"
+          driver: local
+          driver_opts:
+            type: none
+            device: "{{ ws.remote }}/"
+            o: bind
+      vol_push:
+        - name: "{{ vol_name }}"
+          remote_src: true
+          src: "{{ ws.remote }}/.seed/ansible-playbook/local-port.wait.yml"
+          dest: ".seed/ansible-playbook/local-port.wait.yml"
+          directory_mode: '0777'
+        - name: "{{ vol_name }}"
+          remote_src: true
+          src: "{{ ws.remote }}/.seed/ansible-tasks/host-port.wait.yml"
+          dest: ".seed/ansible-tasks/host-port.wait.yml"
+          directory_mode: '0777'
+      container:
+        name: "{{ cntr_name }}"
+        cmd: "-e ports={{ port.hosts | to_json | b64encode }} /workspace/.seed/ansible-playbook/local-port.wait.yml"
+        network: "{{ net_name | default(omit) }}"
+        volume: "{{ vol_name }}"
+        retries: 3
+        delay: 10
+      container_wait:
+        - name: "{{ cntr_name }}"
+          retries: "{{ port.retries | default(-1,true) }}"
+          delay: "{{ port.delay | default(10,true) }}"
+          until:
+            - container_loop_info.exists
+            - not (container_loop_info.container.State.Running)
+            - container_loop_info.container.State.Status == 'exited'
+            - container_loop_info.container.State.ExitCode == 0
+  when: _port_loop.mode == 'remote'
+  ansible.builtin.set_fact:
+    _port_loop: "{{ _port_loop | combine(update, recursive=True) }}"
 
 - name: docker-port.loop|print _port_loop
   ansible.builtin.debug:
@@ -105,83 +152,81 @@
     networks: "{{ _port_loop.net_wait }}"
   include_tasks: docker-network.wait.yml
 
-- when: local_mode
+- when: _port_loop.mode == 'local'
   block:
 
-    - name: docker-port.loop|local_mode|connect to network
+    - name: docker-port.loop|local|connect to network
       when:
         - _port_loop.net_connect is defined
       shell: "docker network connect {{ _port_loop.net_connect.network }} {{ _port_loop.net_connect.container }}"
 
-    - name: docker-port.loop|local_mode|host-port.wait
+    - name: docker-port.loop|local|host-port.wait
       vars:
         host_port_loops: "{{ _port_loop.hosts }}"
-      when:
-        - _port_loop.hosts is defined
       include_tasks: host-port.wait.yml
 
-    - name: docker-port.loop|local_mode|disconnect to network
+    - name: docker-port.loop|local|disconnect to network
       when:
         - _port_loop.net_connect is defined
       shell: "docker network disconnect {{ _port_loop.net_connect.network }} {{ _port_loop.net_connect.container }}"
 
-- when: not local_mode
+- when: _port_loop.mode == 'delegate'
   block:
 
-    - name: docker-port.loop|copy to dir
-      when:
-        - _port_loop.dir_push is defined
+    - name: docker-port.loop|delegate|copy to dir
       vars:
         dirs:
-          sync: "{{ _port_loop.dir_push }}"
+          sync:
+            - src: "{{ ws.local }}/.seed/ansible-playbook/local-port.wait.yml"
+              dest: "{{ ws.remote }}/.seed/ansible-playbook/local-port.wait.yml"
+              delegate_to: "{{ groups['docker-manager'] | first }}"
+              run_once: true
+            - src: "{{ ws.local }}/.seed/ansible-tasks/host-port.wait.yml"
+              dest: "{{ ws.remote }}/.seed/ansible-tasks/host-port.wait.yml"
+              delegate_to: "{{ groups['docker-manager'] | first }}"
+              run_once: true
       include_tasks: dirs.push.yml
 
-    - name: docker-port.loop|info workspace volume
-      delegate_to: "{{ _port_loop.delegate_to | default(omit) }}"
-      run_once: "{{ _port_loop.run_once | default(false) }}"
-      when:
-        - _port_loop.vol is defined
+    - name: docker-port.loop|delegate|info workspace volume
+      delegate_to: "{{ groups['docker-manager'] | first }}"
+      run_once: true
       community.docker.docker_volume_info:
         name: "{{ _port_loop.container.volume }}"
       register: _port_loop_ws_vol_info
 
-    - name: docker-port.loop|copy workspace volume
+    - name: docker-port.loop|delegate|push workspace volume
       vars:
         volumes: "{{ _port_loop.vol_push }}"
       when:
-        - _port_loop.vol is defined
         - _port_loop_ws_vol_info.exists
       include_tasks:
         file: docker-volumes.push.yml
         apply:
-          delegate_to: "{{ _port_loop.delegate_to | default('') }}"
-          run_once: "{{ _port_loop.run_once | default(false) }}"
+          delegate_to: "{{ groups['docker-manager'] | first }}"
+          run_once: true
 
-    - name: docker-port.loop|add workspace volume
-      when:
-        - _port_loop.vol is defined
-        - not _port_loop_ws_vol_info.exists
+    - name: docker-port.loop|delegate|add workspace volume
       vars:
         volumes: "{{ _port_loop.vol }}"
+      when:
+        - not _port_loop_ws_vol_info.exists
       include_tasks:
         file: docker-volumes.add.yml
         apply:
-          delegate_to: "{{ _port_loop.delegate_to | default('') }}"
-          run_once: "{{ _port_loop.run_once | default(false) }}"
+          delegate_to: "{{ groups['docker-manager'] | first }}"
+          run_once: true
 
     # simple way for seed-docker.run
     # incomplete copy of workspace
     # connected to the network
     # no docker.sock binding
-    - name: docker-port.loop|run seed container
-      delegate_to: "{{ _port_loop.delegate_to | default(omit) }}"
-      run_once: "{{ _port_loop.run_once | default(false) }}"
+    - name: docker-port.loop|delegate|run seed container
+      delegate_to: "{{ groups['docker-manager'] | first }}"
+      run_once: true
       vars:
         network_item:
           name: "{{ _port_loop.container.network | default(omit) }}"
         network_list: "{{ [network_item] if (_port_loop.container.network is defined) else [] }}"
-      when:
-        - _port_loop.container.cmd is defined
       community.docker.docker_container:
         name: "{{ _port_loop.container.name }}"
         state: started
@@ -202,27 +247,102 @@
 
     - block:
 
-        - name: docker-port.loop|wait seed container
-          when:
-            - _port_loop.container_wait is defined
+        - name: docker-port.loop|delegate|wait seed container
           vars:
             containers: "{{ _port_loop.container_wait }}"
           include_tasks:
             file: docker-container.wait.yml
             apply:
-              delegate_to: "{{ _port_loop.delegate_to | default('') }}"
-              run_once: "{{ _port_loop.run_once | default(false) }}"
+              delegate_to: "{{ groups['docker-manager'] | first }}"
+              run_once: true
 
       rescue:
 
-        - name: docker-port.loop|stop container
-          delegate_to: "{{ _port_loop.delegate_to | default(omit) }}"
-          run_once: "{{ _port_loop.run_once | default(false) }}"
+        - name: docker-port.loop|delegate|stop container
+          delegate_to: "{{ groups['docker-manager'] | first }}"
+          run_once: true
           community.docker.docker_container:
             name: "{{ _port_loop.container.name }}"
             state: stopped
 
-        - name: docker-port.loop|fail loop
+        - name: docker-port.loop|delegate|fail loop
+          ansible.builtin.fail:
+            msg: loop docker port fail because wait docker container fail
+
+- when: _port_loop.mode == 'remote'
+  block:
+
+    - name: docker-port.loop|remote|copy to dir
+      vars:
+        dirs:
+          sync:
+            - src: "{{ ws.local }}/.seed/ansible-playbook/local-port.wait.yml"
+              dest: "{{ ws.remote }}/.seed/ansible-playbook/local-port.wait.yml"
+            - src: "{{ ws.local }}/.seed/ansible-tasks/host-port.wait.yml"
+              dest: "{{ ws.remote }}/.seed/ansible-tasks/host-port.wait.yml"
+      include_tasks: dirs.push.yml
+
+    - name: docker-port.loop|remote|info workspace volume
+      community.docker.docker_volume_info:
+        name: "{{ _port_loop.container.volume }}"
+      register: _port_loop_ws_vol_info
+
+    - name: docker-port.loop|remote|push workspace volume
+      vars:
+        volumes: "{{ _port_loop.vol_push }}"
+      when:
+        - _port_loop_ws_vol_info.exists
+      include_tasks: docker-volumes.push.yml
+
+    - name: docker-port.loop|remote|add workspace volume
+      vars:
+        volumes: "{{ _port_loop.vol }}"
+      when:
+        - not _port_loop_ws_vol_info.exists
+      include_tasks: docker-volumes.add.yml
+
+    # simple way for seed-docker.run
+    # incomplete copy of workspace
+    # connected to the network
+    # no docker.sock binding
+    - name: docker-port.loop|remote|run seed container
+      vars:
+        network_item:
+          name: "{{ _port_loop.container.network | default(omit) }}"
+        network_list: "{{ [network_item] if (_port_loop.container.network is defined) else [] }}"
+      community.docker.docker_container:
+        name: "{{ _port_loop.container.name }}"
+        state: started
+        entrypoint: ansible-playbook
+        image: xiaoyao9184/docker-seed-ansible:latest
+        command: "{{ _port_loop.container.cmd }}"
+        networks: "{{ network_list }}"
+        volumes:
+          - "{{ _port_loop.container.volume }}:/workspace"
+        labels:
+          "com.docker.stack.namespace": seed
+          "com.github.xiaoyao9184.docker-seed.type": "docker-port.loop"
+          "com.github.xiaoyao9184.docker-seed.creator": "{{ lookup('ansible.builtin.env', 'SEED_NAME', default='docker-port.loop') }}"
+      register: seed_container_result
+      until: "seed_container_result is not failed"
+      retries: "{{ _port_loop.container.retries }}"
+      delay: "{{ _port_loop.container.delay }}"
+
+    - block:
+
+        - name: docker-port.loop|remote|wait seed container
+          vars:
+            containers: "{{ _port_loop.container_wait }}"
+          include_tasks: docker-container.wait.yml
+
+      rescue:
+
+        - name: docker-port.loop|remote|stop container
+          community.docker.docker_container:
+            name: "{{ _port_loop.container.name }}"
+            state: stopped
+
+        - name: docker-port.loop|remote|fail loop
           ansible.builtin.fail:
             msg: loop docker port fail because wait docker container fail
 
