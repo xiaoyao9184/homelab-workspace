@@ -7,7 +7,7 @@
       ansible-playbook \
         --ask-pass \
         --inventory $PWD/ansible-inventories \
-        $PWD/../../../windows/netsh/port-range/excluded/ansible-playbook.set.yml
+        $PWD/../../../windows/netsh/port-range/excluded/ansible-playbook.add.yml
   hosts: windows
   tasks:
 
