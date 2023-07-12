@@ -1,18 +1,18 @@
 ---
 
 
-- name: ubnt-ssh.init|init _ssh
+- name: edgeos-ssh.init|init _ssh
   ansible.builtin.set_fact:
     _ssh:
       # get ssh public key path
       pub_file: "~/.ssh/{{ ssh.basename }}/id_rsa.pub"
       remote_user: "{{ ssh.username }}"
 
-- name: ubnt-ssh.approve|print _ssh
+- name: edgeos-ssh.approve|print _ssh
   ansible.builtin.debug:
     var: _ssh
 
-- name: ubnt-ssh.init|configure authentication public-keys
+- name: edgeos-ssh.init|configure authentication public-keys
   vars:
     pub_key: "{{ lookup('file', _ssh.pub_file) }}"
     pub_split: "{{ pub_key | split }}"
@@ -21,6 +21,6 @@
       - set system login user ubnt authentication public-keys {{ _ssh.remote_user }} type ssh-rsa
       - set system login user ubnt authentication public-keys {{ _ssh.remote_user }} key {{ pub_split[1] }}
 
-- name: ubnt-ssh.init|reset _ssh
+- name: edgeos-ssh.init|reset _ssh
   ansible.builtin.set_fact:
     _ssh: !!null

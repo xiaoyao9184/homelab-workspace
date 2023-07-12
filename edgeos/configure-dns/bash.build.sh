@@ -1,7 +1,7 @@
 #!/bin/bash
 current_path="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 [[ -z "$build_path" ]] && build_path=${current_path}/build/
-[[ -z "$build_name" ]] && build_name=ubnt_configure_dns_forwarding.sh
+[[ -z "$build_name" ]] && build_name=edgeos_configure_dns_forwarding.sh
 [[ -z "$mapping_domain" ]] && mapping_domain=${current_path}/domain_ip.csv
 
 build_extension="${build_name##*.}"
@@ -21,7 +21,7 @@ EOT
 
 # read all where
 declare -a wheres
-while IFS="," read -r where ip_addr cl_name comment ubnt_domain
+while IFS="," read -r where ip_addr cl_name comment edgeos_domain
 do
     where=$(echo "$where" | tr -d '"' | tr -d '\r' )
     wheres+=("$where")
@@ -38,12 +38,12 @@ do
     echo "" >> ${build_file}
 done
 
-while IFS="," read -r where ip_addr cl_name comment ubnt_domain
+while IFS="," read -r where ip_addr cl_name comment edgeos_domain
 do
     where=$(echo "$where" | tr -d '"' | tr -d '\r' )
     ip=$(echo "$ip_addr" | tr -d '"' | tr -d '\r' )
     name=$(echo "$cl_name" | tr -d '"' | tr -d '\r' )
-    ubnt_domain=$(echo "$ubnt_domain" | tr -d '"' | tr -d '\r')
+    edgeos_domain=$(echo "$edgeos_domain" | tr -d '"' | tr -d '\r')
     echo "$ip - $name - @$where"
 
     template=$(cat << EOF
@@ -58,11 +58,11 @@ EOF
     fi
 
     template=$(cat << EOF
-set service dns forwarding options address=/.${name}${ubnt_domain}/${ip}
+set service dns forwarding options address=/.${name}${edgeos_domain}/${ip}
 commit
 EOF
 )
-    if [[ "$ubnt_domain" ]]
+    if [[ "$edgeos_domain" ]]
     then
         build_file=${build_path}/${build_filename}@${where}.${build_extension}
         echo "$template" >> ${build_file}

@@ -6,8 +6,8 @@
     run_wsl: |
       ansible-playbook \
         --inventory $PWD/ansible-inventories \
-        $PWD/../../../ubnt/configure-dhcp/ansible-playbook.config.yml
-  hosts: ubnt
+        $PWD/../../../edgeos/configure-dhcp/ansible-playbook.config.yml
+  hosts: edgeos
   tasks:
 
     - name: load dhcp_csv

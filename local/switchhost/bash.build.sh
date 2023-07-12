@@ -57,7 +57,7 @@ done
 
 # read all where
 declare -a wheres
-while IFS="," read -r where ip_addr cl_name comment ubnt_domain
+while IFS="," read -r where ip_addr cl_name comment edgeos_domain
 do
     where=$(echo "$where" | tr -d '"' | tr -d '\r' )
     wheres+=("$where")
@@ -74,12 +74,12 @@ do
     echo "" >> ${build_file}
 done
 
-while IFS="," read -r where ip_addr cl_name comment ubnt_domain
+while IFS="," read -r where ip_addr cl_name comment edgeos_domain
 do
     where=$(echo "$where" | tr -d '"' | tr -d '\r' )
     name=$(echo "$cl_name" | tr -d '"' | tr -d '\r' )
     ip=$(echo "$ip_addr" | tr -d '"' | tr -d '\r' )
-    ubnt_domain=$(echo "$ubnt_domain" | tr -d '"' | tr -d '\r')
+    edgeos_domain=$(echo "$edgeos_domain" | tr -d '"' | tr -d '\r')
     echo "$ip - $name - @$where"
 
     template=$(cat << EOF
@@ -93,10 +93,10 @@ EOF
     fi
 
     template=$(cat << EOF
-${ip} ${name}${ubnt_domain}
+${ip} ${name}${edgeos_domain}
 EOF
 )
-    if [[ "$ubnt_domain" ]]
+    if [[ "$edgeos_domain" ]]
     then
         build_file=${build_path}/${build_name}@${where}
         echo "$template" >> ${build_file}

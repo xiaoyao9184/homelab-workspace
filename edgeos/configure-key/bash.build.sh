@@ -1,7 +1,7 @@
 #!/bin/bash
 current_path="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 [[ -z "$build_path" ]] && build_path=${current_path}/build/
-[[ -z "$build_name" ]] && build_name=ubnt_configure_login_ssh_key.sh
+[[ -z "$build_name" ]] && build_name=edgeos_configure_login_ssh_key.sh
 [[ -z "$user_name" ]] && user_name=ubnt
 [[ -z "$key_path" ]] && key_path=$HOME/.ssh/id_rsa.pub
 

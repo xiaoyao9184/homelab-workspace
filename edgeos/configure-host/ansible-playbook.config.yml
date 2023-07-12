@@ -6,8 +6,8 @@
     run_wsl: |
       ansible-playbook \
         --inventory $PWD/ansible-inventories \
-        $PWD/../../../ubnt/configure-host/ansible-playbook.config.yml
-  hosts: ubnt
+        $PWD/../../../edgeos/configure-host/ansible-playbook.config.yml
+  hosts: edgeos
   tasks:
 
     - name: load dhcp_csv
@@ -51,6 +51,6 @@
         lines:
           - delete system static-host-mapping host-name {{ item.cl_name }}
           - set system static-host-mapping host-name {{ item.cl_name }} inet {{ item.ip_addr }}
-          - delete system static-host-mapping host-name {{ item.cl_name }}{{ item.ubnt_domain }}
-          - set system static-host-mapping host-name {{ item.cl_name }}{{ item.ubnt_domain }} inet {{ item.ip_addr }}
+          - delete system static-host-mapping host-name {{ item.cl_name }}{{ item.edgeos_domain }}
+          - set system static-host-mapping host-name {{ item.cl_name }}{{ item.edgeos_domain }} inet {{ item.ip_addr }}
       loop: "{{ domain_csv.list }}"

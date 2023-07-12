@@ -6,8 +6,8 @@
     run_wsl: |
       ansible-playbook \
         --inventory $PWD/ansible-inventories \
-        $PWD/../../../ubnt/configure-hwnat/ansible-playbook.config.yml
-  hosts: ubnt
+        $PWD/../../../edgeos/configure-hwnat/ansible-playbook.config.yml
+  hosts: edgeos
   tasks:
 
     - name: enable hwnat

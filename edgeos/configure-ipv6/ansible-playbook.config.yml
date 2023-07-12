@@ -6,8 +6,8 @@
     run_wsl: |
       ansible-playbook \
         --inventory $PWD/ansible-inventories \
-        $PWD/../../../ubnt/configure-ipv6/ansible-playbook.config.yml
-  hosts: ubnt
+        $PWD/../../../edgeos/configure-ipv6/ansible-playbook.config.yml
+  hosts: edgeos
   tasks:
 
     - name: configure slaac ipv6

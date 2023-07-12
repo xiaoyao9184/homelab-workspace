@@ -6,7 +6,7 @@
     run_wsl: |
       ansible-playbook \
         --inventory $PWD/ansible-inventories \
-        $PWD/../../../ubnt/configure-dns/ansible-playbook.build.yml
+        $PWD/../../../edgeos/configure-upnp/ansible-playbook.build.yml
   hosts: localhost
   connection: local
   tasks:
@@ -26,7 +26,8 @@
       environment:
         build_path: "{{ playbook_dir }}/build"
         build_name: "configure.sh"
-        mapping_domain: "{{ configure.dns.domain_csv }}"
+        if_listen: "{{ configure.upnp.if_listen }}"
+        if_wan: "{{ configure.upnp.if_wan }}"
 
     - name: list build file
       ansible.builtin.find:

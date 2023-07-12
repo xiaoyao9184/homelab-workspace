@@ -64,7 +64,7 @@ done
 
 # read all where
 declare -a wheres
-while IFS="," read -r where ip_addr cl_name comment ubnt_domain
+while IFS="," read -r where ip_addr cl_name comment edgeos_domain
 do
     where=$(echo "$where" | tr -d '"' | tr -d '\r' )
     wheres+=("$where")
@@ -79,7 +79,7 @@ do
     echo "" >> ${build_file}
 done
 
-while IFS="," read -r where ip_addr cl_name comment ubnt_domain
+while IFS="," read -r where ip_addr cl_name comment edgeos_domain
 do
     where=$(echo "$where" | tr -d '"' | tr -d '\r' )
     name=$(echo "$cl_name" | tr -d '"' | tr -d '\r' )
