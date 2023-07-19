@@ -89,11 +89,11 @@
         volumes:
           - name: test-volume-push
             src: "{{ playbook_dir }}/ansible-playbook.test.yml"
-            dest: "./ansible-playbook.test.yml"
+            dest: "ansible-playbook.test.yml"
             directory_mode: '0777'
           - name: test-volume-push
             src: "{{ playbook_dir }}/build"
-            dest: "./"
+            dest: ""
             directory_mode: '0777'
           - name: test-volume-push
             remote_src: true
