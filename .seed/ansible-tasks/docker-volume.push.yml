@@ -56,7 +56,7 @@
     - _volume_info.volume.Options.o | default('NONE') == 'bind'
   block:
 
-    - name: docker-volume.push|set push to volume bind device
+    - name: docker-volume.push|direct-mode|set push to volume bind device
       vars:
         update:
           cp:
@@ -64,14 +64,14 @@
       ansible.builtin.set_fact:
         _volume: "{{ _volume | combine(update, recursive=True) }}"
 
-    - name: docker-volume.push|print cp
+    - name: docker-volume.push|direct-mode|print cp
       ansible.builtin.debug:
         var: _volume.cp
 
-    - name: docker-volume.push|copy bind
+    - name: docker-volume.push|direct-mode|copy bind
       ansible.builtin.copy: "{{ _volume.cp }}"
 
-    - name: docker-volume.push|update _volume.pushed
+    - name: docker-volume.push|direct-mode|update _volume.pushed
       vars:
         update:
           pushed: true
@@ -151,11 +151,11 @@
               src: "{{ src }}"
               dest: "/seed_vol/{{ _volume.cp.dest }}"
 
-    - name: docker-volume.push|print docker cp
+    - name: docker-volume.push|container-mode|print docker cp
       ansible.builtin.debug:
         var: _volume_container_copy
 
-    - name: docker-volume.push|start copy container
+    - name: docker-volume.push|container-mode|start copy container
       community.docker.docker_container:
         name: "{{ _volume.name }}"
         state: started
@@ -172,21 +172,21 @@
       retries: 3
       delay: 10
 
-    - name: docker-volume.push|mkdir in container
+    - name: docker-volume.push|container-mode|mkdir in container
       when: _volume_container_copy.dest is regex("\/$")
       community.docker.docker_container_exec:
         container: "{{ _volume.name }}"
         command: "mkdir -p {{ _volume_container_copy.dest }}"
 
-    - name: docker-volume.push|copy to container
+    - name: docker-volume.push|container-mode|copy to container
       ansible.builtin.shell: "docker cp {{ _volume_container_copy.src }} {{ _volume.name }}:/{{ _volume_container_copy.dest }}"
 
-    - name: docker-volume.push|stop copy container
+    - name: docker-volume.push|container-mode|stop copy container
       community.docker.docker_container:
         name: "{{ _volume.name }}"
         state: stopped
 
-    - name: docker-volume.push|update _volume.pushed
+    - name: docker-volume.push|container-mode|update _volume.pushed
       vars:
         update:
           pushed: true
