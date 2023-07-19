@@ -71,6 +71,18 @@
       community.docker.docker_volume:
         name: test-volume-push
 
+    - name: create temporary file remote src
+      ansible.builtin.tempfile:
+        state: file
+        suffix: seed
+      register: remote_temporary_file
+
+    - name: create temporary directory remote src
+      ansible.builtin.tempfile:
+        state: directory
+        suffix: seed
+      register: remote_temporary_directory
+
     - name: push volume
       include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/docker-volumes.push.yml"
       vars:
@@ -83,6 +95,26 @@
             src: "{{ playbook_dir }}/build"
             dest: "./"
             directory_mode: '0777'
+          - name: test-volume-push
+            remote_src: true
+            src: "{{ remote_temporary_file.path }}"
+            dest: "from_remote_file"
+            directory_mode: '0777'
+          - name: test-volume-push
+            remote_src: true
+            src: "{{ remote_temporary_directory.path }}"
+            dest: "from_remote_directory"
+            directory_mode: '0777'
+
+    - name: remove temporary file remote src
+      ansible.builtin.file:
+        path: "{{ remote_temporary_file.path }}"
+        state: absent
+
+    - name: remove temporary directory remote src
+      ansible.builtin.file:
+        path: "{{ remote_temporary_directory.path }}"
+        state: absent
 
     - name: remove container
       community.docker.docker_container:

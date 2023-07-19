@@ -135,10 +135,17 @@
     - when: _volume.cp.remote_src | default(false) | bool
       block:
 
-        - name: docker-volume.push|set docker cp by remote src
+        - name: docker-volume.push|container-mode|from-remote|stat remote src
+          ansible.builtin.stat:
+            path: "{{ _volume.cp.src }}"
+          register: _volume_src_stat
+
+        - name: docker-volume.push|container-mode|from-remote|fact container copy
+          vars:
+            src: "{{ _volume.cp.src }}{{ '/.' if (_volume_src_stat.stat.isdir | default(false,true)) else '' }}"
           ansible.builtin.set_fact:
             _volume_container_copy:
-              src: "{{ _volume.cp.src }}/."
+              src: "{{ src }}"
               dest: "/seed_vol/{{ _volume.cp.dest }}"
 
     - name: docker-volume.push|print docker cp
