@@ -1,0 +1,109 @@
+---
+
+- name: test
+  vars:
+    run_debug: |
+      ansible-playbook \
+        -vvv \
+        --inventory $PWD/ansible-inventories \
+        $PWD/../../../test/seed/docker.copy/one-dir/parent-path/ansible-playbook.test.yml
+    run_normal: |
+      ansible-playbook \
+        --inventory $PWD/ansible-inventories \
+        $PWD/../../../test/seed/docker.copy/one-dir/parent-path/ansible-playbook.test.yml
+  environment:
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
+  hosts: docker
+  run_once: true
+  gather_facts: no
+  tasks:
+
+    - name: create temporary dir
+      ansible.builtin.tempfile:
+        state: directory
+        suffix: seed.docker.copy
+      register: remote_temporary_directory
+
+    - name: create dir
+      ansible.builtin.file:
+        path: "{{ remote_temporary_directory.path }}/dir"
+        state: directory
+
+    - name: create dir file
+      ansible.builtin.copy:
+        content: '# This file created by seed docker.copy test'
+        dest: "{{ remote_temporary_directory.path }}/dir/file"
+
+    - name: start container
+      community.docker.docker_container:
+        name: test-docker-copy-dir-file-parent-path
+        state: started
+        image: alpine
+        command: "tail -f /dev/null"
+      register: copy_container
+
+    - name: mkdir temporary container
+      community.docker.docker_container_exec:
+        container: "{{ copy_container.container.Id }}"
+        command: "mkdir -p {{ remote_temporary_directory.path }}"
+
+    # src one-item to dest parent-path
+    - name: copy dir to no-exist by parent-path
+      vars:
+        src: "{{ remote_temporary_directory.path }}/dir"
+        dest: "{{ remote_temporary_directory.path }}/dir.parent/"
+      ansible.builtin.shell: "docker cp {{ src }} {{ copy_container.container.Id }}:{{ dest }}"
+
+    - name: create dir-exist
+      community.docker.docker_container_exec:
+        container: "{{ copy_container.container.Id }}"
+        command: "mkdir -p {{ remote_temporary_directory.path }}/dir.exist"
+
+    # src one-item to dest parent-path
+    - name: copy dir to dir-exist by parent-path
+      vars:
+        src: "{{ remote_temporary_directory.path }}/dir"
+        dest: "{{ remote_temporary_directory.path }}/dir.exist/"
+      ansible.builtin.shell: "docker cp {{ src }} {{ copy_container.container.Id }}:{{ dest }}"
+
+    - name: create file-exist
+      community.docker.docker_container_exec:
+        container: "{{ copy_container.container.Id }}"
+        command: "touch {{ remote_temporary_directory.path }}/file.exist"
+
+    # src one-item to dest parent-path
+    - name: copy dir to file-exist by parent-path
+      vars:
+        src: "{{ remote_temporary_directory.path }}/dir"
+        dest: "{{ remote_temporary_directory.path }}/file.exist/"
+      ansible.builtin.shell: "docker cp {{ src }} {{ copy_container.container.Id }}:{{ dest }}"
+      ignore_errors: true
+
+
+    - name: install tree
+      community.docker.docker_container_exec:
+        container: "{{ copy_container.container.Id }}"
+        command: "apk add tree"
+
+    - name: tree container
+      community.docker.docker_container_exec:
+        container: "{{ copy_container.container.Id }}"
+        command: "tree -hF"
+        chdir: "{{ remote_temporary_directory.path }}"
+      register: tree_result
+
+    - name: print tree
+      ansible.builtin.pause:
+        seconds: 1
+        prompt: |
+          "{{ tree_result.stdout }}"
+
+    - name: remove temporary dir
+      ansible.builtin.file:
+        path: "{{ remote_temporary_directory.path }}"
+        state: absent
+
+    - name: remove container
+      community.docker.docker_container:
+        name: "{{ copy_container.container.Id }}"
+        state: absent
