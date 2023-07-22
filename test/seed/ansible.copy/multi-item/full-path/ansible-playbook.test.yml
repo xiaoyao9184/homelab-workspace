@@ -1,0 +1,93 @@
+---
+
+- name: test
+  vars:
+    run_debug: |
+      ansible-playbook \
+        -vvv \
+        --inventory $PWD/ansible-inventories \
+        $PWD/../../../test/seed/ansible.copy/multi-item/full-path/ansible-playbook.test.yml
+    run_normal: |
+      ansible-playbook \
+        --inventory $PWD/ansible-inventories \
+        $PWD/../../../test/seed/ansible.copy/multi-item/full-path/ansible-playbook.test.yml
+  environment:
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
+  hosts: docker
+  run_once: true
+  gather_facts: no
+  tasks:
+
+    - name: create temporary dir
+      ansible.builtin.tempfile:
+        state: directory
+        suffix: seed.ansible.copy
+      register: remote_temporary_directory
+
+    - name: create content
+      ansible.builtin.file:
+        path: "{{ remote_temporary_directory.path }}/content"
+        state: directory
+
+    - name: create content file
+      loop:
+        - "1"
+        - "2"
+      ansible.builtin.copy:
+        content: '# This file created by seed ansible.copy test'
+        dest: "{{ remote_temporary_directory.path }}/content/file.{{item}}"
+
+    # src multi-item to dest full-path
+    - name: copy multi to no-exist by full-path
+      ansible.builtin.copy:
+        remote_src: true
+        src: "{{ remote_temporary_directory.path }}/content/"
+        dest: "{{ remote_temporary_directory.path }}/content.copy"
+
+    - name: create dir-exist
+      ansible.builtin.file:
+        path: "{{ remote_temporary_directory.path }}/dir.exist"
+        state: directory
+
+    # src multi-item to dest full-path
+    - name: copy multi to dir-exist by full-path
+      ansible.builtin.copy:
+        remote_src: true
+        src: "{{ remote_temporary_directory.path }}/content/"
+        dest: "{{ remote_temporary_directory.path }}/dir.exist"
+
+    - name: create file-exist
+      ansible.builtin.file:
+        path: "{{ remote_temporary_directory.path }}/file.exist"
+        state: touch
+
+    # src multi-item to dest full-path
+    # - name: copy multi to file-exist by full-path
+    #   ansible.builtin.copy:
+    #     remote_src: true
+    #     src: "{{ remote_temporary_directory.path }}/content/"
+    #     dest: "{{ remote_temporary_directory.path }}/file.exist"
+    #   ignore_errors: true
+
+
+    - name: install tree
+      ansible.builtin.package:
+        name: tree
+        state: present
+
+    - name: tree remote
+      ansible.builtin.shell:
+        cmd: tree -hF
+        chdir: "{{ remote_temporary_directory.path }}"
+      register: tree_result
+
+    - name: print tree
+      ansible.builtin.pause:
+        seconds: 1
+        prompt: |
+          "{{ tree_result.stdout }}"
+
+    - name: remove temporary dir
+      ansible.builtin.file:
+        path: "{{ remote_temporary_directory.path }}"
+        state: absent
