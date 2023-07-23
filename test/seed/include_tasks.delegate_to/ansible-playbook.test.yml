@@ -78,7 +78,7 @@
     - name: none debug use vars
       vars:
         delegate_to: "{{ _none.delegate_to | default(omit,true) }}"
-        run_once: "{{ _none.run_once | default(false,true) }}"
+        run_once: "{{ _none.run_once | default(false) }}"
       debug:
         msg:
           - "{{ delegate_to }}"
@@ -89,7 +89,7 @@
         file: ansible-tasks.test.yml
         apply:
           delegate_to: "{{ _none.delegate_to | default(omit,true) }}"
-          run_once: "{{ _none.run_once | default(false,true) }}"
+          run_once: "{{ _none.run_once | default(false) }}"
           
     - name: none when use vars
       when:
@@ -98,4 +98,4 @@
         file: ansible-tasks.test.yml
         apply:
           delegate_to: "{{ _none.delegate_to | default(omit,true) }}"
-          run_once: "{{ _none.run_once | default(false,true) }}"
+          run_once: "{{ _none.run_once | default(false) }}"
