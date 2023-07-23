@@ -43,6 +43,10 @@
         remote_src: true
         src: "{{ remote_temporary_directory.path }}/content/"
         dest: "{{ remote_temporary_directory.path }}/content.copy"
+        # nothing
+        directory_mode: 0777
+        # set content.copy by mode
+        mode: 0771
 
     - name: create dir-exist
       ansible.builtin.file:
@@ -55,6 +59,10 @@
         remote_src: true
         src: "{{ remote_temporary_directory.path }}/content/"
         dest: "{{ remote_temporary_directory.path }}/dir.exist"
+        # nothing
+        directory_mode: 0777
+        # set dir.exist by mode
+        mode: 0771
 
     - name: create file-exist
       ansible.builtin.file:

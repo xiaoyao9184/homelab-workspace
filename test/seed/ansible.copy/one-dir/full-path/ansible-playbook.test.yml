@@ -29,10 +29,15 @@
         path: "{{ remote_temporary_directory.path }}/dir"
         state: directory
 
+    - name: create dir dir
+      ansible.builtin.file:
+        path: "{{ remote_temporary_directory.path }}/dir/dir.1"
+        state: directory
+
     - name: create dir file
       ansible.builtin.copy:
         content: '# This file created by seed ansible.copy test'
-        dest: "{{ remote_temporary_directory.path }}/dir/file"
+        dest: "{{ remote_temporary_directory.path }}/dir/file.2"
 
     # src one-item to dest full-path
     - name: copy dir to no-exist by full-path
@@ -40,6 +45,10 @@
         remote_src: true
         src: "{{ remote_temporary_directory.path }}/dir"
         dest: "{{ remote_temporary_directory.path }}/dir.copy"
+        # nothing change
+        directory_mode: 0777
+        # set dir.copy by mode, not dir.copy/dir. BUG maybe?
+        mode: 0771
 
     - name: create dir-exist
       ansible.builtin.file:
@@ -52,6 +61,10 @@
         remote_src: true
         src: "{{ remote_temporary_directory.path }}/dir"
         dest: "{{ remote_temporary_directory.path }}/dir.exist"
+        # nothing change
+        directory_mode: 0777
+        # set dir.exist/dir by mode
+        mode: 0771
 
     - name: create file-exist
       ansible.builtin.file:
