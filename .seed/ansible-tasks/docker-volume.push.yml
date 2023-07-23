@@ -40,12 +40,12 @@
       delay: 0
   include_tasks: docker-volume.loop.yml
 
-- name: docker-volume.push|get volume info
+- name: docker-volume.push|info volume
   community.docker.docker_volume_info:
     name: "{{ _volume.name }}"
   register: _volume_info
 
-- name: docker-volume.push|print volume info
+- name: docker-volume.push|print info
   ansible.builtin.debug:
     var: _volume_info
 
@@ -56,20 +56,22 @@
     - _volume_info.volume.Options.o | default('NONE') == 'bind'
   block:
 
-    - name: docker-volume.push|direct-mode|set push to volume bind device
+    - name: docker-volume.push|direct-mode|set bind copy
       vars:
+        dest: "{{ _volume_info.volume.Options.device }}/{{ _volume.cp.dest }}"
         update:
-          cp:
-            dest: "{{ _volume_info.volume.Options.device }}/{{ _volume.cp.dest }}"
+          dest: "{{ dest }}"
       ansible.builtin.set_fact:
-        _volume: "{{ _volume | combine(update, recursive=True) }}"
+        _volume_bind_copy: "{{ _volume.cp | combine(update, recursive=True) }}"
 
-    - name: docker-volume.push|direct-mode|print cp
+    - name: docker-volume.push|direct-mode|print bind copy
       ansible.builtin.debug:
-        var: _volume.cp
+        var: _volume_bind_copy
 
-    - name: docker-volume.push|direct-mode|copy bind
-      ansible.builtin.copy: "{{ _volume.cp }}"
+    - name: docker-volume.push|direct-mode|copy to bind
+      ansible.builtin.copy: "{{ _volume_bind_copy }}"
+      # fail when on wsl but copy done
+      ignore_errors: true
 
     - name: docker-volume.push|direct-mode|update _volume.pushed
       vars:
@@ -77,6 +79,7 @@
           pushed: true
       ansible.builtin.set_fact:
         _volume: "{{ _volume | combine(update, recursive=True) }}"
+        _volume_bind_copy: !!null
 
 - when:
     - _volume_info.exists
@@ -94,26 +97,27 @@
           when: dir is undefined
           include_tasks: dir.set.yml
 
-        - name: docker-volume.push|container-mode|from-control|empty temporary path
-          vars:
-            temporary_path: "{{ dir.remote | default(ws.remote) }}/.vol/{{ _volume.name }}"
-          ansible.builtin.file:
-            path: "{{ temporary_path }}/"
-            state: absent
+        # - name: docker-volume.push|container-mode|from-control|empty temporary path
+        #   vars:
+        #     temporary_dir: "{{ dir.remote | default(ws.remote) }}/.vol/{{ _volume.name }}"
+        #   ansible.builtin.file:
+        #     path: "{{ temporary_dir }}/"
+        #     state: absent
 
-        - name: docker-volume.push|container-mode|from-control|create temporary path
+        - name: docker-volume.push|container-mode|from-control|mkdir temporary
           vars:
-            temporary_path: "{{ dir.remote | default(ws.remote) }}/.vol/{{ _volume.name }}"
+            temporary_dir: "{{ dir.remote | default(ws.remote) }}/.vol/{{ _volume.name }}"
           ansible.builtin.file:
-            path: "{{ temporary_path }}"
+            path: "{{ temporary_dir }}"
             state: directory
 
         - name: docker-volume.push|container-mode|from-control|set temporary copy
           vars:
-            dest: "/{{ _volume.cp.dest | default('',true) }}"
-            temporary_path: "{{ dir.remote | default(ws.remote) }}/.vol/{{ _volume.name }}"
+            temporary_dir: "{{ dir.remote | default(ws.remote) }}/.vol/{{ _volume.name }}"
+            dest_relative: "/{{ _volume.cp.dest | default('',true) }}"
+            dest: "{{ temporary_dir  }}{{ '' if (_volume.cp.dest | default('',true) == '') else dest_relative }}"
             update:
-              dest: "{{ temporary_path }}{{ '' if (_volume.cp.dest | default('',true) == '') else dest }}"
+              dest: "{{ dest }}"
           ansible.builtin.set_fact:
             _volume_temporary_copy: "{{ _volume.cp | combine(update, recursive=True) }}"
 
@@ -121,41 +125,47 @@
           ansible.builtin.debug:
             var: _volume_temporary_copy
 
-        - name: docker-volume.push|container-mode|from-control|copy temporary path
+        - name: docker-volume.push|container-mode|from-control|copy to temporary
           ansible.builtin.copy: "{{ _volume_temporary_copy }}"
           register: _volume_temporary_copy_result
 
-        - name: docker-volume.push|container-mode|from-control|set docker cp by temporary dest
+        - name: docker-volume.push|container-mode|from-control|set container copy
           vars:
-            src: "{{ _volume_temporary_copy.dest }}{{ '' if (_volume_temporary_copy_result.state | default('',true) == 'file') else '/.' }}"
+            temporary_dir: "{{ dir.remote | default(ws.remote) }}/.vol/{{ _volume.name }}"
+            src_relative: "/{{ _volume.cp.dest | default('',true) }}"
+            src_empty_dest: "{{ '/.' if (_volume.cp.dest | default('',true) == '') else src_relative }}"
+            src_content_src: "{{ '/.' if (_volume.cp.src is regex('\/$')) else src_empty_dest }}"
+            src: "{{ temporary_dir  }}{{ src_content_src }}"
+            # empty dest mean use parent-path
+            dest_relative: "/{{ _volume.cp.dest | default('',true) }}"
+            dest: "/seed_vol{{ '' if (_volume.cp.dest | default('',true) == '') else dest_relative }}"
           ansible.builtin.set_fact:
             _volume_container_copy:
               src: "{{ src }}"
-              dest: "/seed_vol/{{ _volume.cp.dest }}"
+              dest: "{{ dest }}"
             _volume_temporary_copy: !!null
             _volume_temporary_copy_result: !!null
 
     - when: _volume.cp.remote_src | default(false) | bool
       block:
 
-        - name: docker-volume.push|container-mode|from-remote|stat remote src
-          ansible.builtin.stat:
-            path: "{{ _volume.cp.src }}"
-          register: _volume_src_stat
-
-        - name: docker-volume.push|container-mode|from-remote|fact container copy
+        - name: docker-volume.push|container-mode|from-remote|set container copy
           vars:
-            src: "{{ _volume.cp.src }}{{ '/.' if (_volume_src_stat.stat.isdir | default(false,true)) else '' }}"
+            # ansible copy src multi-item '/tmp/dir/' to docker cp SRC_PATH '/tmp/dir/.'
+            src: "{{ _volume.cp.src }}{{ '.' if (_volume.cp.src is regex('\/$')) else '' }}"
+            # empty dest mean use parent-path
+            dest_relative: "/{{ _volume.cp.dest | default('',true) }}"
+            dest: "/seed_vol{{ '' if (_volume.cp.dest | default('',true) == '') else dest_relative }}"
           ansible.builtin.set_fact:
             _volume_container_copy:
               src: "{{ src }}"
-              dest: "/seed_vol/{{ _volume.cp.dest }}"
+              dest: "{{ dest }}"
 
-    - name: docker-volume.push|container-mode|print docker cp
+    - name: docker-volume.push|container-mode|print container copy
       ansible.builtin.debug:
         var: _volume_container_copy
 
-    - name: docker-volume.push|container-mode|start copy container
+    - name: docker-volume.push|container-mode|start volume container
       community.docker.docker_container:
         name: "{{ _volume.name }}"
         state: started
@@ -172,16 +182,81 @@
       retries: 3
       delay: 10
 
-    - name: docker-volume.push|container-mode|mkdir in container
-      when: _volume_container_copy.dest is regex("\/$")
+    - name: docker-volume.push|container-mode|stat src when src one-item
+      when: 
+        - not ( _volume_container_copy.src is regex('\/\.$') )
+      ansible.builtin.stat:
+        path: "{{ _volume_container_copy.src }}"
+      register: _volume_src_stat
+
+    - name: docker-volume.push|container-mode|set mkdir mode when dest parent-path
+      when: 
+        - _volume.cp.directory_mode is defined 
+        - _volume_container_copy.dest is regex('\/$')
+      ansible.builtin.set_fact:
+        _volume_mkdir_mode: "{{  _volume.cp.directory_mode }}"
+
+    - name: docker-volume.push|container-mode|mkdir dest when dest is parent-path or src is dir-item
+      loop:
+        # when dest endwith '/' mean parent-path
+        - "{{ _volume_container_copy.dest is regex('\/$') }}"
+        # when src is dir mean dest is parent-path
+        - "{{ _volume_src_stat.stat.isdir | default(true) }}"
+      vars:
+        mode: "-m {{ _volume_mkdir_mode | default('0777',true) }}"
+        mode_opt: "{{ mode if( _volume_mkdir_mode is defined) else '' }}"
+      when: item
       community.docker.docker_container_exec:
         container: "{{ _volume.name }}"
-        command: "mkdir -p {{ _volume_container_copy.dest }}"
+        command: "mkdir {{ mode_opt }} -p {{ _volume_container_copy.dest }}"
 
     - name: docker-volume.push|container-mode|copy to container
-      ansible.builtin.shell: "docker cp {{ _volume_container_copy.src }} {{ _volume.name }}:/{{ _volume_container_copy.dest }}"
+      ansible.builtin.shell: "docker cp {{ _volume_container_copy.src }} {{ _volume.name }}:{{ _volume_container_copy.dest }}"
 
-    - name: docker-volume.push|container-mode|stop copy container
+    - when:
+        - not ( _volume_container_copy.src is regex('\/\.$') )
+      block:
+
+        - name: docker-volume.push|container-mode|test dest is dir when src one-item
+          community.docker.docker_container_exec:
+            container: "{{ _volume.name }}"
+            command: "test -d {{ _volume_container_copy.dest }}"
+          register: _volume_dest_test
+          ignore_errors: true
+
+        - name: docker-volume.push|container-mode|set mode file when src one-item
+          vars:
+            filename: "/{{ (_volume_src_stat.stat.path | default('',true) | basename) }}"
+          ansible.builtin.set_fact:
+            _volume_mode_file: "{{ _volume_container_copy.dest }}{{ filename if(_volume_dest_test is success) else '' }}"
+
+    - name: docker-volume.push|container-mode|set mode file when src multi-item
+      when:
+        - _volume_container_copy.src is regex('\/\.$')
+      ansible.builtin.set_fact:
+        _volume_mode_file: "{{ _volume_container_copy.dest }}"
+
+    - name: docker-volume.push|container-mode|mode file when defined
+      when:
+        - _volume.cp.mode is defined
+        - _volume_mode_file is defined
+      community.docker.docker_container_exec:
+        container: "{{ _volume.name }}"
+        command: "chmod {{ _volume.cp.mode }} {{ _volume_mode_file }}"
+
+    - name: docker-volume.push|container-mode|tree dest
+      community.docker.docker_container_exec:
+        container: "{{ _volume.name }}"
+        command: "tree {{ _volume_container_copy.dest }}"
+      register: result_copy_container
+
+    - name: docker-volume.push|container-mode|print dest
+      ansible.builtin.pause:
+        seconds: 1
+        prompt: |
+          "{{ result_copy_container.stdout }}"
+
+    - name: docker-volume.push|container-mode|stop volume container
       community.docker.docker_container:
         name: "{{ _volume.name }}"
         state: stopped
@@ -193,6 +268,9 @@
       ansible.builtin.set_fact:
         _volume: "{{ _volume | combine(update, recursive=True) }}"
         _volume_container_copy: !!null
+        _volume_src_stat: !!null
+        _volume_dest_mode: !!null
+        _volume_mode_file: !!null
 
 - name: docker-volume.push|fail check
   when: not (_volume.pushed | default(false) | bool)
