@@ -1,0 +1,193 @@
+---
+
+- name: test
+  vars:
+    run_debug: |
+      ansible-playbook \
+        -vvv \
+        --inventory $PWD/ansible-inventories \
+        $PWD/../../../test/seed/docker-volume.push/bind-volume/ansible-playbook.test.yml
+    run_normal: |
+      ansible-playbook \
+        --inventory $PWD/ansible-inventories \
+        $PWD/../../../test/seed/docker-volume.push/bind-volume/ansible-playbook.test.yml
+  environment:
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
+  hosts: docker
+  run_once: true
+  tasks:
+
+    - name: remove watch container
+      community.docker.docker_container:
+        name: watch-test-volume-push
+        state: absent
+  
+    - name: clean volume container
+      community.docker.docker_container:
+        name: test-volume-push
+        state: absent
+
+    - name: clean volume
+      community.docker.docker_volume:
+        name: test-volume-push
+        state: absent
+    
+    - name: clean bind path
+      ansible.builtin.file:
+        path: "{{ playbook_dir }}/bind_vol"
+        state: absent
+
+
+    - name: create temporary dir
+      ansible.builtin.tempfile:
+        state: directory
+        suffix: seed.ansible.copy
+      register: remote_temporary_directory
+
+    - name: mkdir bind path
+      ansible.builtin.file:
+        path: "{{ playbook_dir }}/bind_vol"
+        state: directory
+
+    - name: add bind volume
+      community.docker.docker_volume:
+        name: test-volume-push
+        driver: local
+        driver_options:
+          type: none
+          device: "{{ playbook_dir }}/bind_vol"
+          o: bind
+
+    - name: start watch container
+      community.docker.docker_container:
+        name: watch-test-volume-push
+        state: started
+        image: alpine
+        command: "tail -f /dev/null"
+        volumes:
+          - "test-volume-push:/watch_vol"
+      register: watch_container
+
+
+    - name: create file
+      ansible.builtin.copy:
+        content: '# This file created by seed docker-volume.push test: file'
+        dest: "{{ remote_temporary_directory.path }}/file"
+
+    - name: push file to no-exist by full-path
+      include_tasks: "{{ playbook_dir }}/../../../../.seed/ansible-tasks/docker-volumes.push.yml"
+      vars:
+        volumes:
+          - name: test-volume-push
+            remote_src: true
+            src: "{{ remote_temporary_directory.path }}/file"
+            dest: "file.copy"
+            mode: '0777'
+
+    - name: create dir-exist
+      # community.docker.docker_container_exec:
+      #   container: "{{ watch_container.container.Id }}"
+      #   command: "mkdir -p /watch_vol/dir.exist"
+      ansible.builtin.file:
+        path: "{{ playbook_dir }}/bind_vol/dir.exist"
+        state: directory
+
+    - name: push file to dir-exist by parent-path
+      include_tasks: "{{ playbook_dir }}/../../../../.seed/ansible-tasks/docker-volumes.push.yml"
+      vars:
+        volumes:
+          - name: test-volume-push
+            remote_src: true
+            src: "{{ remote_temporary_directory.path }}/file"
+            dest: "dir.exist"
+            mode: '0777'
+
+
+    - name: create dir
+      ansible.builtin.file:
+        path: "{{ remote_temporary_directory.path }}/dir"
+        state: directory
+
+    - name: create dir file
+      ansible.builtin.copy:
+        content: '# This file created by seed docker-volume.push test: dir/file'
+        dest: "{{ remote_temporary_directory.path }}/dir/file"
+
+    - name: push dir to dir-exist by parent-path
+      include_tasks: "{{ playbook_dir }}/../../../../.seed/ansible-tasks/docker-volumes.push.yml"
+      vars:
+        volumes:
+          - name: test-volume-push
+            remote_src: true
+            src: "{{ remote_temporary_directory.path }}/dir"
+            dest: "dir.exist"
+            mode: '0777'
+
+
+    - name: create content
+      ansible.builtin.file:
+        path: "{{ remote_temporary_directory.path }}/content"
+        state: directory
+
+    - name: create content file
+      loop:
+        - "1"
+        - "2"
+      ansible.builtin.copy:
+        content: '# This file created by seed docker-volume.push test: content/file.*'
+        dest: "{{ remote_temporary_directory.path }}/content/file.{{item}}"
+
+    - name: push content to no-exist by parent-path
+      include_tasks: "{{ playbook_dir }}/../../../../.seed/ansible-tasks/docker-volumes.push.yml"
+      vars:
+        volumes:
+          - name: test-volume-push
+            remote_src: true
+            src: "{{ remote_temporary_directory.path }}/content/"
+            dest: "content.parent/"
+            mode: '0777'
+
+
+    - name: install tree
+      community.docker.docker_container_exec:
+        container: "{{ watch_container.container.Id }}"
+        command: "apk add tree"
+
+    - name: tree container
+      community.docker.docker_container_exec:
+        container: "{{ watch_container.container.Id }}"
+        command: "tree -hF"
+        chdir: "/watch_vol"
+      register: tree_result
+
+    - name: print tree
+      ansible.builtin.pause:
+        seconds: 1
+        prompt: |
+          "{{ tree_result.stdout }}"
+
+
+    - name: remove watch container
+      community.docker.docker_container:
+        name: "{{ watch_container.container.Id }}"
+        state: absent
+
+    - name: remove volume container
+      community.docker.docker_container:
+        name: test-volume-push
+        state: absent
+
+    - name: remove volume
+      community.docker.docker_volume:
+        name: test-volume-push
+        state: absent
+
+    - name: remove temporary dir
+      ansible.builtin.file:
+        path: "{{ remote_temporary_directory.path }}"
+        state: absent
+
+    - name: remove bind path
+      ansible.builtin.file:
+        path: "{{ playbook_dir }}/bind_vol"
+        state: absent
