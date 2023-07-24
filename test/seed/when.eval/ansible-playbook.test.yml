@@ -1,0 +1,73 @@
+---
+
+- name: test
+  vars:
+    run_debug: |
+      ansible-playbook \
+        -vvv \
+        --inventory $PWD/ansible-inventories \
+        $PWD/../../../test/seed/when.eval/ansible-playbook.test.yml
+    run_normal: |
+      ansible-playbook \
+        --inventory $PWD/ansible-inventories \
+        $PWD/../../../test/seed/when.eval/ansible-playbook.test.yml
+  environment:
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
+  hosts: docker
+  run_once: true
+  gather_facts: no
+  tasks:
+
+    - name: fact conditionals
+      ansible.builtin.set_fact:
+        conditionals:
+          - foo is defined
+          - not ( foo == 'b' )
+
+    - name: print when conditional pass
+      loop: "{{ conditionals }}"
+      loop_control:
+        loop_var: conditional
+      when: "{{ conditional }}"
+      debug:
+        msg: "conditional result was true!"
+      ignore_errors: true
+
+
+    - name: fact foo
+      ansible.builtin.set_fact:
+        foo: a
+
+    - name: fail when any conditional not pass
+      loop: "{{ conditionals }}"
+      loop_control:
+        loop_var: conditional
+      when: "not {{ conditional }}"
+      fail:
+        msg: "conditional {{ conditional }} result was false!"
+
+
+    - name: fact foo
+      ansible.builtin.set_fact:
+        foo: b
+
+    # https://github.com/ansible/ansible/issues/81337
+    - name: evaluate conditional
+      loop: "{{ conditionals }}"
+      loop_control:
+        loop_var: conditional
+      vars:
+        # TODO evaluate conditional from string var
+        # result: {{ conditional }}
+      ansible.builtin.debug:
+        msg:
+          - "conditional expression: {{ conditional }}"
+          # - "conditional result: {{ result }}"
+
+    - name: fail when any conditional not pass
+      loop: "{{ conditionals }}"
+      loop_control:
+        loop_var: conditional
+      when: "not {{ conditional }}"
+      fail:
+        msg: "conditional {{ conditional }} result was false!"
