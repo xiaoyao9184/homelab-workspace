@@ -247,14 +247,14 @@
     - name: docker-volume.push|container-mode|tree dest
       community.docker.docker_container_exec:
         container: "{{ _volume.name }}"
-        command: "tree {{ _volume_container_copy.dest }}"
+        command: "sh -c \"tree {{ _volume_container_copy.dest }}; ls -lah {{ _volume_container_copy.dest }}\""
       register: result_copy_container
 
     - name: docker-volume.push|container-mode|print dest
       ansible.builtin.pause:
         seconds: 1
         prompt: |
-          "{{ result_copy_container.stdout }}"
+          {{ result_copy_container.stdout }}
 
     - name: docker-volume.push|container-mode|stop volume container
       community.docker.docker_container:
