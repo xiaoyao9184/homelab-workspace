@@ -6,7 +6,7 @@
     run_wsl: |
       ansible-playbook \
         --inventory $PWD/ansible-inventories \
-        $PWD/../../../edgeos/configure-dns/ansible-playbook.config.yml
+        $PWD/../../../edgeos/configure-dns/domain/ansible-playbook.config.yml
   hosts: edgeos
   tasks:
 
