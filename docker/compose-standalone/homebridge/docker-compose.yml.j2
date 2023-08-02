@@ -24,6 +24,9 @@ services:
 {% else %}
       - homebridge
 {% endif %}
+{% if VARS.NETWORKS | length > 0 %}
+      {{ VARS.NETWORKS | to_nice_yaml(indent=2) | trim | indent(6) }}
+{% endif %}
 {% if VARS.PORTS | length > 0 %}
     ports:
     #   - "8581:8581"
