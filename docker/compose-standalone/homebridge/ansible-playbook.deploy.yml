@@ -71,3 +71,4 @@
               BIND_CONF: "{{ dir.remote }}/bind_file-conf"
               NETWORKS: "{{ homebridge.tmp.networks | default([],true) }}"
               PORTS: "{{ homebridge.tmp.ports | default([],true) }}"
+              DEVICES: "{{ homebridge.tmp.devices | default([],true) }}"
