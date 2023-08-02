@@ -1,0 +1,42 @@
+version: '3.8'
+
+volumes:
+  config:
+    name: external_vol-homeassistant-config
+    external: true
+
+networks:
+  homeassistant:
+
+services:
+  homeassistant:
+    image: homeassistant/home-assistant:stable
+    env_file: external_env-all.env
+    # environment:
+    #   - PGID=1000
+    #   - PUID=1000
+    #   - DISABLE_JEMALLOC=true
+    volumes:
+      - config:/config
+      - /etc/localtime:/etc/localtime:ro
+    networks:
+{% if VARS.NETWORKS | type_debug == "dict" %}
+      homeassistant:
+{% else %}
+      - homeassistant
+{% endif %}
+{% if VARS.NETWORKS | length > 0 %}
+      {{ VARS.NETWORKS | to_nice_yaml(indent=2) | trim | indent(6) }}
+{% endif %}
+{% if VARS.PORTS | length > 0 %}
+    ports:
+    #   - "8123:8123"
+      {{ VARS.PORTS | to_nice_yaml(indent=2) | trim | indent(6) }}
+{% endif %}
+{% if VARS.DEVICES | length > 0 %}
+    devices:
+      {{ VARS.DEVICES | to_nice_yaml(indent=2) | trim | indent(6) }}
+{% endif %}
+    # network_mode: "host"
+    container_name: homeassistant
+    restart: always
