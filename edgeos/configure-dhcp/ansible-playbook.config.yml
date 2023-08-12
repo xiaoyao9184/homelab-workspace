@@ -3,38 +3,43 @@
 
 - name: config
   vars:
-    run_wsl: |
+    run_debug: |
+      ansible-playbook \
+        -vvv \
+        --inventory $PWD/ansible-inventories \
+        $PWD/../../../edgeos/configure-dhcp/ansible-playbook.config.yml
+    run_normal: |
       ansible-playbook \
         --inventory $PWD/ansible-inventories \
         $PWD/../../../edgeos/configure-dhcp/ansible-playbook.config.yml
   hosts: edgeos
   tasks:
 
-    - name: load dhcp_csv
-      community.general.read_csv:
-        path: "{{ configure.dhcp.dhcp_csv }}"
-      register: dhcp_csv
-      delegate_to: localhost
-      connection: local
-
-    - name: delete dhcp
-      community.network.edgeos_config:
-        lines:
-          - set service dhcp-server shared-network-name LAN subnet
-      register: delete_result
-      until: "delete_result is not failed"
-      retries: 3
-      delay: 1
-
-    - name: configure dhcp
-      when:
-        - item.cl_name != ''
-        - item.location in location[location.at]
-      community.network.edgeos_config:
-        lines:
-          - set service dhcp-server shared-network-name LAN subnet {{ subnet }} static-mapping {{ item.cl_name }}
-          - set service dhcp-server shared-network-name LAN subnet {{ subnet }} static-mapping {{ item.cl_name }} ip-address {{ item.ip_addr }}
-          - set service dhcp-server shared-network-name LAN subnet {{ subnet }} static-mapping {{ item.cl_name }} mac-address {{ item.mac }}
-      loop: "{{ dhcp_csv.list }}"
+    - name: set lines
       vars:
-        subnet: 192.168.1.0/24
+        list: "{{ configure.dhcp.commands | default([],true) }}"
+      ansible.builtin.set_fact:
+        lines: "{{ list }}"
+        batch: "{{ configure.dhcp.batch | default(-1,true) }}"
+
+    - name: loop
+      loop: "{{ [ configure.dhcp.csv | default([],true) ] | flatten }}"
+      loop_control:
+        loop_var: csv
+      vars:
+        register: lines
+      include_tasks: "{{ playbook_dir }}/../../.seed/ansible-tasks/csv-template.read.yml"
+
+    - name: configure batch
+      loop: "{{ range(0, (lines|length), (batch|int)) | list }}"
+      vars:
+        batch_lines: "{{ lines[item:(item + (batch|int))] | flatten }}"
+      community.network.edgeos_config:
+        lines: "{{ batch_lines }}"
+        save: true
+
+    - name: configure all
+      when: batch | int == -1
+      community.network.edgeos_config:
+        lines: "{{ lines | flatten }}"
+        save: true
