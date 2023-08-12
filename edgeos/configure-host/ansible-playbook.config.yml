@@ -3,54 +3,43 @@
 
 - name: config
   vars:
-    run_wsl: |
+    run_debug: |
+      ansible-playbook \
+        -vvv \
+        --inventory $PWD/ansible-inventories \
+        $PWD/../../../edgeos/configure-host/ansible-playbook.config.yml
+    run_normal: |
       ansible-playbook \
         --inventory $PWD/ansible-inventories \
         $PWD/../../../edgeos/configure-host/ansible-playbook.config.yml
   hosts: edgeos
   tasks:
 
-    - name: load dhcp_csv
-      community.general.read_csv:
-        path: "{{ configure.dhcp.dhcp_csv }}"
-      register: dhcp_csv
-      delegate_to: localhost
-      connection: local
+    - name: set lines
+      vars:
+        list: "{{ configure.host.commands | default([],true) }}"
+      ansible.builtin.set_fact:
+        lines: "{{ list }}"
+        batch: "{{ configure.host.batch | default(-1,true) }}"
 
-    - name: delete host
+    - name: loop
+      loop: "{{ [ configure.host.csv | default([],true) ] | flatten }}"
+      loop_control:
+        loop_var: csv
+      vars:
+        register: lines
+      include_tasks: csv/ansible-tasks.read.yml
+
+    - name: configure batch
+      loop: "{{ range(0, (lines|length), (batch|int)) | list }}"
+      vars:
+        batch_lines: "{{ lines[item:(item + (batch|int))] | flatten }}"
       community.network.edgeos_config:
-        lines:
-          - delete system static-host-mapping host-name
-      register: delete_result
-      until: "delete_result is not failed"
-      retries: 3
-      delay: 1
+        lines: "{{ batch_lines }}"
+        save: true
 
-    - name: configure host by dhcp_csv
-      when:
-        - item.cl_name != ''
-        - item.location in location[location.at]
+    - name: configure all
+      when: batch | int == -1
       community.network.edgeos_config:
-        lines:
-          - delete system static-host-mapping host-name {{ item.cl_name }}.lan
-          - set system static-host-mapping host-name {{ item.cl_name }}.lan inet {{ item.ip_addr }}
-      loop: "{{ dhcp_csv.list }}"
-
-    - name: load domain_csv
-      community.general.read_csv:
-        path: "{{ configure.dns.domain_csv }}"
-      register: domain_csv
-      delegate_to: localhost
-      connection: local
-
-    - name: configure host by domain_csv
-      when:
-        - item.cl_name != ''
-        - item.where in location[location.at]
-      community.network.edgeos_config:
-        lines:
-          - delete system static-host-mapping host-name {{ item.cl_name }}
-          - set system static-host-mapping host-name {{ item.cl_name }} inet {{ item.ip_addr }}
-          - delete system static-host-mapping host-name {{ item.cl_name }}{{ item.edgeos_domain }}
-          - set system static-host-mapping host-name {{ item.cl_name }}{{ item.edgeos_domain }} inet {{ item.ip_addr }}
-      loop: "{{ domain_csv.list }}"
+        lines: "{{ lines | flatten }}"
+        save: true

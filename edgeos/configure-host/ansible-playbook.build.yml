@@ -3,7 +3,12 @@
 
 - name: build
   vars:
-    run_wsl: |
+    run_debug: |
+      ansible-playbook \
+        -vvv \
+        --inventory $PWD/ansible-inventories \
+        $PWD/../../../edgeos/configure-host/ansible-playbook.build.yml
+    run_normal: |
       ansible-playbook \
         --inventory $PWD/ansible-inventories \
         $PWD/../../../edgeos/configure-host/ansible-playbook.build.yml
@@ -22,12 +27,16 @@
         state: directory
 
     - name: run build
+      loop: "{{ [ configure.host.csv | default([],true) ] | flatten }}"
+      loop_control:
+        loop_var: csv
+      when: csv.file is defined
       ansible.builtin.shell: "{{ playbook_dir }}/bash.build.sh"
       environment:
         build_path: "{{ playbook_dir }}/build"
         build_name: "configure.sh"
-        mapping_dhcp: "{{ configure.dhcp.dhcp_csv }}"
-        mapping_domain: "{{ configure.dns.domain_csv }}"
+        mapping_csv: "{{ csv.file }}"
+        mapping_column: "{{ csv.column | default('location,name,ip',true) | replace(',',' ') }}"
 
     - name: list build file
       ansible.builtin.find:
