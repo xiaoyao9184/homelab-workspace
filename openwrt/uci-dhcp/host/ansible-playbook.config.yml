@@ -3,7 +3,12 @@
 
 - name: config
   vars:
-    run_wsl: |
+    run_debug: |
+      ansible-playbook \
+        -vvv \
+        --inventory $PWD/ansible-inventories \
+        $PWD/../../../openwrt/uci-dhcp/host/ansible-playbook.config.yml
+    run_normal: |
       ansible-playbook \
         --inventory $PWD/ansible-inventories \
         $PWD/../../../openwrt/uci-dhcp/host/ansible-playbook.config.yml
@@ -12,29 +17,39 @@
     - gekmihesg.openwrt
   tasks:
 
-    - name: load host_csv
-      community.general.read_csv:
-        path: "{{ uci.dhcp.host_csv }}"
-      register: host_csv
-      delegate_to: localhost
-      connection: local
+    - name: set lines
+      vars:
+        list: "{{ uci.dhcp.host.commands | default([],true) }}"
+      ansible.builtin.set_fact:
+        lines: "{{ list }}"
+        batch: "{{ uci.dhcp.host.batch | default(-1,true) }}"
 
-    - name: delete dhcp host
-      ansible.builtin.shell: while uci -q delete dhcp.@host[0]; do :; done
+    - name: loop
+      loop: "{{ [ uci.dhcp.host.csv | default([],true) ] | flatten }}"
+      loop_control:
+        loop_var: csv
+      vars:
+        register: lines
+      include_tasks: "{{ playbook_dir }}/../../../.seed/ansible-tasks/csv-template.read.yml"
 
-    - name: set dhcp host
-      when:
-        - item.cl_name != ''
-        - item.location in location[location.at]
-      ansible.builtin.shell: |
-        uci add dhcp host
-        uci set dhcp.@host[-1].mac='{{ item.mac }}'
-        uci set dhcp.@host[-1].name='{{ item.cl_name }}'
-        uci set dhcp.@host[-1].dns='1'
-        uci set dhcp.@host[-1].ip='{{ item.ip_addr }}'
-        uci set dhcp.@host[-1].leasetime='{{ item.leasetime }}'
-        uci set dhcp.@host[-1].tag='{{ item.tag }}'
-      loop: "{{ host_csv.list }}"
+    - name: configure batch
+      loop: "{{ range(0, (lines|length), (batch|int)) | list }}"
+      vars:
+        batch_lines: "{{ lines[item:(item + (batch|int))] | flatten }}"
+        batch_cmd: "{{ (batch_lines + ['uci commit']) | join('\n') }}"
+      ansible.builtin.shell:
+        cmd: "{{ batch_cmd }}"
 
-    - name: commit dhcp host
-      ansible.builtin.shell: uci commit
+    - name: configure all
+      vars:
+        all_lines: "{{ lines | flatten }}"
+        all_cmd: "{{ (all_lines + ['uci commit']) | join('\n') }}"
+      when: batch | int == -1
+      ansible.builtin.shell:
+        cmd: "{{ all_cmd }}"
+
+    - name: restart dnsmasq
+      service:
+        name: dnsmasq
+        state: restarted
+        enabled: yes
