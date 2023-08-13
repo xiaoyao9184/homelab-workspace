@@ -3,7 +3,12 @@
 
 - name: build
   vars:
-    run_wsl: |
+    run_debug: |
+      ansible-playbook \
+        -vvv \
+        --inventory $PWD/ansible-inventories \
+        $PWD/../../../openwrt/uci-dhcp/domain/ansible-playbook.build.yml
+    run_normal: |
       ansible-playbook \
         --inventory $PWD/ansible-inventories \
         $PWD/../../../openwrt/uci-dhcp/domain/ansible-playbook.build.yml
@@ -22,12 +27,16 @@
         state: directory
 
     - name: run build
+      loop: "{{ [ uci.dhcp.domain.csv | default([],true) ] | flatten }}"
+      loop_control:
+        loop_var: csv
+      when: csv.file is defined
       ansible.builtin.shell: "{{ playbook_dir }}/bash.build.sh"
       environment:
         build_path: "{{ playbook_dir }}/build"
         build_name: "uci.sh"
-        mapping_dhcp: "{{ uci.dhcp.host_csv }}"
-        mapping_domain: "{{ uci.dhcp.domain_csv }}"
+        mapping_csv: "{{ csv.file }}"
+        mapping_column: "{{ csv.column | default('location,name,ip,mac',true) | replace(',',' ') }}"
 
     - name: list build file
       ansible.builtin.find:
