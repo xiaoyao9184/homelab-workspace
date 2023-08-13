@@ -3,10 +3,15 @@
 
 - name: build
   vars:
-    run_wsl: |
+    run_debug: |
+      ansible-playbook \
+        -vvv \
+        --inventory $PWD/ansible-inventories \
+        $PWD/../../../local/ikuai/ansible-playbook.build.yml
+    run_normal: |
       ansible-playbook \
         --inventory $PWD/ansible-inventories \
-        $PWD/../../../softwave/ikuai/ansible-playbook.build.yml
+        $PWD/../../../local/ikuai/ansible-playbook.build.yml
   hosts: localhost
   connection: local
   tasks:
@@ -22,11 +27,16 @@
         state: directory
 
     - name: run build
+      loop: "{{ [ switchhost.csv | default([],true) ] | flatten }}"
+      loop_control:
+        loop_var: csv
+      when: csv.file is defined
       ansible.builtin.shell: "{{ playbook_dir }}/bash.build.sh"
       environment:
         build_path: "{{ playbook_dir }}/build"
         build_name: "ikuai_dhcp_static.csv"
-        mapping_dhcp: "{{ ikuai.dhcp_csv }}"
+        mapping_csv: "{{ csv.file }}"
+        mapping_column: "{{ csv.column | default('location,ip,name,domain',true) | replace(',',' ') }}"
 
     - name: list build file
       ansible.builtin.find:
