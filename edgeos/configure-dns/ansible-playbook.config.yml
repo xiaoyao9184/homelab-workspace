@@ -3,42 +3,43 @@
 
 - name: config
   vars:
-    run_wsl: |
+    run_debug: |
+      ansible-playbook \
+        -vvv \
+        --inventory $PWD/ansible-inventories \
+        $PWD/../../../edgeos/configure-dns/ansible-playbook.config.yml
+    run_normal: |
       ansible-playbook \
         --inventory $PWD/ansible-inventories \
         $PWD/../../../edgeos/configure-dns/ansible-playbook.config.yml
   hosts: edgeos
   tasks:
 
-    - name: delete dns forwarding options
-      community.network.edgeos_config:
-        lines:
-          - delete service dns forwarding options
-      register: delete_result
-      until: "delete_result is not failed"
-      retries: 3
-      delay: 1
+    - name: set lines
+      vars:
+        list: "{{ configure.dns.commands | default([],true) }}"
+      ansible.builtin.set_fact:
+        lines: "{{ list }}"
+        batch: "{{ configure.dns.batch | default(-1,true) }}"
 
-    - name: load domain_csv
-      delegate_to: localhost
-      connection: local
-      when: configure.dns.domain_csv is defined
-      community.general.read_csv:
-        path: "{{ configure.dns.domain_csv }}"
-      register: domain_csv
+    - name: loop
+      loop: "{{ [ configure.dns.csv | default([],true) ] | flatten }}"
+      loop_control:
+        loop_var: csv
+      vars:
+        register: lines
+      include_tasks: "{{ playbook_dir }}/../../.seed/ansible-tasks/csv-template.read.yml"
 
-    - name: set dns forwarding options by domain_csv
-      loop: "{{ domain_csv.list | default([],true) }}"
-      when:
-        - item.cl_name != ''
-        - item.where in location[location.at]
+    - name: configure batch
+      loop: "{{ range(0, (lines|length), (batch|int)) | list }}"
+      vars:
+        batch_lines: "{{ lines[item:(item + (batch|int))] | flatten }}"
       community.network.edgeos_config:
-        lines:
-          - set service dns forwarding options address=/.{{ item.cl_name }}/{{ item.ip_addr }}
+        lines: "{{ batch_lines }}"
+        save: true
 
-    - name: set dns forwarding options by filter_aaaa
-      loop: "{{ configure.dns.filter_aaaa | default([],true) }}"
+    - name: configure all
+      when: batch | int == -1
       community.network.edgeos_config:
-        lines:
-          - "set service dns forwarding options server=/{{ item }}/#"
-          - "set service dns forwarding options address=/{{ item }}/::"
+        lines: "{{ lines | flatten }}"
+        save: true

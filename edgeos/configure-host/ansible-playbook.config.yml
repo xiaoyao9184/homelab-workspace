@@ -28,7 +28,7 @@
         loop_var: csv
       vars:
         register: lines
-      include_tasks: csv/ansible-tasks.read.yml
+      include_tasks: "{{ playbook_dir }}/../../.seed/ansible-tasks/csv-template.read.yml"
 
     - name: configure batch
       loop: "{{ range(0, (lines|length), (batch|int)) | list }}"
