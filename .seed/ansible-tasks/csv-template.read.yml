@@ -1,0 +1,19 @@
+
+- name: csv-template.read|read csv file
+  community.general.read_csv:
+    path: "{{ csv.file }}"
+  register: csv_file
+  delegate_to: localhost
+  connection: local
+
+- name: csv-template.read|append csv file
+  loop: "{{ csv_file.list }}"
+  vars:
+    template: "{{ csv.template | default(csv.file + '.j2',true) }}"
+    rendered: "{{ lookup('template', template) }}"
+    append: "{{ rendered | split('\n') | select() }}"
+    list: "{{ lookup('ansible.builtin.vars', register) }}"
+  when:
+    - rendered | length != 0
+  ansible.builtin.set_fact:
+    "{{ register }}": "{{ list + [append] }}"
