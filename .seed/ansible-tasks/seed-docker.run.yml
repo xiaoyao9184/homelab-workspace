@@ -347,7 +347,7 @@
             community.docker.docker_container:
               name: "key-volume.{{ seed_id.name }}"
               state: started
-              image: alpine
+              image: alpine:3.18
               command: "tail -f /dev/null"
               volumes:
                 - "{{ seed_id.name }}:/seed_vol"

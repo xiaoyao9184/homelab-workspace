@@ -169,7 +169,7 @@
       community.docker.docker_container:
         name: "{{ _volume.name }}"
         state: started
-        image: alpine
+        image: alpine:3.18
         command: "tail -f /dev/null"
         volumes:
           - "{{ _volume.name }}:/seed_vol"
