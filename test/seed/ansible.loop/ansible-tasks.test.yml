@@ -1,0 +1,12 @@
+---
+
+
+- name: ansible-tasks.test|debug var
+  ansible.builtin.debug:
+    msg: 
+      - "{{ loop_item }}"
+
+- name: ansible-tasks.test|loop var with
+  run_once: true
+  ansible.builtin.set_fact:
+    loop_count: "{{ loop_count | int + 1 }}"

@@ -1,0 +1,141 @@
+---
+
+- name: test
+  vars:
+    run_debug: |
+      ansible-playbook \
+        -vvv \
+        --inventory $PWD/ansible-inventories \
+        $PWD/../../../test/seed/ansible.loop/ansible-playbook.test.yml
+    run_normal: |
+      ansible-playbook \
+        --inventory $PWD/ansible-inventories \
+        $PWD/../../../test/seed/ansible.loop/ansible-playbook.test.yml
+  environment:
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
+  hosts: docker
+  tasks:
+
+    # all hosts variable is the same
+    - name: same|set var
+      # same like
+      # run_once: true
+      ansible.builtin.set_fact:
+        loop_var:
+          - name: same1
+            value: same1
+          - name: same2
+            value: same2
+
+    - name: same|set count for loop
+      run_once: true
+      ansible.builtin.set_fact:
+        loop_count: 0
+
+    - name: same|loop var with 
+      loop: "{{ loop_var }}"
+      loop_control:
+        loop_var: loop_item
+      include_tasks: ansible-tasks.test.yml
+
+    - name: same|fail count not same var size
+      run_once: true
+      when: loop_count | int != 2
+      ansible.builtin.fail:
+        msg: "loop count not same var size"
+
+
+    # hosts variable not the same
+    - name: different|set var
+      ansible.builtin.set_fact:
+        loop_var:
+          - name: inventory_hostname
+            value: "{{ inventory_hostname }}"
+          - name: same
+            value: same
+
+    - name: different|set count for loop
+      run_once: true
+      ansible.builtin.set_fact:
+        loop_count: 0
+
+    - name: different|loop var with 
+      loop: "{{ loop_var }}"
+      loop_control:
+        loop_var: loop_item
+      include_tasks: ansible-tasks.test.yml
+
+    - name: different|fail count same var size
+      run_once: true
+      # var size is 2 host size is 4 max 8(2x4) loop count
+      # var list have 1 same item and 4 different items so loop count is 5(1+4)
+      vars:
+        loop_time: "{{ 1 + groups['docker'] | length }}"
+      when: loop_count != loop_time
+      ansible.builtin.fail:
+        msg: "loop count same as var size"
+
+
+    # hosts variable size same but item not the same
+    - name: different-but-same-size|set var
+      ansible.builtin.set_fact:
+        loop_var:
+          - name: inventory_hostname
+            value: "{{ inventory_hostname }}"
+          - name: same
+            value: same
+
+    - name: different-but-same-size|set count for loop
+      run_once: true
+      ansible.builtin.set_fact:
+        loop_count: 0
+
+    - name: different-but-same-size|loop var with index
+      # evaluation on all hosts
+      # the evaluation result (0 to loop_var.length) is the same on all hosts,
+      # so each `loop_index` will only enter include_tasks once.
+      loop: "{{ range(0, loop_var | length, 1) | list }}"
+      loop_control:
+        loop_var: loop_index
+      vars:
+        loop_item: "{{ loop_var[loop_index] }}"
+      include_tasks: ansible-tasks.test.yml
+
+    - name: different-but-same-size|fail count same var size
+      run_once: true
+      when: loop_count | int != 2
+      ansible.builtin.fail:
+        msg: "loop count same as var size"
+
+
+    # hosts variable have same key item but item not the same
+    - name: different-but-same-key|set var
+      ansible.builtin.set_fact:
+        loop_var:
+          - name: inventory_hostname
+            value: "{{ inventory_hostname }}"
+          - name: same
+            value: same
+
+    - name: different-but-same-key|set count for loop
+      run_once: true
+      ansible.builtin.set_fact:
+        loop_count: 0
+
+    - name: different-but-same-key|loop var with attribute
+      # evaluation on all hosts
+      # evaluate results across all hosts, 
+      # merge and tag hosts if `loop_attribute` value are same,
+      # then enter include_tasks with tagged hosts.
+      loop: "{{ loop_var | map(attribute='name') }}"
+      loop_control:
+        loop_var: loop_attribute
+      vars:
+        loop_item: "{{ loop_var | selectattr('name','equalto',loop_attribute) | first }}"
+      include_tasks: ansible-tasks.test.yml
+
+    - name: different-but-same-key|fail count same var size
+      run_once: true
+      when: loop_count | int != 2
+      ansible.builtin.fail:
+        msg: "loop count same as var size"
