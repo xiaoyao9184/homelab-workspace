@@ -1,0 +1,41 @@
+---
+
+- name: test
+  vars:
+    run_debug: |
+      ansible-playbook \
+        -vvv \
+        --inventory $PWD/ansible-inventories \
+        $PWD/../../../test/seed/docker-envs.create/multi-var-loop/ansible-playbook.test.yml
+    run_normal: |
+      ansible-playbook \
+        --inventory $PWD/ansible-inventories \
+        $PWD/../../../test/seed/docker-envs.create/multi-var-loop/ansible-playbook.test.yml
+  environment:
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
+  hosts: docker
+  tasks:
+
+    - name: mkdir build path
+      run_once: true
+      delegate_to: localhost
+      ansible.builtin.file:
+        path: "{{ playbook_dir }}/build"
+        state: directory
+
+    - debug: msg="{{ test_swarm.env }}"
+
+    # In the case of multiple hosts, the size of vars `envs` is fixed at 2
+    # The actual number of files that should be generated is 1 + 4
+    # one file named `external_env-stack.env`
+    # same number of hosts files named `external_env-compose-{{ inventory_hostname }}.env`
+    - name: create envs
+      include_tasks: docker-envs.create.yml
+      vars:
+        envs:
+          - dest: "{{ playbook_dir }}/build/external_env-stack.env"
+            data: "{{ test_swarm.env | default([],true) }}"
+            mode: stack
+          - dest: "{{ playbook_dir }}/build/external_env-compose-{{ inventory_hostname }}.env"
+            data: "{{ test_swarm.env | default([],true) }}"
+            mode: compose

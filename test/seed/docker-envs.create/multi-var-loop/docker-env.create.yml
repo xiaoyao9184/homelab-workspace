@@ -1,0 +1,8 @@
+---
+
+
+- debug: 
+    msg: 
+      - "index: {{ envs_loop_index | default('',true) }}"
+      - "attribute: {{ envs_loop_attribute | default('',true) }}"
+      - "{{ env }}"

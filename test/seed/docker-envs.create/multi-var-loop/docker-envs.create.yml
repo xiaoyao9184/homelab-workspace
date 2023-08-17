@@ -1,0 +1,41 @@
+---
+
+
+- name: docker-envs.create|debug envs flatten
+  vars:
+    alway_list: "{{ [ envs | default([],true) ] | flatten }}"
+    # same like this
+    to_list: |-
+      {% if envs is defined and envs | type_debug == 'list' %}
+      {{ envs }}
+      {% elif envs is defined and envs | type_debug == 'dict' %}
+      {{ [envs] }}
+      {% endif %}
+  ansible.builtin.debug:
+    msg: 
+      - "{{ alway_list }}"
+      - "{{ to_list }}"
+    verbosity: 3
+
+
+# If you use variable loops, the variables of different hosts will increase the number of loops, 
+# and there will be multiple loops for the same `dest` file, which will cause data errors.
+# So loop time must be fixed
+
+# loop with var item index
+- name: docker-envs.create|loop envs item index
+  loop: "{{ range(0, envs | length, 1) | list }}"
+  loop_control:
+    loop_var: envs_loop_index
+  vars:
+    env: "{{ envs[envs_loop_index] }}"
+  include_tasks: docker-env.create.yml
+
+# loop with var item attribute
+- name: docker-envs.create|loop envs item attribute
+  loop: "{{ [ envs | default([],true) ] | flatten | map(attribute='dest') }}"
+  loop_control:
+    loop_var: envs_loop_attribute
+  vars:
+    env: "{{ [ envs | default([],true) ] | flatten | selectattr('dest','equalto',envs_loop_attribute) | first }}"
+  include_tasks: docker-env.create.yml
