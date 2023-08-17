@@ -1,0 +1,66 @@
+---
+
+- name: test
+  vars:
+    run_debug: |
+      ansible-playbook \
+        -vvv \
+        --inventory $PWD/ansible-inventories \
+        $PWD/../../../test/seed/docker-env.create/multi-host-var-append/ansible-playbook.test.yml
+    run_normal: |
+      ansible-playbook \
+        --inventory $PWD/ansible-inventories \
+        $PWD/../../../test/seed/docker-env.create/multi-host-var-append/ansible-playbook.test.yml
+  environment:
+    PATH: "{{ ansible_env.PATH }}:{{ env_path | default('') }}"
+  hosts: docker:!docker-manager
+  tasks:
+
+    - name: mkdir build path
+      run_once: true
+      delegate_to: localhost
+      ansible.builtin.file:
+        path: "{{ playbook_dir }}/build"
+        state: directory
+
+    - debug: msg="{{ test_swarm.env }}"
+
+    # generated on the each hosts
+    # different hosts use different files
+    - name: create compose env with different dest
+      include_tasks:
+        file: docker-env.create.yml
+      vars:
+        env:
+          dest: "{{ playbook_dir }}/build/external_env-compose-{{ inventory_hostname }}.env"
+          data: "{{ test_swarm.env | default([],true) }}"
+          mode: compose
+
+    # generated on the `docker-manager` host
+    # different hosts use same file, each hosts env.data will be merged
+    - name: create stack env with same dest
+      # each host env maybe not same
+      # run_once: true
+      # ERROR! 'delegate_to' is not a valid attribute for a TaskInclude
+      # delegate_to: "{{ groups['docker-manager'] | first }}"
+      include_tasks:
+        file: docker-env.create.yml
+        # not use delegate_to use `mode`
+        # apply: 
+          # delegate_to: "{{ groups['docker-manager'] | first }}"
+      vars:
+        env:
+          dest: "{{ playbook_dir }}/build/external_env-stack.env"
+          data: "{{ test_swarm.env | default([],true) }}"
+          mode: stack
+
+    # generated on the `docker-manager` host
+    # different hosts use different files
+    - name: create stack env with different dest
+      include_tasks:
+        file: docker-env.create.yml
+      vars:
+        env:
+          dest: "{{ playbook_dir }}/build/external_env-stack-{{ inventory_hostname }}.env"
+          data: "{{ test_swarm.env | default([],true) }}"
+          mode: stack

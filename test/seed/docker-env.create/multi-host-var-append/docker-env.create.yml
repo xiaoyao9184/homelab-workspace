@@ -1,0 +1,105 @@
+---
+
+
+- name: docker-env.create|debug env var
+  ansible.builtin.debug:
+    var: env
+    verbosity: 3
+
+# each env.data item map `b64encode` for unsafe string
+- name: docker-env.create|list|set base64 _env fact
+  when: env.data | type_debug == 'list'
+  ansible.builtin.set_fact:
+    # use a different name than var because it cannot be covered
+    _env:
+      data: "{{ env.data | map('b64encode') }}"
+      mode: "{{ env.mode }}"
+      dest: "{{ env.dest }}"
+
+- name: docker-env.create|dict|set base64 _env fact
+  vars:
+    env_query: "[].join('=',[key,value])"
+  when: env.data | type_debug == 'dict'
+  ansible.builtin.set_fact:
+    _env:
+      data: "{{ env.data | dict2items | json_query(env_query) | map('b64encode') }}"
+      mode: "{{ env.mode }}"
+      dest: "{{ env.dest }}"
+
+- name: docker-env.create|compose|debug|write _env dest file
+  vars:
+    env_content: "{{ _env.data | map('b64decode') | join('\n') }}"
+  when: env.mode == "compose"
+  ansible.builtin.debug:
+    verbosity: 3
+    msg:
+      - "{{ env_content }}"
+      - "{{ _env.dest }}"
+
+- name: docker-env.create|compose|write _env dest file
+  vars:
+    env_content: "{{ _env.data | map('b64decode') | join('\n') }}"
+  when: env.mode == "compose"
+  ansible.builtin.copy:
+    content: "{{ env_content }}"
+    dest: "{{ _env.dest }}"
+    mode: '0777'
+
+# extract var from each host, 
+# instead of each host putting its own var in the same place, 
+# `set_fact` is only for the current host
+- name: docker-env.create|stack|merge stack mode _env
+  # the extracted var is global, and the results of any host are the same, so run once fine.
+  run_once: true
+  vars:
+    items_hostvars: "{{ hostvars | dict2items }}"
+    docker_hostvars: "{{ items_hostvars | selectattr('key','in',groups['docker']) | map(attribute='value') }}"
+    all_envs: "{{ docker_hostvars | selectattr('_env','defined') | map(attribute='_env') }}"
+    stack_envs: "{{ all_envs | selectattr('mode','equalto','stack') }}"
+  ansible.builtin.set_fact:
+    _stack_envs: "{{ stack_envs }}"
+
+- name: docker-env.create|stack|debug|write to file
+  # only run once on the docker-master node
+  run_once: true
+  # if the delegated `docker-manager` host does not exist, the delegate will not be used,
+  # and delegation can only be accurate to a specific host, so get first `docker-manager` host.
+  delegate_to: "{{ groups['docker-manager'] | default([omit]) | first }}"
+  loop: "{{ _stack_envs | map(attribute='dest') | unique }}"
+  loop_control:
+    loop_var: dest_index
+  vars:
+    dest_envs: "{{ _stack_envs | selectattr('dest','equalto',dest_index) }}"
+    dest_datas: "{{ dest_envs | map(attribute='data') }}"
+    dest_lines: "{{ dest_datas | flatten | unique }}"
+    dest_content: "{{ dest_lines | map('b64decode') | join('\n') }}"
+  ansible.builtin.debug:
+    verbosity: 3
+    msg:
+      - "{{ dest_index }}"
+      - "{{ dest_envs }}"
+      - "{{ dest_datas }}"
+      - "{{ dest_lines }}"
+      - "{{ dest_content }}"
+      - "{{ groups['docker-manager'] | default([]) | length > 0 }}"
+
+- name: docker-env.create|stack|write to file
+  # only run once on the docker-master node
+  run_once: true
+  # if the delegated `docker-manager` host does not exist, the delegate will not be used,
+  # and delegation can only be accurate to a specific host, so get first `docker-manager` host.
+  delegate_to: "{{ groups['docker-manager'] | default([omit]) | first }}"
+  loop: "{{ _stack_envs | map(attribute='dest') | unique }}"
+  loop_control:
+    loop_var: dest_index
+  vars:
+    dest_envs: "{{ _stack_envs | selectattr('dest','equalto',dest_index) }}"
+    dest_datas: "{{ dest_envs | map(attribute='data') }}"
+    dest_lines: "{{ dest_datas | flatten | unique }}"
+    dest_content: "{{ dest_lines | map('b64decode') | join('\n') }}"
+  # task should be skip when delegation is not used, mean the current host is not `docker-manager`
+  when: groups['docker-manager'] | default([]) | length > 0
+  ansible.builtin.copy:
+    content: "{{ dest_content }}"
+    dest: "{{ dest_index }}"
+    mode: '0777'
