@@ -31,7 +31,7 @@
       loop_control:
         loop_var: csv
       when: csv.file is defined
-      ansible.builtin.shell: "{{ playbook_dir }}/bash.build.sh"
+      ansible.builtin.script: "{{ playbook_dir }}/bash.build.sh"
       environment:
         build_path: "{{ playbook_dir }}/build"
         build_name: "ikuai_dhcp_static.csv"

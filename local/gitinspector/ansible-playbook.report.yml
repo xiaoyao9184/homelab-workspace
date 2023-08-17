@@ -12,6 +12,6 @@
   tasks:
 
     - name: run report
-      ansible.builtin.shell: "{{ playbook_dir }}/bash.report.sh"
+      ansible.builtin.script: "{{ playbook_dir }}/bash.report.sh"
       environment:
         mapping_stats: "{{ gitinspector.stats_csv }}"
