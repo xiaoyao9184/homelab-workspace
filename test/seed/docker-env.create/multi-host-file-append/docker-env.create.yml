@@ -1,0 +1,29 @@
+---
+
+
+- name: docker-env.create|debug
+  ansible.builtin.debug:
+    var: env
+    verbosity: 3
+
+# delete/empty the file, multiple hosts maybe append to the same file
+- name: docker-env.create|stack|empty file
+  delegate_to: "{{ groups['docker-manager'] | first }}"
+  when: env.mode == "stack"
+  ansible.builtin.copy:
+    content: ""
+    dest: "{{ env.dest }}"
+    mode: '0777'
+    # force: false
+
+- name: docker-env.create|list
+  when:
+    - env.data | type_debug == 'list'
+  include_tasks:
+    file: docker-env-list.create.yml
+
+- name: docker-env.create|dict
+  when:
+    - env.data | type_debug == 'dict'
+  include_tasks:
+    file: docker-env-dict.create.yml

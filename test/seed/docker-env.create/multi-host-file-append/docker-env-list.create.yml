@@ -1,0 +1,30 @@
+---
+
+
+- name: docker-env-list.create|debug env
+  ansible.builtin.debug:
+    var: env
+    verbosity: 3
+
+- name: docker-env-list.create|compose|write to file
+  vars:
+    env_content: "{{ env.data | join('\n') }}"
+  when: env.mode == "compose"
+  ansible.builtin.copy:
+    content: "{{ env_content }}"
+    dest: "{{ env.dest }}"
+    mode: '0777'
+
+- name: docker-env-list.create|stack|append to file
+  delegate_to: "{{ groups['docker-manager'] | first }}"
+  loop: "{{ env.data }}"
+  loop_control:
+    loop_var: env_item
+  vars:
+    env_line: "{{ env_item }}"
+    env_key: "{{ env_item | split('=') | first }}"
+  when: env.mode == "stack"
+  ansible.builtin.lineinfile:
+    path: "{{ env.dest }}"
+    search_string: "^{{ env_key }}="
+    line: "{{ env_line }}"

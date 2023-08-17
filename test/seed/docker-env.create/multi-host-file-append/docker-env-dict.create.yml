@@ -1,0 +1,36 @@
+---
+
+
+- name: docker-env-dict.create|debug env
+  ansible.builtin.debug:
+    var: env
+    verbosity: 3
+
+- name: docker-env-dict.create|compose|write to file
+  vars:
+    env_query: "[].join('=',[key,value])"
+    env_data: "{{ env.data | dict2items | json_query(env_query) }}"
+    env_content: "{{ env_data | join('\n') }}"
+  when: env.mode == "compose"
+  ansible.builtin.copy:
+    content: "{{ env_content }}"
+    dest: "{{ env.dest }}"
+    mode: '0777'
+
+- name: docker-env-dict.create|stack|append to file
+  delegate_to: "{{ groups['docker-manager'] | first }}"
+  loop: "{{ env.data | dict2items }}"
+  loop_control:
+    loop_var: env_kv_item
+  vars:
+    env_line: "{{ env_kv_item.key }}={{ env_kv_item.value }}"
+  when: env.mode == "stack"
+  ansible.builtin.lineinfile:
+    path: "{{ env.dest }}"
+    search_string: "^{{ env_kv_item.key }}="
+    line: "{{ env_line }}"
+  # ERROR No such file or directory
+  register: result
+  until: result is success
+  retries: 5
+  # delay: 10
